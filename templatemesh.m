@@ -1,4 +1,4 @@
-function templatemesh(A);
+function templatemesh(A)
 % Overlay a 90x90 AAL connectivity matrix on a template brain natively in
 % matlab 
 %
