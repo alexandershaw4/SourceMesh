@@ -18,13 +18,23 @@ if nargin > 0
     % Edges
     %-------------------------------------------------------------
     [node1,node2,strng] = conmat2nodes(A);
+    RGB = makecolbar(strng);
+    
+    % LineWidth (scaled) for strength 
     S = (strng/max(strng))*7;
+    R = [min(strng),max(strng)];
+    S = ( strng - R(1) ) + 1e-3;
+    
     for i = 1:size(node1,1)
         line([node1(i,1),node2(i,1)],...
              [node1(i,2),node2(i,2)],...
              [node1(i,3),node2(i,3)],...
-             'LineWidth',S(i),'Color',[1 (S(i)/10) 0.1]);
+             'LineWidth',S(i),'Color',[RGB(i,:)]);
     end
+    set(gcf,'DefaultAxesColorOrder',RGB)
+    colorbar
+    caxis([min(strng),max(strng)])
+
     drawnow;
     
     
@@ -39,6 +49,16 @@ end
 
 end
 
+function RGB = makecolbar(I)
+% Register colorbar values to our T-vector
+
+Colors   = jet;
+NoColors = length(Colors);
+
+Ireduced = (I-min(I))/(max(I)-min(I))*(NoColors-1)+1;
+RGB      = interp1(1:NoColors,Colors,Ireduced);
+
+end
 
 
 function meshmesh(g)
