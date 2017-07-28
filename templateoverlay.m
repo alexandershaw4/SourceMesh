@@ -1,11 +1,11 @@
 function [M,S] = templateoverlay(L,S)
 % Plot smoothed tamplate brain with overlay vector, L.
-% L is a vector of length 90
+% L is a vector of length 90 corresponding to the AAL90 atlas
 %
-% L is mapped to the size of the template by finding the closest points and
-% linearly interpreting 
+% L is mapped to the size of the template by finding the n-closest points and
+% linearly interpreting to generate a smooth surface
 %
-% Returns matrix M so that it needn't be recomputed:
+% Returns matrix M of weights, so that it needn't be recomputed:
 % call 1  : [M,S] = templateoverlay(L) % computes M & S and plots
 % call 2+ : templateoverlay(L'*M,S);   % much quicker
 %
