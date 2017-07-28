@@ -1,4 +1,4 @@
-function templatemesh(A,labelflag)
+function templatemesh(A)
 % Overlay a 90x90 AAL connectivity matrix on a template brain natively in
 % matlab 
 %
@@ -35,9 +35,7 @@ if nargin > 0
     caxis(R)
     
     % Labels
-    if nargin > 1 && labelflag == 1;
-        addlabels(A);
-    end
+    addlabels(A);
 
     drawnow;
     
@@ -95,24 +93,26 @@ load('AAL_SOURCEMOD');
 
 % compile list of in-use node indices
 %------------------------------------
-to = []; from = [];
 for i  = 1:size(V,1)
     ni = find(logical(V(i,:)));
     if any(ni)
-        to   = [to   ni];
-        from = [from repmat(i,[1,length(ni)]) ];
+        NI = [NI ni];
+        IN = [IN repmat(i,[size(ni),1]) ];
     end
 end
 
-AN  = unique([to,from]);
-v   = template_sourcemodel.pos;
-off = .9;
 
-% add these to plot with offset
+[TOs,Ic] = unique(NI); 
+FROMs    = IN(Ic);
+
+AllNodes = unique([TOs,FROMs]);
+v        = template_sourcemodel.pos;
+
+% add these to plot
 %------------------------------------
-for i = 1:length(AN)
-    t(i) = text(v(AN(i),1)+off,+v(AN(i),2)+off,v(AN(i),3)+off,labels{AN(i)});
+for i = 1:length(AllNodes)
+    t(i) = text(v(i,1),v(i,2),v(i,3),labels{AllNodes(i)});
 end
-set(t,'Fontsize',16)
+set(t,'Fontsize',20)
 
 end
