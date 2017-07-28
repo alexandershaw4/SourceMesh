@@ -23,11 +23,10 @@ x  = v(:,1);
 mv = mesh.vertices;
 nv = length(mv);
 OL = sparse(90,nv);
-r  = 3000;          % radius func
+r  = 6000;          % radius func
 w  = linspace(.5,1,r);
 w  = fliplr(w); 
 M  = zeros( length(x), nv);
-S  = [min(L(:)),max(L(:))];
 
 % if is same verts as mri, just rescale & overlay
 if length(L) == nv && nargin == 2
@@ -41,6 +40,7 @@ if length(L) == nv && nargin == 2
     shading interp;
     
 else
+    S  = [min(L(:)),max(L(:))];
     % otherwise find closest points (assume both in mm)
     fprintf('Determining closest points between AAL & template vertices\n');
     for i = 1:length(x)
