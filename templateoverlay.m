@@ -1,4 +1,4 @@
-function M = templateoverlay(L)
+function [M,S] = templateoverlay(L,S)
 % Plot smoothed tamplate brain with overlay vector, L.
 % L is a vector of length 90
 %
@@ -6,8 +6,8 @@ function M = templateoverlay(L)
 % linearly interpreting 
 %
 % Returns matrix M so that it needn't be recomputed:
-% call 1  : M = templateoverlay(L) % computes M and plots
-% call 2+ : templateoverlay(L'*M); % much quicker
+% call 1  : [M,S] = templateoverlay(L) % computes M & S and plots
+% call 2+ : templateoverlay(L'*M,S);   % much quicker
 %
 % AS
 
@@ -28,11 +28,14 @@ w  = linspace(.5,1,r);
 M  = zeros( length(x), nv);
 S  = [min(L(:)),max(L(:))];
 
-if length(L) == nv
-    fprintf('Overlay size matches!\n');
+if length(L) == nv && nargin == 2
+    fprintf('Overlay size matches mri!\n');
     hh = get(gca,'children');
-    L = L(:);
-    set(hh(end),'FaceVertexCData',L, 'FaceColor','interp');
+    L  = L(:);
+    y  = S(1) + ((S(2)-S(1))).*(L - min(L))./(max(L) - min(L));
+    y  = y(:);
+
+    set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
     shading interp;
     
 else
@@ -56,9 +59,11 @@ else
     
     % normalise and rescale
     OL = mean(OL,1)';
-    OL = (OL/min(OL))/(max(OL)-min(OL)) * S;
+    y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+    y  = y(:);
     hh = get(gca,'children');
-    set(hh(end),'FaceVertexCData',OL, 'FaceColor','interp');
+    
+    set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
     shading interp
 end
 
