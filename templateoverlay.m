@@ -1,9 +1,15 @@
-function templateoverlay(L)
+function M = templateoverlay(L)
 % Plot smoothed tamplate brain with overlay vector, L.
 % L is a vector of length 90
 %
+% L is mapped to the size of the template by finding the closest points and
+% linearly interpreting 
 %
-
+% Returns matrix M so that it needn't be recomputed:
+% call 1  : M = templateoverlay(L) % computes M and plots
+% call 2+ : templateoverlay(L'*M); % much quicker
+%
+% AS
 
 % Surface
 mesh = read_nv();
@@ -14,31 +20,47 @@ hold on;
 load('AAL_SOURCEMOD');
 v  = template_sourcemodel.pos;
 x  = v(:,1);
-y  = v(:,2);
-z  = v(:,3);
 mv = mesh.vertices;
 nv = length(mv);
 OL = sparse(90,nv);
 r  = 3000;          % radius func
+w  = linspace(.5,1,r);
+M  = zeros( length(x), nv);
+S  = [min(L(:)),max(L(:))];
 
-fprintf('Determining closest points between AAL & template vertices\n');
-for i = 1:length(x)
+if length(L) == nv
+    fprintf('Overlay size matches!\n');
+    hh = get(gca,'children');
+    L = L(:);
+    set(hh(end),'FaceVertexCData',L, 'FaceColor','interp');
+    shading interp;
     
-    % find closest point in cortical mesh
-    dist  = sum((mv - repmat(v(i, :), size(mv, 1), 1)).^2, 2);
-    for j = 1:r
-        [junk, ind] = min(dist);
-        dist(ind)   = inf;
-        coord       = mv(ind, :);
-        newv(i,:,:) = coord;
-        OL(i,ind)   = L(i);
-    end
-end
+else
+    fprintf('Determining closest points between AAL & template vertices\n');
+    for i = 1:length(x)
 
-OL = mean(OL,1)';
-hh = get(gca,'children');
-set(hh(end),'FaceVertexCData',OL, 'FaceColor','interp');
-shading interp
+        % reporting
+        if i > 1; fprintf(repmat('\b',[size(str)])); end
+        str = sprintf('%d/%d',i,(length(x)));
+        fprintf(str);    
+
+        % find closest point in cortical mesh
+        dist  = sum((mv - repmat(v(i, :), size(mv, 1), 1)).^2, 2);
+        for j = 1:r
+            [junk, ind] = min(dist);
+            dist(ind)   = inf;
+            OL(i,ind)   = w(r)*L(i);
+            M (i,ind)   = w(r); % return this for future calls
+        end
+    end
+    
+    % normalise and rescale
+    OL = mean(OL,1)';
+    OL = (OL/min(OL))/(max(OL)-min(OL)) * S;
+    hh = get(gca,'children');
+    set(hh(end),'FaceVertexCData',OL, 'FaceColor','interp');
+    shading interp
+end
 
 end
 
@@ -56,6 +78,6 @@ C = [.5 .5 .5];
 
 set(h,'FaceColor',[C]); box off;
 grid off;  set(h,'EdgeColor','none');
-alpha(.5); set(gca,'visible','off');
+alpha(.8); set(gca,'visible','off');
 
 end
