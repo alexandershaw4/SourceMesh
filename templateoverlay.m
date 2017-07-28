@@ -18,25 +18,29 @@ y  = v(:,2);
 z  = v(:,3);
 mv = mesh.vertices;
 nv = length(mv);
-OL = sparse(nv,1);
-r  = 600; % radius 
+OL = sparse(90,nv);
+r  = 3000;          % radius func
 
+fprintf('Determining closest points between AAL & template vertices\n');
 for i = 1:length(x)
     
     % find closest point in cortical mesh
-    dist        = sum((mv - repmat(v(i, :), size(mv, 1), 1)).^2, 2);
+    dist  = sum((mv - repmat(v(i, :), size(mv, 1), 1)).^2, 2);
     for j = 1:r
         [junk, ind] = min(dist);
         dist(ind)   = inf;
         coord       = mv(ind, :);
         newv(i,:,:) = coord;
-        OL(ind)     = L(i);
+        OL(i,ind)   = L(i);
     end
 end
 
-set(get(gca,'children'),'FaceVertexCData',OL, 'FaceColor','interp');
+OL = mean(OL,1)';
+hh = get(gca,'children');
+set(hh(end),'FaceVertexCData',OL, 'FaceColor','interp');
 shading interp
 
+end
 
 function meshmesh(g)
 % plot as transparent grey gifti surface
