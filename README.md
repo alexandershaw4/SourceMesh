@@ -21,3 +21,5 @@ templateoverlay(L'*M,S)    % second call
 * L is a vector of length 90 corresponding to the AAL90 atlas
 * L is mapped to the size of the template by finding the n-closest points and linearly interpreting to generate a smooth surface
 * Returns matrix M of weights, so that it needn't be recomputed.
+
+![alt text](NodePow2Surface.gif)
