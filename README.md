@@ -1,4 +1,15 @@
 # MeshAAL
+
+Plot AAL overlays and networks (nodes & edges) on template brain natively in matlab.
+
+```
+template('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
+template('labels','overlay',L);    % plot overlay (L=1x90 double), add labels
+template('overlay',L,'network',A); % plot overlay and network, no labels
+```
+
+# Individual functions
+
 Plot AAL nodes and edges on template brain natively in matlab
 
 ```
