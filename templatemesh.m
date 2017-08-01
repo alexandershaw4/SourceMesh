@@ -21,20 +21,38 @@ if nargin > 0
     RGB = makecolbar(strng);
     
     % LineWidth (scaled) for strength 
-    R = [min(strng),max(strng)];
-    S = ( strng - R(1) ) + 1e-3;
+    if any(strng)
+        R = [min(strng),max(strng)];
+        S = ( strng - R(1) ) + 1e-3;
+    else
+        S = [0 0];
+    end
     
+    % If too few strengths, just use red edges
+    LimC = 1;
+    if all(all(isnan(RGB)))
+        RGB  = repmat([1 0 0],[size(RGB,1) 1]);
+        LimC = 0;
+    end
+    
+    % Paint edges
     for i = 1:size(node1,1)
         line([node1(i,1),node2(i,1)],...
              [node1(i,2),node2(i,2)],...
              [node1(i,3),node2(i,3)],...
              'LineWidth',S(i),'Color',[RGB(i,:)]);
     end
-    set(gcf,'DefaultAxesColorOrder',RGB)
-    colorbar
-    caxis(R)
     
-    % Labels
+    % Set colorbar only if there are valid edges 
+    if any(i)
+        set(gcf,'DefaultAxesColorOrder',RGB)
+        colorbar
+    end
+    if LimC;
+        caxis(R);
+    end
+    
+    % Add Labels
     if nargin > 1 && labelflag == 1;
         addlabels(A);
     end
@@ -106,13 +124,13 @@ end
 
 AN  = unique([to,from]);
 v   = template_sourcemodel.pos;
-off = .9;
+off = 1.1;
 
 % add these to plot with offset
 %------------------------------------
 for i = 1:length(AN)
     t(i) = text(v(AN(i),1)+off,+v(AN(i),2)+off,v(AN(i),3)+off,labels{AN(i)});
 end
-set(t,'Fontsize',16)
+set(t,'Fontsize',7)
 
 end

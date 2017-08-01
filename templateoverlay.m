@@ -23,8 +23,8 @@ x  = v(:,1);
 mv = mesh.vertices;
 nv = length(mv);
 OL = sparse(90,nv);
-r  = 6000;          % radius func
-w  = linspace(.5,1,r);
+r  = 1500;          % radius func
+w  = linspace(.1,1,r);
 w  = fliplr(w); 
 M  = zeros( length(x), nv);
 
@@ -61,16 +61,19 @@ else
     end
     
     % normalise and rescale
-    OL = mean(OL,1)';
+    OL = max(OL)';
     y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
     y  = y(:);
     hh = get(gca,'children');
     
     set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
     shading interp
+    colorbar
 end
 
 end
+
+
 
 function meshmesh(g)
 % plot as transparent grey gifti surface
