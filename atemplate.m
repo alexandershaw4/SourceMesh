@@ -5,6 +5,7 @@ function atemplate(varargin)
 %
 % 'overlay', L (1x90)
 % 'network', A (90x90)
+% 'tracks' , tracks, header (as read with trk_read^ )
 % 'labels'
 %
 % usages:
@@ -14,6 +15,9 @@ function atemplate(varargin)
 %   atemplate('network',A);  template mesh nodes & edges
 %   atemplate('overlay',L,'network',A,'labels'); with overlay,network and labels
 %   atemplate('tracks',tracks,header); plot tracks loaded with trk_read
+%
+%
+% ^trk_read requires along-tract-stats toolbox
 %
 % AS17
 
