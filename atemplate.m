@@ -27,6 +27,7 @@ for i = 1:length(varargin)
     if strcmp(varargin{i},'tracks');  T = varargin{i+1}; H = varargin{i+2}; end
     if strcmp(varargin{i},'labels');  labels = 1; else labels = 0; end
     if strcmp(varargin{i},'nosurf');  pmesh  = 0; else pmesh  = 1; end
+    if strcmp(varargin{i},'nodes');   N = varargin{i+1}; end
 end
 
 % Plot Surface
@@ -42,10 +43,12 @@ end
 try A; connections(A);        end % draw edges and edge-connected nodes
 try L; overlay(mesh,L);       end % find closest vertices and overlay
 try T; drawtracks(T,H,mesh);  end % draw dti tracks loaded with trk_read
+try N; drawnodes(N);          end
 
 if labels; 
-    try   A; addlabels(A); 
-    catch    addlabels(ones(90,90));
+    if     exist('A','var'); addlabels(A);
+    elseif exist('N','var'); addlabels(diag(N));
+    else   addlabels(ones(90,90));
     end
 end
 
@@ -108,8 +111,24 @@ for i = 1:size(node1,1)
     scatter3(node2(i,1),node2(i,2),node2(i,3),'filled','k');
 end
 
+drawnow;
+
 end
 
+function drawnodes(N)
+
+hold on;
+load([fileparts(which('conmat2nodes')),'/AAL_SOURCEMOD.mat']);
+v = template_sourcemodel.pos;
+
+ForPlot = v(find(N),:);
+
+for i = 1:length(ForPlot)
+    scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),'filled','r');
+end
+
+
+end
 
 function RGB = makecolbar(I)
 % Register colorbar values to our T-vector
