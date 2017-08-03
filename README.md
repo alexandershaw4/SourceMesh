@@ -48,7 +48,7 @@ atemplate('tracks',Tracks,Header,'labels');
 atemplate('tracks',Tracks,Header,'nodes',N,'labels'); 
 ```
 
-trk_read is part of the along-tract-stats toolbox:
+trk_read is part of John Colby's along-tract-stats toolbox:
 https://github.com/johncolby/along-tract-stats
 
 ![alt text](TestRotTracksGif.gif)
