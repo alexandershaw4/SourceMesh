@@ -21,14 +21,17 @@ function atemplate(varargin)
 %
 % AS17
 
-for i = 1:length(varargin)
+pmesh  = 1;
+labels = 0;
+for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay'); L = varargin{i+1}; end
     if strcmp(varargin{i},'network'); A = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');  T = varargin{i+1}; H = varargin{i+2}; end
-    if strcmp(varargin{i},'labels');  labels = 1; else labels = 0; end
-    if strcmp(varargin{i},'nosurf');  pmesh  = 0; else pmesh  = 1; end
+    if strcmp(varargin{i},'labels');  labels = 1;  end
+    if strcmp(varargin{i},'nosurf');  pmesh  = 0;  end
     if strcmp(varargin{i},'nodes');   N = varargin{i+1}; end
 end
+
 
 % Plot Surface
 mesh = read_nv();
@@ -233,7 +236,7 @@ else
         fprintf(str);    
 
         % find closest point in cortical mesh
-        dist  = sum((mv - repmat(v(i, :), size(mv, 1), 1)).^2, 2);
+        dist  = cdist(mv,v(i,:));
         for j = 1:r
             [junk, ind] = min(dist);
             dist(ind)   = inf;
@@ -277,6 +280,10 @@ C = [.5 .5 .5];
 set(h,'FaceColor',[C]); box off;
 grid off;  set(h,'EdgeColor','none');
 alpha(a); set(gca,'visible','off');
+
+h = get(gcf,'Children');
+set(h,'visible','off');
+
 
 end
 
