@@ -3,10 +3,15 @@
 Plot AAL overlays and networks (nodes & edges) on template brain natively in matlab.
 
 ```
-template('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
-template('labels','overlay',L);    % plot overlay (L=1x90 double), add labels
-template('overlay',L,'network',A); % plot overlay and network, no labels
+atemplate('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
+atemplate('labels','overlay',L);    % plot overlay (L=1x90 double), add labels
+atemplate('overlay',L,'network',A); % plot overlay and network, no labels
+atemplate('tracks',tracks,header);  % plot tracks loaded using trk_read from along-tract-stats toolbox
+atemplate('nodes',N,'labels');      % plot nodes only. N is 1x90 binary vector 
 ```
+
+![alt text](ExampleTracksNodesLabels.gif)
+
 
 # Individual functions
 
@@ -34,3 +39,16 @@ templateoverlay(L'*M,S)    % second call
 * Returns matrix M of weights, so that it needn't be recomputed.
 
 ![alt text](NodePowOnSurface.gif)
+
+
+Plot tracks.
+```
+atemplate('tracks',Tracks,Header); % where Tracks and Header were loaded using trk_read
+atemplate('tracks',Tracks,Header,'labels');
+atemplate('tracks',Tracks,Header,'nodes',N,'labels'); 
+```
+
+trk_read is part of the along-tract-stats toolbox:
+https://github.com/johncolby/along-tract-stats
+
+![alt text](TestRotTracksGif.gif)
