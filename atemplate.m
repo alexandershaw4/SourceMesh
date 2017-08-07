@@ -109,6 +109,7 @@ drawnow;
 
 % Nodes (of edges only)
 %-------------------------------------------------------------
+hold on;
 for i = 1:size(node1,1)
     scatter3(node1(i,1),node1(i,2),node1(i,3),'filled','k');
     scatter3(node2(i,1),node2(i,2),node2(i,3),'filled','k');
