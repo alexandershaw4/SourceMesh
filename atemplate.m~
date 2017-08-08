@@ -202,10 +202,6 @@ end
 
 
 function overlay(mesh,L);
-
-% overlay option:
-interpl = 0; % interp shading between nodes or just use max value
-
 % Overlay
 load('AAL_SOURCEMOD');
 v  = template_sourcemodel.pos;
@@ -250,18 +246,13 @@ else
         end
     end
     
-    if ~interpl
-        OL = max(OL)'; % max value of a given vertex
-    else
-        for i = 1:size(OL,2)
-           % average overlapping voxels 
-           L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
-        end
-        OL = L;
-        OL = full(L);
+    % normalise and rescale
+    OL = max(OL)';
+    
+    for k = 1:size(OL,2)
+       L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) 
     end
     
-    % normalise and rescale
     y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
     y  = y(:);
     hh = get(gca,'children');
