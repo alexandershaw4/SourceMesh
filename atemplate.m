@@ -297,7 +297,7 @@ grid off;  set(h,'EdgeColor','none');
 alpha(a); set(gca,'visible','off');
 
 h = get(gcf,'Children');
-set(h,'visible','off');
+set(h(end),'visible','off');
 
 
 end
