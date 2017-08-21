@@ -213,7 +213,7 @@ x  = v(:,1);
 mv = mesh.vertices;
 nv = length(mv);
 OL = sparse(length(L),nv);
-r  = 1500;          % radius func
+r  = 1000;          % radius func
 w  = linspace(.1,1,r);
 w  = fliplr(w); 
 M  = zeros( length(x), nv);
@@ -251,8 +251,8 @@ else
     end
     
     if ~interpl
-        OL = mean((OL),1); % max value of a given vertex
-        %OL = max(OL)';
+        OL = mean(OL'); % max value of a given vertex
+        %OL = full(OL)';
     else
         for i = 1:size(OL,2)
            % average overlapping voxels 
