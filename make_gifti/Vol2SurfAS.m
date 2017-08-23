@@ -38,7 +38,9 @@ segmentedmri   = ft_volumesegment(cfg, mri);
 V              = isosurface(segmentedmri.gray,.5);
 
 % smooth and centre
+fprintf('Smoothing surface... (please wait)\n');
 dV = sms(V.vertices,V.faces,20,.5);
+fprintf('Finished. Centring...\n');
 cV = dV - repmat(spherefit(dV),[size(dV,1),1]);
 
 v.faces    = V.faces;
@@ -48,6 +50,8 @@ t.vertices = [ v.vertices(:,2), v.vertices(:,1), v.vertices(:,3) ];
 t.faces    = [ v.faces(:,2),    v.faces(:,1),    v.faces(:,3) ];
 
 g = gifti(t);
+
+fprintf('Finished\n');
 
 if smth > 0
     [N.faces, N.vertices] = reducepatch(g.faces,g.vertices,smth);

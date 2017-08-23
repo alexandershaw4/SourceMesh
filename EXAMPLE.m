@@ -12,6 +12,12 @@ addpath(genpath('~/Downloads/MeshAAL-master'));
 % Generate mesh: load, align, segment, isosurface, smooth, return gifti
 g = Vol2SurfAS('my-coreg-ctf-mri.mri','mri',0.15);
 
+% plot the mesh brain
+%----------------------------------------------------------------------
+atemplate('gifti',g);
+
+% plot & save gifti file
+atemplate('gifti',g,'write','MyGifti');
 
 % for an overlay, you need a 1x90 vector where each of the 90 elements
 % correspond to the 90 AAL regions.
@@ -22,6 +28,9 @@ overlay = randi([-2 4],90,1);
 
 % to plot:
 atemplate('gifti',g,'overlay',overlay); bigimg;
+
+% to plot and save both gifti-mesh and gifti-overlay files:
+atemplate('gifti',g,'overlay',overlay,'write', 'MyGiftiFile');
 
 % to plot with labels
 atemplate('gifti',g,'overlay',overlay,'labels'); bigimg;
