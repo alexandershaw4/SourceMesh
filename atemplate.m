@@ -17,6 +17,8 @@ function atemplate(varargin)
 %   atemplate('tracks',tracks,header); plot tracks loaded with trk_read
 %   atemplate('gifti',g);    use supplied gifti surface / mesh
 %
+%   atemplate('gifti',g,'write',name);   write mesh gifti
+%   atemplate('overlay',L,'write',name); write mesh & overlay giftis
 %
 % ^trk_read requires along-tract-stats toolbox
 %
@@ -24,14 +26,17 @@ function atemplate(varargin)
 
 pmesh  = 1;
 labels = 0;
+write  = 0;
+fname  = [];
 for i  = 1:length(varargin)
-    if strcmp(varargin{i},'overlay'); L = varargin{i+1}; end
-    if strcmp(varargin{i},'network'); A = varargin{i+1}; end
+    if strcmp(varargin{i},'overlay'); L = varargin{i+1};     end
+    if strcmp(varargin{i},'network'); A = varargin{i+1};     end
     if strcmp(varargin{i},'tracks');  T = varargin{i+1}; H = varargin{i+2}; end
-    if strcmp(varargin{i},'labels');  labels = 1;  end
-    if strcmp(varargin{i},'nosurf');  pmesh  = 0;  end
-    if strcmp(varargin{i},'nodes');   N = varargin{i+1}; end
-    if strcmp(varargin{i},'gifti');   g = varargin{i+1}; end
+    if strcmp(varargin{i},'labels');  labels = 1;            end
+    if strcmp(varargin{i},'nosurf');  pmesh  = 0;            end
+    if strcmp(varargin{i},'nodes');   N = varargin{i+1};     end
+    if strcmp(varargin{i},'gifti');   g = varargin{i+1};     end
+    if strcmp(varargin{i},'write');   write = 1; fname = varargin{i+1}; end
 end
 
 
@@ -45,15 +50,15 @@ end
 hold on;
 
 if     pmesh && ~exist('T','var');
-       mesh = meshmesh(mesh);
+       mesh = meshmesh(mesh,write,fname);
 elseif pmesh
-       mesh = meshmesh(mesh,.3);
+       mesh = meshmesh(mesh,write,fname,.3);
 end
 
-try A; connections(A);        end % draw edges and edge-connected nodes
-try L; overlay(mesh,L);       end % find closest vertices and overlay
-try T; drawtracks(T,H,mesh);  end % draw dti tracks loaded with trk_read
-try N; drawnodes(N);          end
+try A; connections(A);             end % draw edges and edge-connected nodes
+try L; overlay(mesh,L,write,fname);end % find closest vertices and overlay
+try T; drawtracks(T,H,mesh);       end % draw dti tracks loaded with trk_read
+try N; drawnodes(N);               end
 
 if labels; 
     if     exist('A','var'); addlabels(A);
@@ -208,7 +213,7 @@ set(h,'visible','off');
 end
 
 
-function overlay(mesh,L);
+function overlay(mesh,L,write,fname);
 
 % overlay option:
 interpl = 0; % interp shading between nodes or just use max value
@@ -256,6 +261,7 @@ else
             M (i,ind)   = w(r); % return this for future calls
         end
     end
+    fprintf('\n');
     
     if ~interpl
         OL = mean((OL),1); % max value of a given vertex
@@ -278,6 +284,16 @@ else
     set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
     shading interp
     colorbar
+    
+    if write;
+        fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
+        g       = gifti;
+        g.cdata = double(y);
+        g.private.metadata(1).name  = 'SurfaceID';
+        g.private.metadata(1).value = [fname 'Overlay.gii'];
+        save(g, [fname  'Overlay.gii']);
+    end
+    
 end
 
 end
@@ -285,7 +301,7 @@ end
 
 
 
-function g = meshmesh(g,a)
+function g = meshmesh(g,write,fname,a)
 % plot as transparent grey gifti surface
 %
 % AS
@@ -294,7 +310,7 @@ function g = meshmesh(g,a)
 % V = vsmooth(g.vertices, g.faces, .03);
 % g.vertices = V;
 
-if nargin == 1;
+if nargin < 4;
     a = .3;
 end
 
@@ -327,6 +343,11 @@ alpha(a); set(gca,'visible','off');
 h = get(gcf,'Children');
 set(h(end),'visible','off');
 drawnow;
+
+if write;
+    fprintf('Writing mesh gifti file: %s\n',[fname '.gii']);
+    save(g,fname);
+end
 
 
 end

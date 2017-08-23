@@ -8,14 +8,16 @@ function g = Vol2SurfAS(file,type,varargin)
 %
 %
 % optional paired additional inputs:
-% 'smooth', n
-%
+% ('smooth',  n) - e.g. g = Vol2SurfAS('myctfmri.mri','ctf','smooth',0.15);
+% ('inflate'   ) - e.g. g = Vol2SurfAS('myctfmri.mri','ctf','inflate');
 %
 % AS
 
 smth   = 0;
+infl   = 0;
 for i  = 1:length(varargin)
-    if strcmp(varargin{i},'smooth'); smth = varargin{i+1}; end
+    if strcmp(varargin{i},'smooth');  smth = varargin{i+1}; end
+    if strcmp(varargin{i},'inflate'); infl = 1;             end
 end
 
 switch type
@@ -50,6 +52,10 @@ g = gifti(t);
 if smth > 0
     [N.faces, N.vertices] = reducepatch(g.faces,g.vertices,smth);
     g = gifti(N);
+end
+
+if infl;
+    g = spm_mesh_inflate(g);
 end
 
 
