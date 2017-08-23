@@ -9,6 +9,7 @@ atemplate;                          % plot template mesh
 
 atemplate('labels','overlay',L);    % plot overlay (L=1x90 double), add labels
 atemplate('overlay',L,'write','MyGiftiFile'); % write both mesh and overlay giftis
+atemplate('gifti',g,'overlay',L,'write','MyGiftiFile'); 
 
 atemplate('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
 atemplate('overlay',L,'network',A); % plot overlay and network, no labels
