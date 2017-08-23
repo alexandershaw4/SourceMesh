@@ -3,11 +3,19 @@
 Plot AAL overlays and networks (nodes & edges) on template brain natively in matlab.
 
 ```
-atemplate('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
+atemplate('gifti',g);               % plot a (gifti) brain surface generated from CTF MRI using Vol2SurfAS^
+atemplate('gifti',g,'write','MyGiftiFile'); % plot & save .gii mesh
+atemplate;                          % plot template mesh 
+
 atemplate('labels','overlay',L);    % plot overlay (L=1x90 double), add labels
+atemplate('overlay',L,'write','MyGiftiFile'); % write both mesh and overlay giftis
+
+atemplate('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
 atemplate('overlay',L,'network',A); % plot overlay and network, no labels
 atemplate('tracks',tracks,header);  % plot tracks loaded using trk_read from along-tract-stats toolbox
 atemplate('nodes',N,'labels');      % plot nodes only. N is 1x90 binary vector 
+
+%^Function Vol2SurfAS included
 ```
 
 ![alt text](ExampleTracksNodesLabels.gif)
