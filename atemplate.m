@@ -15,6 +15,7 @@ function atemplate(varargin)
 %   atemplate('network',A);  template mesh nodes & edges
 %   atemplate('overlay',L,'network',A,'labels'); with overlay,network and labels
 %   atemplate('tracks',tracks,header); plot tracks loaded with trk_read
+%   atemplate('gifti',g);    use supplied gifti surface / mesh
 %
 %
 % ^trk_read requires along-tract-stats toolbox
@@ -30,11 +31,15 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'labels');  labels = 1;  end
     if strcmp(varargin{i},'nosurf');  pmesh  = 0;  end
     if strcmp(varargin{i},'nodes');   N = varargin{i+1}; end
+    if strcmp(varargin{i},'gifti');   g = varargin{i+1}; end
 end
 
 
 % Plot Surface
-mesh = read_nv();
+try   mesh = g;
+catch mesh = read_nv();
+end
+
 hold on;
 
 if     pmesh && ~exist('T','var');
