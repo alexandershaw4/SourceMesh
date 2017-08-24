@@ -32,6 +32,7 @@ function atemplate(varargin)
 %  cortical surface. This is then centred, smoothed and converted to a
 %  gifti object.
 %
+%  Also check: slice3()
 %
 % ^trk_read requires along-tract-stats toolbox
 %
@@ -351,7 +352,7 @@ function g = meshmesh(g,write,fname,fighnd,a)
 % AS
 
 if nargin < 5;
-    a = .3;
+    a = .6;
 end
 
 % Auto fit to extremes of [AAL] sourcemodel vertices (both are centred on 0)
