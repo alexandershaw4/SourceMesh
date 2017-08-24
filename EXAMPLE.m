@@ -10,7 +10,7 @@ addpath(genpath('~/Downloads/MeshAAL-master'));
 
 
 % Generate mesh: load, align, segment, isosurface, smooth, return gifti
-g = Vol2SurfAS('my-coreg-ctf-mri.mri','mri',0.15);
+g = Vol2SurfAS('my-coreg-ctf-mri.mri','ctf',0.15);
 
 % plot the mesh brain
 %----------------------------------------------------------------------
