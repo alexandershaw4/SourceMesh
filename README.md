@@ -16,7 +16,6 @@ Usages:
   atemplate('gifti'  ,g,'write',name);  % write mesh gifti
   atemplate('overlay',L,'write',name);  % write mesh & overlay giftis
 
-^Function Vol2SurfAS included
 ```
 
 ![alt text](ExampleTracksNodesLabels.gif)
