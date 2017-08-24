@@ -1,6 +1,7 @@
 # MeshAAL
 
 Plot AAL overlays and networks (nodes & edges) on template brain natively in matlab.
+
 Includes some compiled cpp code as (linux) mex for speed up.
 
 Usages:
@@ -32,7 +33,8 @@ Dependencies: fieldtrip & spm
 
 
 # Generate mesh
-Load, align, segment, isosurface, smooth, return gifti
+Load, align, segment, isosurface, smooth, return gifti.
+Uses fieldtrip functions, isosurface & some included funcs.
 ```
 g = Vol2SurfAS('my-coreg-ctf-mri.mri','mri',0.15);
 ```
@@ -42,7 +44,7 @@ Plot the mesh brain
 atemplate('gifti',g);
 ```
 
-Plot & save gifti file
+Plot & Save (as .gii gifti file)
 ```
 atemplate('gifti',g,'write','MyGifti');
 ```
@@ -68,23 +70,25 @@ atemplate('gifti',g,'overlay',overlay,'labels'); bigimg;
 
 To use a template rather than subject specific surface:
 ```
-atemplate('overlay',overlay,'labels'); %(omit 'gifti' argument)
+atemplate('overlay',overlay,'labels'); % (omit 'gifti' argument)
 ```
 
 ![alt text](NodePowOnSurface.gif)
 
 
 # Nodes
-For a set of nodes, with only the specified nodes labelled
+For a set of nodes, with only the specified nodes labelled.
 
-a binary 1x90 vector, with 1s for nodes to show do load('labels') for list
+A binary 1x90 vector, with 1s for nodes to show.
+
 ```
-N = randi([0 1],90,1); 
+load('labels')          % list of the 90 AAL labels
+N = randi([0 1],90,1);  % (1,90) logical / binary list
 atemplate('gifti',g,'nodes',N,'labels');
 ```
 
 # Network: Edges & Nodes
-For a set of edges and the connected nodes
+For a set of edges and the connected nodes.
 
 ```
 A = randi([0 10],90,90); % a 90x90 connectivity matrix
@@ -100,6 +104,4 @@ add a set of tracks, as loaded with along-tract-stats toolbox
 atemplate('gifti',g,'tracks',tracks,header);
 ```
 
-trk_read is part of John Colby's along-tract-stats toolbox:
-https://github.com/johncolby/along-tract-stats
 
