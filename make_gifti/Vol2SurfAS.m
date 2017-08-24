@@ -22,7 +22,7 @@ end
 
 switch type
     case {'ctfmri','ctf'}
-        mri = ft_read_mri('file','dataformat', 'ctf_mri4');
+        mri = ft_read_mri(file,'dataformat', 'ctf_mri4');
     case {'ft','matlab'}
         load(file);
         %file = 'coregseg_0001.mat';
