@@ -49,6 +49,8 @@ Plot & Save (as .gii gifti file)
 atemplate('gifti',g,'write','MyGifti');
 ```
 
+![alt text](ExampleMeshRotate.gif)
+
 # Overlay
 For an overlay, you need a 1x90 vector where each of the 90 elements correspond to the 90 AAL regions.
 
