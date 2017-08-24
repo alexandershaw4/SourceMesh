@@ -6,7 +6,15 @@ Includes some compiled cpp code as (linux) mex for speed up.
 
 ![rotatebrains](DualRotate.gif)
 
-Usages:
+# Installation 
+addpath to wherever the toolbox is:
+```
+addpath(genpath('~/Downloads/MeshAAL-master'));
+```
+
+Dependencies: fieldtrip & spm
+
+# Usage examples
 ```
   atemplate('labels');        % template mesh with AAL labels
   atemplate('overlay',L);     % template mesh with overlay
@@ -22,15 +30,6 @@ Usages:
 
 ![alt text](ExampleTracksNodesLabels.gif)
 
-
-
-# Installation 
-addpath to wherever the toolbox is:
-```
-addpath(genpath('~/Downloads/MeshAAL-master'));
-```
-
-Dependencies: fieldtrip & spm
 
 
 # Generate mesh
