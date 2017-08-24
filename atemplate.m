@@ -42,6 +42,7 @@ labels = 0;
 write  = 0;
 fname  = [];
 fighnd = [];
+colbar = 1;
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay'); L = varargin{i+1};     end
     if strcmp(varargin{i},'network'); A = varargin{i+1};     end
@@ -52,6 +53,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'gifti');   g = varargin{i+1};     end
     if strcmp(varargin{i},'write');   write  = 1; fname = varargin{i+1}; end
     if strcmp(varargin{i},'fighnd');  fighnd = varargin{i+1}; end
+    if strcmp(varargin{i},'nocolbar');colbar = 0; end
 end
 
 
@@ -77,8 +79,8 @@ elseif pmesh
        mesh = meshmesh(mesh,write,fname,fighnd,.3);
 end
 
-try A; connections(A);             end % draw edges and edge-connected nodes
-try L; overlay(mesh,L,write,fname);end % find closest vertices and overlay
+try A; connections(A,colbar);             end % draw edges and edge-connected nodes
+try L; overlay(mesh,L,write,fname,colbar);end % find closest vertices and overlay
 try T; drawtracks(T,H,mesh);       end % draw dti tracks loaded with trk_read
 try N; drawnodes(N);               end % draw N(i) = 1 nodes
 
@@ -94,7 +96,7 @@ end
 
 
 
-function connections(A)
+function connections(A,colbar)
 % Network (Node & Edges) plotter.
 %
 %
@@ -136,7 +138,9 @@ end
 % Set colorbar only if there are valid edges
 if any(i)
     set(gcf,'DefaultAxesColorOrder',RGB)
-    colorbar
+    if colbar
+        colorbar
+    end
 end
 if LimC;
     caxis(R);
@@ -243,7 +247,7 @@ set(h,'visible','off');
 end
 
 
-function overlay(mesh,L,write,fname);
+function overlay(mesh,L,write,fname,colbar)
 % Functional overlay plotter
 %
 % mesh is the gifti / patch
@@ -321,7 +325,9 @@ else
     
     set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
     shading interp
-    colorbar
+    if colbar
+        colorbar
+    end
     
     if write;
         fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
