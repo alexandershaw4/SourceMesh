@@ -41,6 +41,7 @@ pmesh  = 1;
 labels = 0;
 write  = 0;
 fname  = [];
+fighnd = [];
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay'); L = varargin{i+1};     end
     if strcmp(varargin{i},'network'); A = varargin{i+1};     end
@@ -49,7 +50,8 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nosurf');  pmesh  = 0;            end
     if strcmp(varargin{i},'nodes');   N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');   g = varargin{i+1};     end
-    if strcmp(varargin{i},'write');   write = 1; fname = varargin{i+1}; end
+    if strcmp(varargin{i},'write');   write  = 1; fname = varargin{i+1}; end
+    if strcmp(varargin{i},'fighnd');  fighnd = varargin{i+1}; end
 end
 
 
@@ -70,9 +72,9 @@ end
 hold on;
 
 if     pmesh && ~exist('T','var');
-       mesh = meshmesh(mesh,write,fname);
+       mesh = meshmesh(mesh,write,fname,fighnd);
 elseif pmesh
-       mesh = meshmesh(mesh,write,fname,.3);
+       mesh = meshmesh(mesh,write,fname,fighnd,.3);
 end
 
 try A; connections(A);             end % draw edges and edge-connected nodes
@@ -337,12 +339,12 @@ end
 
 
 
-function g = meshmesh(g,write,fname,a)
+function g = meshmesh(g,write,fname,fighnd,a)
 % plot as transparent grey gifti surface
 %
 % AS
 
-if nargin < 4;
+if nargin < 5;
     a = .3;
 end
 
@@ -365,7 +367,12 @@ V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,
 g.vertices = V;
 
 % plot
-h = plot(gifti(g));
+if ~isempty(fighnd)
+    %axes(fighnd);
+    h = plot(fighnd,gifti(g));
+else
+    h = plot(gifti(g));
+end
 C = [.5 .5 .5];
 
 set(h,'FaceColor',[C]); box off;

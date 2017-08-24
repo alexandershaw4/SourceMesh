@@ -5,9 +5,9 @@ function atemplate(varargin)
 %
 % 'overlay', L (1x90)
 % 'network', A (90x90)
-% 'nodes',   N (90x1) [logical / binary]
+% 'nodes'  , N (90x1) [logical / binary]
 % 'tracks' , tracks, header (as read with trk_read^ )
-% 'labels'
+% 'labels' , add AAL90 labels
 %
 % Example usages:
 %
@@ -41,6 +41,7 @@ pmesh  = 1;
 labels = 0;
 write  = 0;
 fname  = [];
+fighnd = [];
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay'); L = varargin{i+1};     end
     if strcmp(varargin{i},'network'); A = varargin{i+1};     end
@@ -49,7 +50,8 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nosurf');  pmesh  = 0;            end
     if strcmp(varargin{i},'nodes');   N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');   g = varargin{i+1};     end
-    if strcmp(varargin{i},'write');   write = 1; fname = varargin{i+1}; end
+    if strcmp(varargin{i},'write');   write  = 1; fname = varargin{i+1}; end
+    if strcmp(varargin{i},'fighnd');  fighnd = varargin{i+1}; end
 end
 
 
@@ -70,9 +72,9 @@ end
 hold on;
 
 if     pmesh && ~exist('T','var');
-       mesh = meshmesh(mesh,write,fname);
+       mesh = meshmesh(mesh,write,fname,fighnd);
 elseif pmesh
-       mesh = meshmesh(mesh,write,fname,.3);
+       mesh = meshmesh(mesh,write,fname,fighnd,.3);
 end
 
 try A; connections(A);             end % draw edges and edge-connected nodes
@@ -256,15 +258,15 @@ interpl = 0;
 
 % Overlay
 load('AAL_SOURCEMOD');          % get AAL source vertices
-v  = template_sourcemodel.pos;  % 
-x  = v(:,1);                    % Av(x)
-mv = mesh.vertices;             % 
-nv = length(mv);                % number of vertices
-OL = sparse(length(L),nv);      % 
-r  = 1500;                      % radius func
-w  = linspace(.1,1,r);          % 
+v  = template_sourcemodel.pos;  % AAL vertices
+x  = v(:,1);                    % AAL x verts
+mv = mesh.vertices;             % brain mesh vertices
+nv = length(mv);                % number of brain vertices
+OL = sparse(length(L),nv);      % this will be overlay matrix we average
+r  = 1500;                      % radius - number of closest points on mesh
+w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
-M  = zeros( length(x), nv);     % 
+M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 
 % if is same verts as mri, just rescale & overlay
 if length(L) == nv && nargin == 2
@@ -288,7 +290,7 @@ else
         str = sprintf('%d/%d',i,(length(x)));
         fprintf(str);    
 
-        % find closest point in cortical mesh
+        % find closest point[s] in cortical mesh
         dist  = cdist(mv,v(i,:));
         for j = 1:r
             [junk, ind] = min(dist);
@@ -300,8 +302,7 @@ else
     fprintf('\n');
     
     if ~interpl
-        OL = mean((OL),1); % max value of a given vertex
-        %OL = max(OL)';
+        OL = mean((OL),1); % mean value of a given vertex
     else
         for i = 1:size(OL,2)
            % average overlapping voxels 
@@ -312,8 +313,9 @@ else
     end
     
     % normalise and rescale
-    OL = full(OL);
+    %OL = full(OL);
     y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+    y  = full(y);
     y  = y(:);
     hh = get(gca,'children');
     
@@ -337,20 +339,16 @@ end
 
 
 
-function g = meshmesh(g,write,fname,a)
+function g = meshmesh(g,write,fname,fighnd,a)
 % plot as transparent grey gifti surface
 %
 % AS
-
-% Smooth brain?
-% V = vsmooth(g.vertices, g.faces, .03);
-% g.vertices = V;
 
 if nargin < 4;
     a = .3;
 end
 
-% fit to extremes of [AAL] sourcemodel
+% Auto fit to extremes of [AAL] sourcemodel vertices (both are centred on 0)
 load('AAL_SOURCEMOD');
 v        = template_sourcemodel.pos;
 M        = max(v);
@@ -389,7 +387,9 @@ end
 end
 
 function addlabels(V)
-% find indices of nodes->labels->plot
+% Add AAL labels to the plot
+%
+% Finds indices of V~=0, which is (90,1) || (1,90)
 %
 %
 
@@ -429,6 +429,9 @@ set(t,'Fontsize',7)
 end
 
 function Centre = spherefit(X)
+% Fit sphere to centre of vertices, return centre points
+%
+%
 
 A =  [mean(X(:,1).*(X(:,1)-mean(X(:,1)))), ...
     2*mean(X(:,1).*(X(:,2)-mean(X(:,2)))), ...
