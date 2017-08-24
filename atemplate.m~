@@ -5,9 +5,9 @@ function atemplate(varargin)
 %
 % 'overlay', L (1x90)
 % 'network', A (90x90)
-% 'nodes'  , N (90x1) [logical / binary]
+% 'nodes',   N (90x1) [logical / binary]
 % 'tracks' , tracks, header (as read with trk_read^ )
-% 'labels' , add AAL90 labels
+% 'labels'
 %
 % Example usages:
 %
@@ -256,15 +256,15 @@ interpl = 0;
 
 % Overlay
 load('AAL_SOURCEMOD');          % get AAL source vertices
-v  = template_sourcemodel.pos;  % AAL vertices
-x  = v(:,1);                    % AAL x verts
-mv = mesh.vertices;             % brain mesh vertices
-nv = length(mv);                % number of brain vertices
-OL = sparse(length(L),nv);      % this will be overlay matrix we average
-r  = 1500;                      % radius - number of closest points on mesh
-w  = linspace(.1,1,r);          % weights for closest points
+v  = template_sourcemodel.pos;  % 
+x  = v(:,1);                    % Av(x)
+mv = mesh.vertices;             % 
+nv = length(mv);                % number of vertices
+OL = sparse(length(L),nv);      % 
+r  = 1500;                      % radius func
+w  = linspace(.1,1,r);          % 
 w  = fliplr(w);                 % 
-M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
+M  = zeros( length(x), nv);     % 
 
 % if is same verts as mri, just rescale & overlay
 if length(L) == nv && nargin == 2
@@ -288,7 +288,7 @@ else
         str = sprintf('%d/%d',i,(length(x)));
         fprintf(str);    
 
-        % find closest point[s] in cortical mesh
+        % find closest point in cortical mesh
         dist  = cdist(mv,v(i,:));
         for j = 1:r
             [junk, ind] = min(dist);
@@ -300,7 +300,8 @@ else
     fprintf('\n');
     
     if ~interpl
-        OL = mean((OL),1); % mean value of a given vertex
+        OL = mean((OL),1); % max value of a given vertex
+        %OL = max(OL)';
     else
         for i = 1:size(OL,2)
            % average overlapping voxels 
@@ -341,11 +342,15 @@ function g = meshmesh(g,write,fname,a)
 %
 % AS
 
+% Smooth brain?
+% V = vsmooth(g.vertices, g.faces, .03);
+% g.vertices = V;
+
 if nargin < 4;
     a = .3;
 end
 
-% Auto fit to extremes of [AAL] sourcemodel vertices (both are centred on 0)
+% fit to extremes of [AAL] sourcemodel
 load('AAL_SOURCEMOD');
 v        = template_sourcemodel.pos;
 M        = max(v);
@@ -384,9 +389,7 @@ end
 end
 
 function addlabels(V)
-% Add AAL labels to the plot
-%
-% Finds indices of V~=0, which is (90,1) || (1,90)
+% find indices of nodes->labels->plot
 %
 %
 
@@ -426,9 +429,6 @@ set(t,'Fontsize',7)
 end
 
 function Centre = spherefit(X)
-% Fit sphere to centre of vertices, return centre points
-%
-%
 
 A =  [mean(X(:,1).*(X(:,1)-mean(X(:,1)))), ...
     2*mean(X(:,1).*(X(:,2)-mean(X(:,2)))), ...
