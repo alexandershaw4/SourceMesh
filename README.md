@@ -1,63 +1,97 @@
 # MeshAAL
 
 Plot AAL overlays and networks (nodes & edges) on template brain natively in matlab.
+Includes some compiled cpp code as (linux) mex for speed up.
 
+Usages:
 ```
-atemplate('gifti',g);               % plot a (gifti) brain surface generated from CTF MRI using Vol2SurfAS^
-atemplate('gifti',g,'write','MyGiftiFile'); % plot & save .gii mesh
-atemplate;                          % plot template mesh 
+  atemplate('labels');        % template mesh with AAL labels
+  atemplate('overlay',L);     % template mesh with overlay
+  atemplate('network',A);     % template mesh with nodes & edges
+  atemplate('overlay',L,'network',A,'labels'); % overlay, network & labels
+  atemplate('tracks',tracks,header); % plot tracks loaded with trk_read
+  atemplate('gifti',g);       % use supplied gifti surface / mesh 
 
-atemplate('labels','overlay',L);    % plot overlay (L=1x90 double), add labels
-atemplate('overlay',L,'write','MyGiftiFile'); % write both mesh and overlay giftis
-atemplate('gifti',g,'overlay',L,'write','MyGiftiFile'); 
+  atemplate('gifti'  ,g,'write',name);  % write mesh gifti
+  atemplate('overlay',L,'write',name);  % write mesh & overlay giftis
 
-atemplate('labels','network',A);    % plot nodes and edges (A=90x90 double), add AAL labels 
-atemplate('overlay',L,'network',A); % plot overlay and network, no labels
-atemplate('tracks',tracks,header);  % plot tracks loaded using trk_read from along-tract-stats toolbox
-atemplate('nodes',N,'labels');      % plot nodes only. N is 1x90 binary vector 
-
-%^Function Vol2SurfAS included
+^Function Vol2SurfAS included
 ```
 
 ![alt text](ExampleTracksNodesLabels.gif)
 
 
-# Individual functions
 
-Plot AAL nodes and edges on template brain natively in matlab
+# Installation: addpath to wherever the toolbox is:
+addpath(genpath('~/Downloads/MeshAAL-master'));
+Dependencies: fieldtrip & spm
 
+
+# Generate mesh: load, align, segment, isosurface, smooth, return gifti
 ```
-templatemesh(A);
-```
-
-where A is a 90x90 connectivity matrix of the 90 AAL nodes.
-
-
-![alt text](example.gif)
-
-
-Also project a 1x90 vector of node values as a mesh overlay.
-
-```
-[M,S] = templateoverlay(L) % first call
-templateoverlay(L'*M,S)    % second call
+g = Vol2SurfAS('my-coreg-ctf-mri.mri','mri',0.15);
 ```
 
-* L is a vector of length 90 corresponding to the AAL90 atlas
-* L is mapped to the size of the template by finding the n-closest points and linearly interpreting to generate a smooth surface
-* Returns matrix M of weights, so that it needn't be recomputed.
+Plot the mesh brain
+```
+atemplate('gifti',g);
+```
+
+Plot & save gifti file
+```
+atemplate('gifti',g,'write','MyGifti');
+```
+
+# For an overlay, you need a 1x90 vector where each of the 90 elements correspond to the 90 AAL regions.
+
+e.g. a pretend vector of t-values
+```
+overlay = randi([-2 4],90,1);
+atemplate('gifti',g,'overlay',overlay); bigimg;
+```
+
+To plot and save both gifti-mesh and gifti-overlay files:
+```
+atemplate('gifti',g,'overlay',overlay,'write', 'MyGiftiFile');
+```
+
+To plot with labels
+```
+atemplate('gifti',g,'overlay',overlay,'labels'); bigimg;
+```
+
+To use a template rather than subject specific surface:
+```
+atemplate('overlay',overlay,'labels'); %(omit 'gifti' argument)
+```
 
 ![alt text](NodePowOnSurface.gif)
 
 
-Plot tracks.
+# For a set of nodes, with only the specified nodes labelled
+
+a binary 1x90 vector, with 1s for nodes to show do load('labels') for list
 ```
-atemplate('tracks',Tracks,Header); % where Tracks and Header were loaded using trk_read
-atemplate('tracks',Tracks,Header,'labels');
-atemplate('tracks',Tracks,Header,'nodes',N,'labels'); 
+N = randi([0 1],90,1); 
+atemplate('gifti',g,'nodes',N,'labels');
+```
+
+# For a set of edges and the connected nodes
+
+```
+A = randi([0 10],90,90); % a 90x90 connectivity matrix
+atemplate('gifti',g,'network',A,'labels');
+```
+
+![alt text](example.gif)
+
+
+# in development:
+add a set of tracks, as loaded with along-tract-stats toolbox
+```
+atemplate('gifti',g,'tracks',tracks,header);
 ```
 
 trk_read is part of John Colby's along-tract-stats toolbox:
 https://github.com/johncolby/along-tract-stats
 
-![alt text](TestRotTracksGif.gif)
