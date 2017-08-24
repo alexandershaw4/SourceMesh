@@ -1,10 +1,10 @@
-![rotatebrains](DualRotate.gif)
-
 # MeshAAL
 
 Plot AAL overlays and networks (nodes & edges) on template brain natively in matlab.
 
 Includes some compiled cpp code as (linux) mex for speed up.
+
+![rotatebrains](DualRotate.gif)
 
 Usages:
 ```
