@@ -311,8 +311,9 @@ else
     end
     
     % normalise and rescale
-    OL = full(OL);
+    %OL = full(OL);
     y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+    y  = full(y);
     y  = y(:);
     hh = get(gca,'children');
     
