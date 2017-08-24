@@ -1,7 +1,9 @@
 # MeshAAL
 
-Plot functional overlays and networks (nodes & edges) from the AAL90 on template brain natively in matlab.
+Plot functional overlays and networks (nodes & edges) from the AAL90 on template or subject cortical surface, natively in matlab. Also includes labelling and automated routine for conversion of CTF .mri file to cortical mesh.
+
 Includes some compiled cpp code as (linux) mex files for speed up.
+
 Designed for use with data from AAL90 beamformer MEG data.
 
 ![rotatebrains](DualRotate.gif)
