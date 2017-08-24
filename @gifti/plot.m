@@ -42,7 +42,12 @@ else
 end
 
 if isempty(ax), ax = axes('Parent',h); end
-axis(ax,'equal');
+
+% Alex add: only make size x=y if not a subplot (i.e. no handle)
+if ~ishandle(varargin{1});
+    axis(ax,'equal');
+end
+
 axis(ax,'off');
 hp = patch(struct(...
     'vertices',  subsref(this,struct('type','.','subs','vertices')),...
