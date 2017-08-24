@@ -100,6 +100,16 @@ atemplate('gifti',g,'network',A,'labels');
 
 ![alt text](example.gif)
 
+# Other tips & hints
+```
+atemplate('network',edges,'nosurf')   % nosurf option - no brain / template plotted.
+atemplate('network',edges,'fighnd',h) % fighnd option - pass a figure handle (e.g. for subplot) 
+atemplate('overlay',L    ,'nocolbar') % don't add a colorbar (e.g. overlay or network)
+
+slice3() % copy figure to new figure with 3 subplots showing left, topography and right views
+
+```
+
 
 # in development:
 add a set of tracks, as loaded with along-tract-stats toolbox
