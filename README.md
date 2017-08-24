@@ -34,9 +34,10 @@ Dependencies: fieldtrip & spm
 
 # Generate mesh
 Load, align, segment, isosurface, smooth, return gifti.
+
 Uses fieldtrip functions, isosurface & some included funcs.
 ```
-g = Vol2SurfAS('my-coreg-ctf-mri.mri','mri',0.15);
+g = Vol2SurfAS('my-coreg-ctf-mri.mri','ctf',0.15);
 ```
 
 Plot the mesh brain
