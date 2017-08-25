@@ -59,7 +59,7 @@ if smth > 0
 end
 
 if infl;
-    g = spm_mesh_inflate(g);
+    g = spm_mesh_inflate(g,10);
 end
 
 

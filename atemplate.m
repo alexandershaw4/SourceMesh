@@ -361,15 +361,15 @@ v        = template_sourcemodel.pos;
 M        = max(v);
 m        = min(v);
 
-M = M*1.2;
-m = m*1.2;
+M = M*1.1;
+m = m*1.1;
 
 V        = g.vertices;
 V        = V - repmat(spherefit(V),[size(V,1),1]);
 
 V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-%V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
 
 g.vertices = V;
 
@@ -436,7 +436,7 @@ for i = 1:length(AN)
             t(i) = text(v(AN(i),1)+(off*2),+v(AN(i),2)+(off*2),v(AN(i),3)+off,L);
     end
 end
-set(t,'Fontsize',7)
+set(t,'Fontsize',10)
 
 end
 
