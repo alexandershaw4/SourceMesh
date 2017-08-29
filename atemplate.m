@@ -32,7 +32,7 @@ function atemplate(varargin)
 %  cortical surface. This is then centred, smoothed and converted to a
 %  gifti object.
 %
-%  Also check: slice3()
+%  See also: slice3() slice2()
 %
 % ^trk_read requires along-tract-stats toolbox
 %

@@ -1,6 +1,8 @@
 classdef make_gifti < handle
 % Constructor for make_gifti / Vol2SurfAS
 %
+% Convert ctf mri (.mri) to cortical surface
+%
 % use:
 % this = make_gifti('my-mri.mri','ctf'); % initiate object
 % this.makesurf;                         % run segment and surface function
