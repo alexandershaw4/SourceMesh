@@ -10,7 +10,7 @@ atemplate('gifti',iG,'fighnd',h1,'network',randi([0 4],90,1),'labels','nocolbar'
 view(0,0);
 
 h2 = subplot(122);
-atemplate('gifti',iG,'fighnd',h2,'overlay',t_ol,'nocolbar');
+atemplate('gifti',iG,'fighnd',h2,'overlay',randi([0 4],90,1),'nocolbar');
 view(0,0);
 
 set(gcf, 'Position', [100, 100, 2400, 1000])

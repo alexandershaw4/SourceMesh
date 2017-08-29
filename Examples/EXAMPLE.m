@@ -10,7 +10,17 @@ addpath(genpath('~/Downloads/MeshAAL-master'));
 
 
 % Generate mesh: load, align, segment, isosurface, smooth, return gifti
+%----------------------------------------------------------------------
 g = Vol2SurfAS('my-coreg-ctf-mri.mri','ctf',0.15);
+
+
+% Alternatively, use the constructor [quicker inflation / smoothing]
+t = make_gifti('my-coreg-ctf-mri.mri','ctf');
+t.makesurf;
+% optionally smooth, inflate &/or reduce:
+t.reduce; t.smooth; t.inflate;
+g = t.g;
+
 
 % plot the mesh brain
 %----------------------------------------------------------------------

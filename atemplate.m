@@ -259,7 +259,7 @@ function overlay(mesh,L,write,fname,colbar)
 
 
 % interp shading between nodes or just use mean value?
-interpl = 0; 
+interpl = 1; 
 
 % Overlay
 load('AAL_SOURCEMOD');          % get AAL source vertices
@@ -268,7 +268,7 @@ x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
 OL = sparse(length(L),nv);      % this will be overlay matrix we average
-r  = 1500;                      % radius - number of closest points on mesh
+r  = 1200;                      % radius - number of closest points on mesh
 w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
@@ -314,13 +314,20 @@ else
            L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
         end
         OL = L;
-        OL = full(L);
+        %OL = full(L);
     end
     
     % normalise and rescale
-    %OL = full(OL);
     y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+    %y  = S(1) + ((S(2)-S(1))).*TSNorm(OL); % or normalise as sparse
+    
+    y(isnan(y)) = 0;
     y  = full(y);
+    
+    % spm mesh smoothing
+    fprintf('Smoothing overlay...\n');
+    y = spm_mesh_smooth(mesh, y', 4);
+    
     y  = y(:);
     hh = get(gca,'children');
     
