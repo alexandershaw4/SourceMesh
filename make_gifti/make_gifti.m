@@ -52,6 +52,11 @@ methods
         dV = sms(obj.g.vertices,obj.g.faces,5,smth);
         obj.g.vertices = dV;
     end
+    function obj = recentre(obj)
+        V  = obj.g.vertices;
+        cV = V - repmat(spherefit(V),[size(V,1),1]); 
+        obj.g.vertices = cV;
+    end
     
     
 end
