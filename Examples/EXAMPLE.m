@@ -29,6 +29,7 @@ atemplate('gifti',g);
 % plot & save gifti file
 atemplate('gifti',g,'write','MyGifti');
 
+
 % for an overlay, you need a 1x90 vector where each of the 90 elements
 % correspond to the 90 AAL regions.
 %----------------------------------------------------------------------
@@ -41,6 +42,11 @@ atemplate('gifti',g,'overlay',overlay); bigimg;
 
 % to plot and save both gifti-mesh and gifti-overlay files:
 atemplate('gifti',g,'overlay',overlay,'write', 'MyGiftiFile');
+
+% to recreate this plot once saved:
+g = gifti('MyGiftiFile.gii');
+o = gifti('MyGiftiFileOverlay.gii');
+plot(g,o);
 
 % to plot with labels
 atemplate('gifti',g,'overlay',overlay,'labels'); bigimg;

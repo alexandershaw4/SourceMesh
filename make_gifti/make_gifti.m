@@ -17,6 +17,7 @@ properties
     type
     g
     i
+    orig
 end
 
 methods
@@ -27,7 +28,14 @@ methods
     end
     function obj = makesurf(obj, smth)
     if nargin < 2; smth = .15; end
-        obj.g = Vol2SurfAS(obj.mri,obj.type,smth);
+        switch obj.type
+            case 'ctf';
+                obj.g    = Vol2SurfAS(obj.mri,obj.type,smth);
+                obj.orig = obj.g;
+            case {'gii','gifti'}
+                obj.g    = gifti(obj.mri);
+                obj.orig = obj.g;
+        end
     end
     
     function obj = reduce(obj,smth)
@@ -41,7 +49,7 @@ methods
     end
     function obj = smooth(obj,smth)
     if nargin < 2; smth = 0.5; end
-        dV = sms(V.vertices,V.faces,5,smth);
+        dV = sms(obj.g.vertices,obj.g.faces,5,smth);
         obj.g.vertices = dV;
     end
     

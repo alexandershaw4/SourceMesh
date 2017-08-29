@@ -39,7 +39,7 @@ V              = isosurface(segmentedmri.gray,.5);
 
 % smooth and centre
 fprintf('Smoothing surface... (please wait)\n');
-dV = sms(V.vertices,V.faces,2,.5);
+dV = sms(V.vertices,V.faces,10,.5);
 fprintf('Finished. Centring...\n');
 cV = dV - repmat(spherefit(dV),[size(dV,1),1]);
 

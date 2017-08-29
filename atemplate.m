@@ -399,6 +399,7 @@ drawnow;
 
 if write;
     fprintf('Writing mesh gifti file: %s\n',[fname '.gii']);
+    g = gifti(g);
     save(g,fname);
 end
 
