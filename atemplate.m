@@ -494,6 +494,7 @@ end
 function video(mesh,L,colbar,fpath,tv)
 %
 
+num = 1; % number of brains
 
 % interp shading between nodes or just use mean value?
 interpl = 1; 
@@ -566,16 +567,20 @@ for i = 1:ntime
 end
 
 % close image so can reopen with subplots
-close
-f  = figure;
-set(f, 'Position', [100, 100, 2000, 1000])
-h1 = subplot(121);
-h2 = subplot(122);
-
+if num == 2;
+    close
+    f  = figure;
+    set(f, 'Position', [100, 100, 2000, 1000])
+    h1 = subplot(121);
+    h2 = subplot(122);
+else
+    bigimg;view(90,0);
+    f = gcf;
+end
 
 % MAKE THE GRAPH / VIDEO
-%D        = 'right';
-%cam      = camlight(D);
+D        = 'headlight';
+cam      = camlight(D);
 vidObj   = VideoWriter(fpath,'MPEG-4');
 set(vidObj,'Quality',100);
 set(vidObj,'FrameRate',size(y,2)/(10));
@@ -586,24 +591,34 @@ for i = 1:ntime
     if i > 1; fprintf(repmat('\b',[1 length(str)])); end
     str = sprintf('building: %d of %d\n',i,ntime);
     fprintf(str);
-    %camlight(cam); 
+    camlight(cam); 
     
-    plot(h1,gifti(mesh));
-    hh       = get(h1,'children');
-    set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');    
-    shading interp
-    view(270,0);
-    caxis([min(S(:,1)) max(S(:,2))]);
+    switch num
+        case 2
+            plot(h1,gifti(mesh));
+            hh       = get(h1,'children');
+            set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');    
+            shading interp
+            view(270,0);
+            caxis([min(S(:,1)) max(S(:,2))]);
 
+
+            plot(h2,gifti(mesh));
+            hh       = get(h2,'children');
+            set(hh(3),'FaceVertexCData',y(:,i), 'FaceColor','interp');    
+            shading interp
+            view(90,0);
+            caxis([min(S(:,1)) max(S(:,2))]);
+
+        
+        case 1
+            hh       = get(gca,'children');
+            set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');
+            caxis([min(S(:,1)) max(S(:,2))]);
+            shading interp
+    end
     
-    plot(h2,gifti(mesh));
-    hh       = get(h2,'children');
-    set(hh(3),'FaceVertexCData',y(:,i), 'FaceColor','interp');    
-    shading interp
-    view(90,0);
-    caxis([min(S(:,1)) max(S(:,2))]);
-
-    try 
+    try
         tt = title(num2str(tv(i)),'fontsize',20);
         P = get(tt,'Position') ;
         P = P/max(P(:));
@@ -611,11 +626,13 @@ for i = 1:ntime
     end
     
     set(findall(gca, 'type', 'text'), 'visible', 'on');
-        
+    
     if colbar
         colorbar
     end
-    drawnow;  
+    drawnow;
+            
+              
 
     currFrame = getframe(f);
     writeVideo(vidObj,currFrame);
