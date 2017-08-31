@@ -574,8 +574,8 @@ h2 = subplot(122);
 
 
 % MAKE THE GRAPH / VIDEO
-%D        = 'right';
-%cam      = camlight(D);
+D        = 'right';
+cam      = camlight(D);
 vidObj   = VideoWriter(fpath,'MPEG-4');
 set(vidObj,'Quality',100);
 set(vidObj,'FrameRate',size(y,2)/(10));
@@ -586,7 +586,7 @@ for i = 1:ntime
     if i > 1; fprintf(repmat('\b',[1 length(str)])); end
     str = sprintf('building: %d of %d\n',i,ntime);
     fprintf(str);
-    %camlight(cam); 
+    camlight(cam); 
     
     plot(h1,gifti(mesh));
     hh       = get(h1,'children');
@@ -607,7 +607,7 @@ for i = 1:ntime
         tt = title(num2str(tv(i)),'fontsize',20);
         P = get(tt,'Position') ;
         P = P/max(P(:));
-        set(tt,'Position',[P(1)+60 P(2)-105 P(3)]) ;
+        set(tt,'Position',[P(1) P(2)+60 P(3)]) ;
     end
     
     set(findall(gca, 'type', 'text'), 'visible', 'on');
