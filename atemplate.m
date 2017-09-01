@@ -612,7 +612,7 @@ for i = 1:ntime
 
         
         case 1
-            hh       = get(gca,'children');
+            hh = get(gca,'children');
             set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');
             caxis([min(S(:,1)) max(S(:,2))]);
             shading interp
