@@ -622,7 +622,7 @@ for i = 1:ntime
         tt = title(num2str(tv(i)),'fontsize',20);
         P = get(tt,'Position') ;
         P = P/max(P(:));
-        set(tt,'Position',[P(1)+60 P(2)-105 P(3)]) ;
+        set(tt,'Position',[P(1) P(2)+70 P(3)]) ;
     end
     
     set(findall(gca, 'type', 'text'), 'visible', 'on');
