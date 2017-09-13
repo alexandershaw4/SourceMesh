@@ -81,6 +81,17 @@ atemplate('overlay',overlay,'labels'); % (omit 'gifti' argument)
 
 ![alt text](NodePowOnSurface.gif)
 
+# Video
+For a video from the frames in double matrix V, when V(90,n) and n is the number of frames / images that make the video.
+
+```
+m = randi([0 4],90,100);
+savename = 'MyVideo';
+times    = 1:1:100;
+
+atemplate('gifti',g,'video',m,savename,times);   
+``` 
+![alt text](VideoExample.gif)
 
 # Nodes
 For a set of nodes, with only the specified nodes labelled.
