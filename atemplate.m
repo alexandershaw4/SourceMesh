@@ -574,7 +574,7 @@ if num == 2;
     h1 = subplot(121);
     h2 = subplot(122);
 else
-    bigimg;view(90,0);
+    bigimg;view(270,0);
     f = gcf;
 end
 
