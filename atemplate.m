@@ -228,6 +228,7 @@ end
 
 % centre on 0 by subtracting sphere centre
 iAll      = All;
+iAll(:,1) = All(:,1)*-1;
 iAll(:,2) = All(:,2)*-1;
 Centre = spherefit(iAll);
 maxpts = max(arrayfun(@(x) size(x.matrix, 1), tracks));
@@ -246,7 +247,8 @@ for iTrk = 1:length(tracks)
     matrix = tracks(iTrk).matrix;
     matrix(any(isnan(matrix(:,1:3)),2),:) = [];
     
-    matrix(:,2) = matrix(:,2)*-1;
+    matrix(:,1) = matrix(:,1)*-1; % flip L-R
+    matrix(:,2) = matrix(:,2)*-1; % flip F-B
     M           = matrix - repmat(Centre,[size(matrix,1),1]); % centre
     M(:,2)      = M(:,2) + pullback;                          % pullback
     M(:,3)      = M(:,3) + pullup;                            % pull up
