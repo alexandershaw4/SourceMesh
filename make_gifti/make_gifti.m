@@ -35,6 +35,9 @@ methods
             case {'gii','gifti'}
                 obj.g    = gifti(obj.mri);
                 obj.orig = obj.g;
+            case 'spm'
+                obj.g    = gifti('spm.surf.gii');
+                obj.orig = obj.g;
         end
     end
     
@@ -44,7 +47,11 @@ methods
     end
     
     function obj = inflate(obj,howmuch)
-    if nargin < 2; howmuch = 400; end
+    if nargin < 2; 
+        switch obj.type;
+            case 'ctf'; howmuch = 400; 
+            case 'spm'; howmuch = 60;
+        end
             obj.i = spm_mesh_inflate(obj.g,howmuch);
     end
     function obj = smooth(obj,smth)
