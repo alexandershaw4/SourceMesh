@@ -1,4 +1,4 @@
-function atemplate(varargin)
+function varargout = atemplate(varargin)
 % Add AAL90 networks and overlays to a smoothed brain mesh
 %
 % Takes paired inputs:
@@ -61,8 +61,10 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nocolbar');colbar = 0; end
     if strcmp(varargin{i},'video');   V     = varargin{i+1};...
                                       fpath = varargin{i+2};
-                                      times = varargin{i+3};
-    end
+                                      times = varargin{i+3}; end
+    if strcmp(varargin{i},'othermesh'); M = varargin{i+1};     
+                                        O = varargin{i+2};   end    
+    
 end
 
 
@@ -97,7 +99,14 @@ try N; drawnodes(N);               end % draw N(i) = 1 nodes
 try V; 
     tv = 1:size(V,2);
     try tv = times; end
-    video(mesh,V,colbar,fpath,tv); end
+    video(mesh,V,colbar,fpath,tv); 
+end
+
+try M;
+    [M,y] = othermesh(M,O,mesh,write,fname);
+    varargout{1} = M;
+    varargout{2} = y;
+end
 
 if labels; 
     if     exist('A','var'); addlabels(A);
@@ -319,13 +328,17 @@ else
         fprintf(str);    
 
         % find closest point[s] in cortical mesh
-        dist  = cdist(mv,v(i,:));
-        for j = 1:r
-            [junk, ind] = min(dist);
-            dist(ind)   = inf;
-            OL(i,ind)   = w(r)*L(i);
-            M (i,ind)   = w(r); % return this for future calls
-        end
+        dist       = cdist(mv,v(i,:));
+        [junk,ind] = maxpoints(dist,r,'min');
+        OL(i,ind)  = w*L(i);
+        M (i,ind)  = w;        
+        
+%         for j = 1:r
+%             [junk, ind] = min(dist);
+%             dist(ind)   = inf;
+%             OL(i,ind)   = w(r)*L(i);
+%             M (i,ind)   = w(r); % return this for future calls
+%         end
     end
     fprintf('\n');
     
@@ -370,6 +383,126 @@ else
     end
     
 end
+
+end
+
+
+% function [M,y] = othermesh(M,O,mesh,write,fname)
+% 
+% colbar = 1;
+% 
+% fprintf('Fitting supplied mesh vertices to template mesh\n');
+% nv = mesh.vertices;
+% ov = M.vertices;
+% 
+% %nv = nv - repmat(spherefit(nv),[size(nv,1),1]);
+% ov = ov - repmat(spherefit(ov),[size(ov,1),1]);
+% 
+% bounds = [min(nv); max(nv)];
+% orig   = [min(ov); max(ov)];
+% m      = mean( bounds./orig );
+% new    = (0.99)* ( ov.*repmat(m,[size(ov,1),1]) );
+% b      = bounds;
+% 
+% new(:,1) = b(1,1) + ((b(2,1)-b(1,1))) .* (new(:,1) - min(new(:,1)))./(max(new(:,1))-min(new(:,1)));
+% new(:,2) = b(1,2) + ((b(2,2)-b(1,2))) .* (new(:,2) - min(new(:,2)))./(max(new(:,2))-min(new(:,2)));
+% new(:,3) = b(1,3) + ((b(2,3)-b(1,3))) .* (new(:,3) - min(new(:,3)))./(max(new(:,3))-min(new(:,3)));
+% 
+% 
+% L  = O.cdata;
+% x  = new(:,1);
+% mv = mesh.vertices;
+% v  = new;
+% OL = sparse(length(L),length(mv)); % this will be overlay matrix we average
+% 
+% r  = ceil(length(mv)*0.0705);      % radius - number of closest points on mesh
+% 
+% w  = linspace(.1,1,r);          % weights for closest points
+% w  = fliplr(w);                 % 
+% M  = zeros( length(x), length(mesh.vertices) );
+% %w  = ones(size(w)); 
+% 
+% S  = [min(L(:)),max(L(:))];
+% % otherwise find closest points (assume both in mm)
+% fprintf('Determining closest points between supplied mesh & template vertices (overlay)\n');
+% for i = 1:length(x)
+%     
+%     % reporting
+%     if i > 1; fprintf(repmat('\b',[size(str)])); end
+%     str = sprintf('%d/%d',i,(length(x)));
+%     fprintf(str);
+%     
+%     % find closest point[s] in cortical mesh
+%     dist       = cdist(mv,v(i,:));
+%     [junk,ind] = maxpoints(dist,r,'min');
+%     OL(i,ind)  = w*L(i);
+%     M (i,ind)  = w;
+%     
+% end
+% fprintf('\n');
+% 
+% OL = killinterhems(OL);
+% M  = killinterhems(M);
+% 
+% interpl = 1;
+% L = double(L);
+% if ~interpl
+%     OL = mean((OL),1); % mean value of a given vertex
+% else
+%     for i = 1:size(OL,2)
+%         % average overlapping voxels
+%         L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
+%     end
+%     OL = L;
+%     %OL = full(L);
+% end
+% 
+% % normalise and rescale
+% y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+% %y  = S(1) + ((S(2)-S(1))).*TSNorm(OL); % or normalise as sparse
+% 
+% y(isnan(y)) = 0;
+% y  = full(y);
+% y = double(y);
+% 
+% 
+% % spm mesh smoothing
+% fprintf('Smoothing overlay...\n');
+% y = spm_mesh_smooth(mesh, y(:), 4);
+% 
+% y  = y(:);
+% hh = get(gca,'children');
+% 
+% set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
+% shading interp
+% if colbar
+%     colorbar
+% end
+% 
+% if write;
+%     fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
+%     g       = gifti;
+%     g.cdata = double(y);
+%     g.private.metadata(1).name  = 'SurfaceID';
+%     g.private.metadata(1).value = [fname 'Overlay.gii'];
+%     save(g, [fname  'Overlay.gii']);
+% end
+% 
+% 
+% 
+% 
+% end
+
+function x = killinterhems(x);
+
+S  = size(x);
+xb = (S(1)/2)+1:S(1);
+yb = (S(2)/2)+1:S(2);
+xa = 1:S(1)/2;
+ya = 1:S(2)/2;
+
+x(xa,yb) = 0;
+x(xb,ya) = 0;
 
 end
 
@@ -527,13 +660,17 @@ for i = 1:length(x)
     fprintf(str);    
 
     % find closest point[s] in cortical mesh
-    dist  = cdist(mv,v(i,:));
-    for j = 1:r
-        [junk, ind] = min(dist);
-        dist(ind)   = inf;
-        OL(i,ind,:) = full(w(r)*L(i,:))';
-        M (i,ind)   = w(r); % return this for future calls
-    end
+    dist       = cdist(mv,v(i,:));
+    [junk,ind] = maxpoints(dist,r,'min');
+    OL(i,ind)  = w*L(i);
+    M (i,ind)  = w;  
+    
+%     for j = 1:r
+%         [junk, ind] = min(dist);
+%         dist(ind)   = inf;
+%         OL(i,ind,:) = full(w(r)*L(i,:))';
+%         M (i,ind)   = w(r); % return this for future calls
+%     end
 end
 fprintf('\n');
 
