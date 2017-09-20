@@ -29,12 +29,19 @@ else
         ax = varargin{1};
         h = figure(get(ax,'parent'));
         this = varargin{2};
+        
+        % allow pass of cdata as varargin{3}
+        if nargin == 3;
+            cdata = subsref(varargin{3},struct('type','.','subs','cdata'));
+            indc  = 1;
+        end
     else
         this = varargin{1};
         h = gcf;
         cdata = subsref(varargin{2},struct('type','.','subs','cdata'));
     end
-    if nargin > 2
+    % changed in light of above
+    if nargin > 2 && isempty(indc)
         indc = varargin{3};
     else
         indc = 1;
