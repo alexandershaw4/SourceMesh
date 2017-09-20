@@ -7,7 +7,7 @@ function [node1,node2,strng] = conmat2nodes(A,savename,varargin)
 %
 % AS2017
 
-load([fileparts(which('conmat2nodes')),'/AAL_SOURCEMOD.mat']);
+load(['AAL_SOURCEMOD.mat']);
 
 
 node1 = []; node2 = []; strng = [];
