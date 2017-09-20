@@ -9,8 +9,13 @@ classdef make_gifti < handle
 % this.inflate;                          % inflate the resulting mesh
 % this.reduce;                           % simplify mesh
 % this.smooth;                           % smooth mesh
+% 
+% use:
+% this = make_gifti([],'spm'); % initiate object
+% this.makesurf;               % load spm 8k vertex surface
+% this.smooth / inflate 
 %
-
+% AS
 
 properties 
     mri
@@ -66,7 +71,7 @@ methods
     end
     
     
+    end
 end
-
 
 end
