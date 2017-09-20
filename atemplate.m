@@ -362,7 +362,8 @@ else
     
     % spm mesh smoothing
     fprintf('Smoothing overlay...\n');
-    y = spm_mesh_smooth(mesh, y', 4);
+    y = spm_mesh_smooth(mesh, y(:), 4);
+    y = double(y);
     
     y  = y(:);
     hh = get(gca,'children');
