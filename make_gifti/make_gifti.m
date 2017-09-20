@@ -59,6 +59,7 @@ methods
         end
             obj.i = spm_mesh_inflate(obj.g,howmuch);
     end
+    end
     function obj = smooth(obj,smth)
     if nargin < 2; smth = 0.5; end
         dV = sms(obj.g.vertices,obj.g.faces,5,smth);
@@ -71,7 +72,5 @@ methods
     end
     
     
-    end
 end
-
 end
