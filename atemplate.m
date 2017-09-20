@@ -90,8 +90,8 @@ elseif pmesh
        mesh = meshmesh(mesh,write,fname,fighnd,.3);
 end
 
-try A; connections(A,colbar);             end % draw edges and edge-connected nodes
 try L; overlay(mesh,L,write,fname,colbar);end % find closest vertices and overlay
+try A; connections(A,colbar);             end % draw edges and edge-connected nodes
 try T; drawtracks(T,H,mesh);       end % draw dti tracks loaded with trk_read
 try N; drawnodes(N);               end % draw N(i) = 1 nodes
 
@@ -333,12 +333,6 @@ else
         OL(i,ind)  = w*L(i);
         M (i,ind)  = w;        
         
-%         for j = 1:r
-%             [junk, ind] = min(dist);
-%             dist(ind)   = inf;
-%             OL(i,ind)   = w(r)*L(i);
-%             M (i,ind)   = w(r); % return this for future calls
-%         end
     end
     fprintf('\n');
     
@@ -350,12 +344,10 @@ else
            L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
         end
         OL = L;
-        %OL = full(L);
     end
     
     % normalise and rescale
     y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
-    %y  = S(1) + ((S(2)-S(1))).*TSNorm(OL); % or normalise as sparse
     
     y(isnan(y)) = 0;
     y  = full(y);
@@ -367,9 +359,12 @@ else
     
     y  = y(:);
     hh = get(gca,'children');
+    pause(.5);
     
-    set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
+    set(hh(end),'FaceVertexCData',y(:), 'FaceColor','interp');
+    drawnow;
     shading interp
+    
     if colbar
         colorbar
     end
