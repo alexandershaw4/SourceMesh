@@ -32,7 +32,8 @@ methods
              obj.type = type;
     end
     function obj = makesurf(obj, smth)
-    if nargin < 2; smth = .15; end
+    if nargin < 2; smth = .15; 
+    end
         switch obj.type
             case 'ctf';
                 obj.g    = Vol2SurfAS(obj.mri,obj.type,smth);
@@ -47,21 +48,25 @@ methods
     end
     
     function obj = reduce(obj,smth)
-    if nargin < 2; smth = .15; end
+    if nargin < 2; smth = .15; 
+    end
         [obj.g.faces, obj.g.vertices] = reducepatch(obj.g.faces,obj.g.vertices,smth);
     end
     
+    
     function obj = inflate(obj,howmuch)
-    if nargin < 2; 
-        switch obj.type;
-            case 'ctf'; howmuch = 400; 
-            case 'spm'; howmuch = 60;
+        if nargin < 2; 
+            switch obj.type;
+                case 'ctf'; howmuch = 400; 
+                case 'spm'; howmuch = 60;
+                case 'gii'; howmuch = 100;
+            end
         end
-            obj.i = spm_mesh_inflate(obj.g,howmuch);
-    end
+        obj.i = spm_mesh_inflate(obj.g,howmuch);
     end
     function obj = smooth(obj,smth)
-    if nargin < 2; smth = 0.5; end
+    if nargin < 2; smth = 0.5; 
+    end
         dV = sms(obj.g.vertices,obj.g.faces,5,smth);
         obj.g.vertices = dV;
     end
