@@ -106,6 +106,7 @@ try L; overlay(mesh,L,write,fname,colbar);end
 % o colbar is plotting both overlay & network!
 if exist('L','var') && exist('A','var');
     colbar = 0;
+    alpha(.2);
 end
 
 
@@ -182,13 +183,13 @@ for i = 1:size(node1,1)
 end
 
 % Set colorbar only if there are valid edges
-if any(i)
+if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
     if colbar
         colorbar
     end
 end
-if LimC;
+if LimC && colbar
     caxis(R);
 end
 
