@@ -8,11 +8,11 @@ function varargout = atemplate(varargin)
 %
 % 'overlay', plot functional overlay
 % 'network', plot nodes & edges from AAL network analysis
-% 'nodes'  , 
+% 'nodes'  , plot only nodes from AAL90 atlas
 % 'tracks' , tracks, header (as read with trk_read^ )
 % 'labels' , add AAL90 labels
-% 'video'  , video overlay 
-% '
+% 'video'  , make video overlay 
+% 
 %
 %
 %  Usages:
@@ -104,8 +104,10 @@ end
 try L; overlay(mesh,L,write,fname,colbar);end 
 
 % o colbar is plotting both overlay & network!
-if exist('L','var') && exist('A','var');
+isover = exist('L','var') || exist('V','var');
+if  isover && exist('A','var') 
     colbar = 0;
+    alpha(.2);
 end
 
 
@@ -116,12 +118,6 @@ try T; drawtracks(T,H,mesh);       end
 % draw N(i) = 1 nodes
 try N; drawnodes(N);               end 
 
-
-try V; 
-    tv = 1:size(V,2);
-    try tv = times; end
-    video(mesh,V,colbar,fpath,tv); 
-end
 
 try M;
     [M,y] = othermesh(M,O,mesh,write,fname);
@@ -134,6 +130,12 @@ if labels;
     elseif exist('N','var'); addlabels(diag(N));
     else   addlabels(ones(90,90));
     end
+end
+
+try V; 
+    tv = 1:size(V,2);
+    try tv = times; end
+    video(mesh,V,1,fpath,tv); 
 end
 
 
@@ -182,13 +184,13 @@ for i = 1:size(node1,1)
 end
 
 % Set colorbar only if there are valid edges
-if any(i)
+if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
     if colbar
         colorbar
     end
 end
-if LimC;
+if LimC && colbar
     caxis(R);
 end
 
@@ -667,7 +669,7 @@ for i = 1:length(x)
     % find closest point[s] in cortical mesh
     dist       = cdist(mv,v(i,:));
     [junk,ind] = maxpoints(dist,r,'min');
-    OL(i,ind)  = w*L(i);
+    OL(i,ind,:)  = repmat(w,[size(L,2),1])*L(i,:);
     M (i,ind)  = w;  
     
 %     for j = 1:r

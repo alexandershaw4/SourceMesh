@@ -669,7 +669,7 @@ for i = 1:length(x)
     % find closest point[s] in cortical mesh
     dist       = cdist(mv,v(i,:));
     [junk,ind] = maxpoints(dist,r,'min');
-    OL(i,ind)  = w*L(i);
+    OL(i,ind,:)= w'*L(i,:);
     M (i,ind)  = w;  
     
 %     for j = 1:r
