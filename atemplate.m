@@ -1,19 +1,26 @@
 function varargout = atemplate(varargin)
 % Add AAL90 networks and overlays to a smoothed brain mesh
 %
-% Takes paired inputs:
+% NOTE: Unknown BUG when using with Matlab 2015a on Linux.
+% Working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux
 %
-% 'overlay', L (1x90)
-% 'network', A (90x90)
-% 'nodes'  , N (90x1) [logical / binary]
+% Does this:
+%
+% 'overlay', plot functional overlay
+% 'network', plot nodes & edges from AAL network analysis
+% 'nodes'  , plot only nodes from AAL90 atlas
 % 'tracks' , tracks, header (as read with trk_read^ )
 % 'labels' , add AAL90 labels
+% 'video'  , make video overlay 
+% 
 %
-% Example usages:
+%
+%  Usages:
 %
 %  atemplate('labels');         template mesh with AAL labels
-%  atemplate('overlay',L);      template mesh with overlay
-%  atemplate('network',A);      template mesh with nodes & edges
+%  atemplate('overlay',L);      template mesh with overlay [90x1]
+%  atemplate('network',A);      template mesh with nodes & edges [90x90]
+%  atemplate('nodes', N);       template mesh with nodes labelled [90,1]
 %  atemplate('overlay',L,'network',A,'labels'); overlay, network & labels
 %  atemplate('tracks',tracks,header); plot tracks loaded with trk_read
 %  atemplate('gifti',g);        use supplied gifti surface / mesh 

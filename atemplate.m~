@@ -1,19 +1,26 @@
 function varargout = atemplate(varargin)
 % Add AAL90 networks and overlays to a smoothed brain mesh
 %
-% Takes paired inputs:
+% NOTE: Unknown BUG when using with Matlab 2015a on Linux.
+% Working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux
 %
-% 'overlay', L (1x90)
-% 'network', A (90x90)
-% 'nodes'  , N (90x1) [logical / binary]
+% Does this:
+%
+% 'overlay', plot functional overlay
+% 'network', plot nodes & edges from AAL network analysis
+% 'nodes'  , 
 % 'tracks' , tracks, header (as read with trk_read^ )
 % 'labels' , add AAL90 labels
+% 'video'  , video overlay 
+% '
 %
-% Example usages:
+%
+%  Usages:
 %
 %  atemplate('labels');         template mesh with AAL labels
-%  atemplate('overlay',L);      template mesh with overlay
-%  atemplate('network',A);      template mesh with nodes & edges
+%  atemplate('overlay',L);      template mesh with overlay [90x1]
+%  atemplate('network',A);      template mesh with nodes & edges [90x90]
+%  atemplate('nodes', N);       template mesh with nodes labelled [90,1]
 %  atemplate('overlay',L,'network',A,'labels'); overlay, network & labels
 %  atemplate('tracks',tracks,header); plot tracks loaded with trk_read
 %  atemplate('gifti',g);        use supplied gifti surface / mesh 
@@ -82,22 +89,32 @@ catch mesh = read_nv();
       fprintf('Template mesh\n');
 end
 
+% centre and fix mesh to ~AAL source vertices
 mesh = fixmesh(mesh);
 
-%if exist('L','var');
-%    overlay(mesh,L,write,fname,colbar,fighnd);
-%else
-    if     pmesh && ~exist('T','var');
-           mesh = meshmesh(mesh,write,fname,fighnd);
-    elseif pmesh
-           mesh = meshmesh(mesh,write,fname,fighnd,.3);
-    end
-%end
+% plot the glass brain
+if     pmesh && ~exist('T','var');
+       mesh = meshmesh(mesh,write,fname,fighnd);
+elseif pmesh
+       mesh = meshmesh(mesh,write,fname,fighnd,.3);
+end
 
-try L; overlay(mesh,L,write,fname,colbar);end % find closest vertices and overlay
-try A; connections(A,colbar);             end % draw edges and edge-connected nodes
-try T; drawtracks(T,H,mesh);       end % draw dti tracks loaded with trk_read
-try N; drawnodes(N);               end % draw N(i) = 1 nodes
+
+% find closest vertices and overlay
+try L; overlay(mesh,L,write,fname,colbar);end 
+
+% o colbar is plotting both overlay & network!
+if exist('L','var') && exist('A','var');
+    colbar = 0;
+end
+
+
+% draw edges and edge-connected nodes
+try A; connections(A,colbar);      end 
+% draw dti tracks loaded with trk_read
+try T; drawtracks(T,H,mesh);       end 
+% draw N(i) = 1 nodes
+try N; drawnodes(N);               end 
 
 
 try V; 
@@ -323,7 +340,6 @@ for i = 1:length(x)
     
 end
 fprintf('\n');
-%OL = killinterhems(OL);
 
 if ~interpl
      % mean value of a given vertex
@@ -354,29 +370,7 @@ colormap('jet');
 
 if colbar
     drawnow; pause(.5);
-    colorbar('peer',gca,'South');
-%     f1  = gcf;
-%     P = get(f1,'Position');
-%     ax1 = gca;
-%     
-%     f2  = figure;
-%     N = P;
-%     N([1 2]) = N([1 2]) + 60;
-%     set(f2,'Position',N);
-%     
-%     ax2 = axes;
-%     set(ax2,'visible','off');
-%     set(0,'currentfigure',f2);
-%     set(f2,'currentaxes',ax2);
-%     colorbar('peer',ax1);
-%     
-%     %set(ax2,'Position',P);
-%     %set(gcf,'currentaxes',ax2);
-%     
-%     
-%     %colorbar('peer',ax1,'South');
-%     set(0,'currentfigure',f1);
-    
+    colorbar('peer',gca,'South');    
 end
     
     if write;
@@ -527,8 +521,8 @@ v        = template_sourcemodel.pos;
 M        = max(v);
 m        = min(v);
 
-M = M*1.1;
-m = m*1.1;
+M = M*1.15;
+m = m*1.15;
 
 V        = g.vertices;
 V        = V - repmat(spherefit(V),[size(V,1),1]);
