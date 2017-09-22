@@ -104,7 +104,8 @@ end
 try L; overlay(mesh,L,write,fname,colbar);end 
 
 % o colbar is plotting both overlay & network!
-if exist('L','var') && exist('A','var');
+isover = exist('L','var') || exist('V','var');
+if  isover && exist('A','var') 
     colbar = 0;
     alpha(.2);
 end
@@ -118,12 +119,6 @@ try T; drawtracks(T,H,mesh);       end
 try N; drawnodes(N);               end 
 
 
-try V; 
-    tv = 1:size(V,2);
-    try tv = times; end
-    video(mesh,V,colbar,fpath,tv); 
-end
-
 try M;
     [M,y] = othermesh(M,O,mesh,write,fname);
     varargout{1} = M;
@@ -135,6 +130,12 @@ if labels;
     elseif exist('N','var'); addlabels(diag(N));
     else   addlabels(ones(90,90));
     end
+end
+
+try V; 
+    tv = 1:size(V,2);
+    try tv = times; end
+    video(mesh,V,1,fpath,tv); 
 end
 
 
