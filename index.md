@@ -81,6 +81,10 @@ atemplate('overlay',overlay,'labels'); % (omit 'gifti' argument)
 
 ![alt text](NodePowOnSurface.gif)
 
+Both overlay & network with labels:
+
+![alt text](Examples/Ex_OverlayWithNetworkAndLabels.gif)
+
 # Video
 For a video from the frames in double matrix V, when V(90,n) and n is the number of frames / images that make the video.
 
