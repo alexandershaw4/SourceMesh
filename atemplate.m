@@ -82,13 +82,17 @@ catch mesh = read_nv();
       fprintf('Template mesh\n');
 end
 
-hold on;
+mesh = fixmesh(mesh);
 
-if     pmesh && ~exist('T','var');
-       mesh = meshmesh(mesh,write,fname,fighnd);
-elseif pmesh
-       mesh = meshmesh(mesh,write,fname,fighnd,.3);
-end
+%if exist('L','var');
+%    overlay(mesh,L,write,fname,colbar,fighnd);
+%else
+    if     pmesh && ~exist('T','var');
+           mesh = meshmesh(mesh,write,fname,fighnd);
+    elseif pmesh
+           mesh = meshmesh(mesh,write,fname,fighnd,.3);
+    end
+%end
 
 try L; overlay(mesh,L,write,fname,colbar);end % find closest vertices and overlay
 try A; connections(A,colbar);             end % draw edges and edge-connected nodes
@@ -152,6 +156,7 @@ if all(all(isnan(RGB)))
 end
 
 % Paint edges
+
 for i = 1:size(node1,1)
     line([node1(i,1),node2(i,1)],...
         [node1(i,2),node2(i,2)],...
@@ -298,76 +303,81 @@ w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 
+
 % if is same verts as mri, just rescale & overlay
-if length(L) == nv 
-    S  = [min(L(:)),max(L(:))];
-    fprintf('Overlay size matches mri!\n');
-    hh = get(gca,'children');
-    L  = L(:);
-    y  = S(1) + ((S(2)-S(1))).*(L - min(L))./(max(L) - min(L));
-    y(isnan(y)) = 0;
-    y  = full(y);
-    y  = y(:);
+S  = [min(L(:)),max(L(:))];
+% otherwise find closest points (assume both in mm)
+fprintf('Determining closest points between AAL & template vertices (overlay)\n');
+for i = 1:length(x)
+    
+    % reporting
+    if i > 1; fprintf(repmat('\b',[size(str)])); end
+    str = sprintf('%d/%d',i,(length(x)));
+    fprintf(str);
+    
+    % find closest point[s] in cortical mesh
+    dist       = cdist(mv,v(i,:));
+    [junk,ind] = maxpoints(dist,r,'min');
+    OL(i,ind)  = w*L(i);
+    M (i,ind)  = w;
+    
+end
+fprintf('\n');
 
-    set(hh(end),'FaceVertexCData',y, 'FaceColor','interp');
-    shading interp;
-    
-    if colbar
-        colorbar
-    end
-    
+if ~interpl
+     % mean value of a given vertex
+    OL = mean((OL),1);
 else
-    S  = [min(L(:)),max(L(:))];
-    % otherwise find closest points (assume both in mm)
-    fprintf('Determining closest points between AAL & template vertices (overlay)\n');
-    for i = 1:length(x)
+    for i = 1:size(OL,2)
+        % average overlapping voxels
+        L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
+    end
+    OL = L;
+end
 
-        % reporting
-        if i > 1; fprintf(repmat('\b',[size(str)])); end
-        str = sprintf('%d/%d',i,(length(x)));
-        fprintf(str);    
+OL = killinterhems(OL);
 
-        % find closest point[s] in cortical mesh
-        dist       = cdist(mv,v(i,:));
-        [junk,ind] = maxpoints(dist,r,'min');
-        OL(i,ind)  = w*L(i);
-        M (i,ind)  = w;        
-        
-    end
-    fprintf('\n');
+% normalise and rescale
+y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+
+y(isnan(y)) = 0;
+y  = full(y);
+
+% spm mesh smoothing
+fprintf('Smoothing overlay...\n');
+y = spm_mesh_smooth(mesh, y(:), 4);
+hh = get(gca,'children');
+set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+drawnow;
+shading interp
+colormap('jet');
+
+if colbar
+    drawnow; pause(.5);
+    colorbar('peer',gca,'South');
+%     f1  = gcf;
+%     P = get(f1,'Position');
+%     ax1 = gca;
+%     
+%     f2  = figure;
+%     N = P;
+%     N([1 2]) = N([1 2]) + 60;
+%     set(f2,'Position',N);
+%     
+%     ax2 = axes;
+%     set(ax2,'visible','off');
+%     set(0,'currentfigure',f2);
+%     set(f2,'currentaxes',ax2);
+%     colorbar('peer',ax1);
+%     
+%     %set(ax2,'Position',P);
+%     %set(gcf,'currentaxes',ax2);
+%     
+%     
+%     %colorbar('peer',ax1,'South');
+%     set(0,'currentfigure',f1);
     
-    if ~interpl
-        OL = mean((OL),1); % mean value of a given vertex
-    else
-        for i = 1:size(OL,2)
-           % average overlapping voxels 
-           L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
-        end
-        OL = L;
-    end
-    
-    % normalise and rescale
-    y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
-    
-    y(isnan(y)) = 0;
-    y  = full(y);
-    
-    % spm mesh smoothing
-    fprintf('Smoothing overlay...\n');
-    y = spm_mesh_smooth(mesh, y(:), 4);
-    y = double(y);
-    
-    y  = y(:);
-    hh = get(gca,'children');
-    pause(.5);
-    
-    set(hh(end),'FaceVertexCData',y(:), 'FaceColor','interp');
-    drawnow;
-    shading interp
-    
-    if colbar
-        colorbar
-    end
+end
     
     if write;
         fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
@@ -380,7 +390,6 @@ else
     
 end
 
-end
 
 
 % function [M,y] = othermesh(M,O,mesh,write,fname)
@@ -505,14 +514,12 @@ end
 
 
 
-function g = meshmesh(g,write,fname,fighnd,a)
+function g = fixmesh(g)
 % plot as transparent grey gifti surface
 %
 % AS
 
-if nargin < 5;
-    a = .6;
-end
+
 
 % Auto fit to extremes of [AAL] sourcemodel vertices (both are centred on 0)
 load('AAL_SOURCEMOD');
@@ -531,6 +538,14 @@ V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,
 V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
 
 g.vertices = V;
+
+end
+
+function g = meshmesh(g,write,fname,fighnd,a);
+
+if nargin < 5;
+    a = .6;
+end
 
 % plot
 if ~isempty(fighnd)
