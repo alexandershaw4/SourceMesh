@@ -89,8 +89,6 @@ catch mesh = read_nv();
       fprintf('Template mesh\n');
 end
 
-% centre and fix mesh to ~AAL source vertices
-mesh = fixmesh(mesh);
 
 % plot the glass brain
 if     pmesh && ~exist('T','var');
@@ -215,8 +213,11 @@ function drawnodes(N)
 % 
 
 hold on;
-load([fileparts(which('conmat2nodes')),'/AAL_SOURCEMOD.mat']);
-v = template_sourcemodel.pos;
+% load([fileparts(which('conmat2nodes')),'/AAL_SOURCEMOD.mat']);
+% v = template_sourcemodel.pos;
+% align aal labels to mesh
+v = fixmesh(mesh); % get AAL positions on mesh surface
+
 
 ForPlot = v(find(N),:);
 
@@ -275,6 +276,8 @@ MT(2,:) = max(iAll-repmat(Centre,[size(iAll,1),1]));
 pullback = min(MM(:,2)) - min(MT(:,2));
 pullup   = max(MM(:,3)) - max(MT(:,3));
 
+D = mean((MM)./MT);
+
 % this time draw the tracks
 for iTrk = 1:length(tracks)
     matrix = tracks(iTrk).matrix;
@@ -283,8 +286,9 @@ for iTrk = 1:length(tracks)
     matrix(:,1) = matrix(:,1)*-1; % flip L-R
     matrix(:,2) = matrix(:,2)*-1; % flip F-B
     M           = matrix - repmat(Centre,[size(matrix,1),1]); % centre
-    M(:,2)      = M(:,2) + pullback;                          % pullback
-    M(:,3)      = M(:,3) + pullup;                            % pull up
+    M           = M.*repmat(D,[size(M,1),1]);
+    M(:,2)      = M(:,2) + (pullback*1.1);                          % pullback
+    M(:,3)      = M(:,3) + (pullup*1.1);                            % pull up
 
     h = patch([M(:,1)' nan], [M(:,2)' nan], [M(:,3)' nan], 0);
     cdata = [(0:(size(matrix, 1)-1))/(maxpts) nan];
@@ -311,8 +315,10 @@ function overlay(mesh,L,write,fname,colbar)
 interpl = 1; 
 
 % Overlay
-load('AAL_SOURCEMOD');          % get AAL source vertices
-v  = template_sourcemodel.pos;  % AAL vertices
+%load('AAL_SOURCEMOD');          % get AAL source vertices
+%v  = template_sourcemodel.pos;  % AAL vertices
+v = fixmesh(mesh); % get AAL positions on mesh surface
+
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
@@ -510,30 +516,49 @@ end
 
 
 
-function g = fixmesh(g)
+function newpos = fixmesh(g)
 % plot as transparent grey gifti surface
 %
 % AS
 
+v = g.vertices;
+v = v - repmat(spherefit(v),[size(v,1),1]);% Centre on ~0
+g.vertices=v;
 
 
-% Auto fit to extremes of [AAL] sourcemodel vertices (both are centred on 0)
+%
 load('AAL_SOURCEMOD');
-v        = template_sourcemodel.pos;
-M        = max(v);
-m        = min(v);
+pos  = template_sourcemodel.pos;
 
-M = M*1.15;
-m = m*1.15;
 
-V        = g.vertices;
-V        = V - repmat(spherefit(V),[size(V,1),1]);
+% Centre on ~0
+pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
-V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+for i = 1:length(pos)
+    
+    this = pos(i,:);
+    [t,I] = maxpoints(cdist(v,this),1,'max');
+    
+    newpos(i,:) = v(I,:);
+    
+end
 
-g.vertices = V;
+
+
+% M        = max(v);
+% m        = min(v);
+% 
+% M = M*1.15;
+% m = m*1.15;
+% 
+% V        = g.vertices;
+% V        = V - repmat(spherefit(V),[size(V,1),1]);
+% 
+% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+% 
+% g.vertices = V;
 
 end
 
@@ -579,7 +604,9 @@ function addlabels(V)
 load('labels');
 labels = strrep(labels,'_',' ');
 
-load('AAL_SOURCEMOD');
+%load('AAL_SOURCEMOD');
+pos = fixmesh(mesh); % get AAL positions on mesh surface
+
 
 % compile list of in-use node indices
 %------------------------------------
@@ -593,7 +620,7 @@ for i  = 1:size(V,1)
 end
 
 AN  = unique([to,from]);
-v   = template_sourcemodel.pos;
+%v   = template_sourcemodel.pos;
 off = 1.5;
 
 % add these to plot with offset
@@ -642,8 +669,10 @@ num = 1; % number of brains
 interpl = 1; 
 
 % Overlay
-load('AAL_SOURCEMOD');          % get AAL source vertices
-v  = template_sourcemodel.pos;  % AAL vertices
+%load('AAL_SOURCEMOD');          % get AAL source vertices
+%v  = template_sourcemodel.pos;  % AAL vertices
+v = fixmesh(mesh); % get AAL positions on mesh surface
+
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices

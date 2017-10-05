@@ -11,13 +11,18 @@ function g = Vol2SurfAS(file,type,varargin)
 % ('smooth',  n) - e.g. g = Vol2SurfAS('myctfmri.mri','ctf','smooth',0.15);
 % ('inflate'   ) - e.g. g = Vol2SurfAS('myctfmri.mri','ctf','inflate');
 %
+% ('tissue', 'white') - return white matter mesh instead of gray
+%
 % AS
+
+tissue = 'gray'; % gray or white
 
 smth   = 0;
 infl   = 0;
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'smooth');  smth = varargin{i+1}; end
     if strcmp(varargin{i},'inflate'); infl = 1;             end
+    if strcmp(varargin{i},'tissue') ; tissue = varargin{i+1}; end
 end
 
 switch type
@@ -34,8 +39,15 @@ cfg.template   = [fileparts(mfilename('fullpath')) '/T1.nii'];
 cfg.spmversion = 'spm12';
 mri            = ft_volumenormalise(cfg,mri);
 mri            = ft_volumereslice([], mri);
+cfg.brainsmooth= 6;
 segmentedmri   = ft_volumesegment(cfg, mri);
-V              = isosurface(segmentedmri.gray,.5);
+
+switch lower(tissue)
+    case 'gray';
+    V          = isosurface(segmentedmri.gray,.5);
+    case 'white';
+    V          = isosurface(segmentedmri.white,.5);
+end
 
 % smooth and centre
 fprintf('Smoothing surface... (please wait)\n');
