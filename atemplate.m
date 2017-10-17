@@ -315,9 +315,9 @@ function overlay(mesh,L,write,fname,colbar)
 interpl = 1; 
 
 % Overlay
-%load('AAL_SOURCEMOD');          % get AAL source vertices
-%v  = template_sourcemodel.pos;  % AAL vertices
-v = fixmesh(mesh); % get AAL positions on mesh surface
+load('AAL_SOURCEMOD');          % get AAL source vertices
+v  = template_sourcemodel.pos;  % AAL vertices
+%v = fixmesh(mesh); % get AAL positions on mesh surface
 
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
@@ -328,12 +328,15 @@ w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 
+A = spm_mesh_adjacency(mesh);
 
 % if is same verts as mri, just rescale & overlay
 S  = [min(L(:)),max(L(:))];
 % otherwise find closest points (assume both in mm)
 fprintf('Determining closest points between AAL & template vertices (overlay)\n');
 for i = 1:length(x)
+    
+    % [N,D] = spm_mesh_neighbours(M)
     
     % reporting
     if i > 1; fprintf(repmat('\b',[size(str)])); end
@@ -594,7 +597,7 @@ end
 
 end
 
-function addlabels(V)
+function addlabels(V,mesh)
 % Add AAL labels to the plot
 %
 % Finds indices of V~=0, which is (90,1) || (1,90)
@@ -605,8 +608,9 @@ load('labels');
 labels = strrep(labels,'_',' ');
 
 %load('AAL_SOURCEMOD');
-pos = fixmesh(mesh); % get AAL positions on mesh surface
-
+%v = fixmesh(mesh); % get AAL positions on mesh surface
+load AAL_SOURCEMOD;
+v  = template_sourcemodel.pos;
 
 % compile list of in-use node indices
 %------------------------------------
