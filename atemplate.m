@@ -92,7 +92,7 @@ end
 
 % plot the glass brain
 if     pmesh && ~exist('T','var');
-       mesh = meshmesh(mesh,write,fname,fighnd);
+       mesh = meshmesh(mesh,write,fname,fighnd,.3);
 elseif pmesh
        mesh = meshmesh(mesh,write,fname,fighnd,.3);
 end
@@ -213,16 +213,20 @@ function drawnodes(N)
 % 
 
 hold on;
-% load([fileparts(which('conmat2nodes')),'/AAL_SOURCEMOD.mat']);
-% v = template_sourcemodel.pos;
+load([fileparts(which('conmat2nodes')),'/AAL_SOURCEMOD.mat']);
+v = template_sourcemodel.pos;
 % align aal labels to mesh
-v = fixmesh(mesh); % get AAL positions on mesh surface
+%v = fixmesh(mesh); % get AAL positions on mesh surface
 
 
 ForPlot = v(find(N),:);
 
 for i = 1:length(ForPlot)
-    scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),'filled','r');
+    if     i < 3; col = 'b';
+    elseif i > 2 && i < 5; col = 'r';
+    elseif i > 4 ; col = 'g';
+    end
+    scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),70,'filled',col);
 end
 
 
@@ -638,7 +642,7 @@ for i = 1:length(AN)
             t(i) = text(v(AN(i),1)+(off*2),+v(AN(i),2)+(off*2),v(AN(i),3)+off,L);
     end
 end
-set(t,'Fontsize',10)
+set(t,'Fontsize',14)
 
 end
 
