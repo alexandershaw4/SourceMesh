@@ -132,7 +132,7 @@ pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 % Plot Surface
 %--------------------------------------------------------------------------
 try   mesh = g;
-      fprintf('User provided mesh\n');
+      fprintf('Using user provided mesh\n');
       if ischar(mesh);
           % generate a cortical mesh from the mri (Vol2SurfAS)
           fprintf('MRI (%s) is character (a filename?): attempting to load, segment & mesh\n',mesh);
@@ -140,7 +140,7 @@ try   mesh = g;
           fprintf('\n\nSuccessfully generated subject mesh from .mri!\n');
       end
 catch mesh = read_nv();
-      fprintf('Template mesh\n');
+      fprintf('(Using template brain mesh)\n');
 end
 
 
