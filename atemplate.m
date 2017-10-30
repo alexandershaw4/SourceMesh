@@ -2,9 +2,9 @@ function varargout = atemplate(varargin)
 % Add networks and overlays to a smoothed brain mesh or gifti object.
 %
 % NOTE: Unknown BUG when using with Matlab 2015a on Linux.
-% Working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux
+% Working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux.
 %
-%
+% IF you get error using the mex files, delete them. 
 % 
 %
 %  MESHES:
@@ -56,6 +56,10 @@ function varargout = atemplate(varargin)
 %  atemplate('sourcemodel',sormod,'network',A);  plot network A  at
 %  sourcemodel locations in sormod. sormod is n-by-3, netowrk is n-by-n.
 %
+%  atemplate('sourcemodel',sormod,'network',A,'write','savename'); 
+%   - as above but writes out .node and .edge files for the network, and
+%   the gifti mesh file.
+%
 %
 %  OTHER
 %--------------------------------------------------------------------------
@@ -82,6 +86,9 @@ function varargout = atemplate(varargin)
 %
 % AS17
 
+
+% Parse inputs
+%--------------------------------------------------------------------------
 pmesh  = 1;
 labels = 0;
 write  = 0;
@@ -108,8 +115,9 @@ for i  = 1:length(varargin)
     
 end
 
+
 % Sourcemodel vertices
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 try   pos;
       fprintf('Using supplied sourcemodel vertices\n');
 catch fprintf('Using AAL90 source vertices by default\n');
@@ -122,7 +130,7 @@ pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
 
 % Plot Surface
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 try   mesh = g;
       fprintf('User provided mesh\n');
       if ischar(mesh);
@@ -137,6 +145,7 @@ end
 
 
 % plot the glass brain
+%--------------------------------------------------------------------------
 if     pmesh && ~exist('T','var');
        mesh = meshmesh(mesh,write,fname,fighnd,.3,pos);
 elseif pmesh
@@ -145,6 +154,7 @@ end
 
 
 % find closest vertices and overlay
+%--------------------------------------------------------------------------
 try L; overlay(mesh,L,write,fname,colbar,pos);end 
 
 % o colbar is plotting both overlay & network!
@@ -154,9 +164,8 @@ if  isover && exist('A','var')
     alpha(.2);
 end
 
-
 % draw edges and edge-connected nodes
-try A; connections(A,colbar,pos);      end 
+try A; connections(A,colbar,pos,write,fname);      end 
 % draw dti tracks loaded with trk_read
 try T; drawtracks(T,H,mesh);       end 
 % draw N(i) = 1 nodes
@@ -187,7 +196,7 @@ end
 
 
 
-function connections(A,colbar,pos)
+function connections(A,colbar,pos,write,fname)
 % Network (Node & Edges) plotter.
 %
 %
@@ -250,6 +259,12 @@ for i = 1:size(node1,1)
 end
 
 drawnow;
+
+if write;
+   fprintf('Writing network: .edge & .node files\n');
+   conmat2nodes(A,fname,'sourcemodel',pos);
+end
+
 
 end
 
