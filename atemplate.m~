@@ -1,11 +1,23 @@
 function varargout = atemplate(varargin)
-% Add networks and overlays to a smoothed brain mesh or gifti object.
+% Add AAL90 networks and overlays to a smoothed brain mesh
 %
 % NOTE: Unknown BUG when using with Matlab 2015a on Linux.
 % Working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux
 %
 %
-% 
+%
+%
+%  OPTIONS:
+%
+% 'overlay', plot functional overlay
+% 'network', plot nodes & edges from AAL network analysis
+% 'nodes'  , plot only nodes from AAL90 atlas
+% 'tracks' , tracks, header (as read with trk_read^ )
+% 'labels' , add AAL90 labels
+% 'video'  , make video overlay 
+% 'sourcemodel', supply sourcemodel vertices [e.g. from FieldTrip] to
+%  accompany overlay & network values. OTHERWISE, sourcemodel is assumed to be AAL90
+%
 %
 %  MESHES:
 %--------------------------------------------------------------------------
@@ -33,10 +45,6 @@ function varargout = atemplate(varargin)
 %    2. MYGiftiOverlay.gii is the corresponding overlay data
 %
 %
-%  **Note on sourcemodel option: If sourcemodel from Fieldtrip, swap x & y
-%  by doing sm = [sourcemod(:,2),sourcemod(:,1),sourcemod(:,3)];
-%
-%
 %  VIDEO OVERLAY:
 %--------------------------------------------------------------------------
 %
@@ -62,9 +70,12 @@ function varargout = atemplate(varargin)
 %
 %  atemplate('labels');         plot node labels (AAL90 only ATM)
 %  atemplate('nodes', N);       Plot dots at node==1, i.e. N=[90,1]
+%
 %  atemplate('tracks',tracks,header); plot tracks loaded with trk_read
 %
+%
 %  Note: any combination of the inputs should be possible.
+%
 %
 %
 %
@@ -550,13 +561,11 @@ v = g.vertices;
 V = v - repmat(spherefit(v),[size(v,1),1]);
 
 m = min(pos);
-M = max(pos);
+
 
 V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
 V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-
-g.vertices = V;
 
 % plot
 if ~isempty(fighnd)
