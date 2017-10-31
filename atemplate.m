@@ -310,10 +310,11 @@ v = pos;
 ForPlot = v(find(N),:);
 
 for i = 1:length(ForPlot)
-    if     i < 3; col = 'b';
-    elseif i > 2 && i < 5; col = 'r';
-    elseif i > 4 ; col = 'g';
-    end
+%     if     i < 3; col = 'b';
+%     elseif i > 2 && i < 5; col = 'r';
+%     elseif i > 4 ; col = 'g';
+%     end
+    col = 'r';
     scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),70,'filled',col);
 end
 
@@ -758,7 +759,8 @@ if num == 2;
     h2 = subplot(122);
 else
     %bigimg;view(270,0);
-    bigimg;view(0,90);
+    bigimg;view(90,0);
+    %bigimg;view(0,90);
     f = gcf;
 end
 
