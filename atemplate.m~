@@ -165,16 +165,11 @@ if  isover && exist('A','var')
 end
 
 % draw edges and edge-connected nodes
-%------------------------------------------------
-try A; connections(A,colbar,pos,write,fname); end 
-
+try A; connections(A,colbar,pos,write,fname);      end 
 % draw dti tracks loaded with trk_read
-%------------------------------------------------
-try T; drawtracks(T,H,mesh);                  end 
-
+try T; drawtracks(T,H,mesh);       end 
 % draw N(i) = 1 nodes
-%------------------------------------------------
-try N; drawnodes(N,pos);                      end 
+try N; drawnodes(N,pos);               end 
 
 
 % try M;
@@ -183,8 +178,6 @@ try N; drawnodes(N,pos);                      end
 %     varargout{2} = y;
 % end
 
-% Add labels
-%------------------------------------------------
 if labels; 
     if     exist('A','var'); addlabels(A,pos);
     elseif exist('N','var'); addlabels(diag(N),pos);
@@ -192,8 +185,6 @@ if labels;
     end
 end
 
-% Make Video
-%------------------------------------------------
 try V; 
     tv = 1:size(V,2);
     try tv = times; end
@@ -417,7 +408,9 @@ function overlay(mesh,L,write,fname,colbar,pos)
 interpl = 1; 
 
 % Overlay
-v  = pos; 
+v = pos;
+    
+
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
@@ -428,15 +421,17 @@ w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 
+% A = spm_mesh_adjacency(mesh);
 
 % if is same verts as mri, just rescale & overlay
 S  = [min(L(:)),max(L(:))];
-
 % otherwise find closest points (assume both in mm)
 fprintf('Determining closest points between sourcemodel & template vertices (overlay)\n');
 
 for i = 1:length(x)
-        
+    
+    % [N,D] = spm_mesh_neighbours(M)
+    
     % reporting
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(x)));
@@ -524,6 +519,11 @@ v = v - repmat(spherefit(v),[size(v,1),1]);% Centre on ~0
 g.vertices=v;
 
 
+%
+%load('AAL_SOURCEMOD');
+%pos  = template_sourcemodel.pos;
+
+
 % Centre on ~0
 pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
@@ -535,6 +535,23 @@ for i = 1:length(pos)
     newpos(i,:) = v(I,:);
     
 end
+
+
+
+% M        = max(v);
+% m        = min(v);
+% 
+% M = M*1.15;
+% m = m*1.15;
+% 
+% V        = g.vertices;
+% V        = V - repmat(spherefit(V),[size(V,1),1]);
+% 
+% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+% 
+% g.vertices = V;
 
 end
 
