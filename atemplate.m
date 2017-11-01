@@ -96,9 +96,9 @@ fname  = [];
 fighnd = [];
 colbar = 1;
 for i  = 1:length(varargin)
-    if strcmp(varargin{i},'overlay'); L = varargin{i+1};     end
+    if strcmp(varargin{i},'overlay');     L   = varargin{i+1}; end
     if strcmp(varargin{i},'sourcemodel'); pos = varargin{i+1}; end
-    if strcmp(varargin{i},'network'); A = varargin{i+1};     end
+    if strcmp(varargin{i},'network');     A   = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');  T = varargin{i+1}; H = varargin{i+2}; end
     if strcmp(varargin{i},'labels');  labels = 1;            end
     if strcmp(varargin{i},'nosurf');  pmesh  = 0;            end
@@ -106,7 +106,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'gifti');   g = varargin{i+1};     end
     if strcmp(varargin{i},'write');   write  = 1; fname = varargin{i+1}; end
     if strcmp(varargin{i},'fighnd');  fighnd = varargin{i+1}; end
-    if strcmp(varargin{i},'nocolbar');colbar = 0; end
+    if strcmp(varargin{i},'nocolbar');colbar = 0;             end
     if strcmp(varargin{i},'video');   V     = varargin{i+1};...
                                       fpath = varargin{i+2};
                                       times = varargin{i+3}; end
@@ -230,6 +230,7 @@ else
 end
 
 % If too few strengths, just use red edges
+%-------------------------------------------------------------------
 LimC = 1;
 if all(all(isnan(RGB)))
     RGB  = repmat([1 0 0],[size(RGB,1) 1]);
@@ -237,7 +238,7 @@ if all(all(isnan(RGB)))
 end
 
 % Paint edges
-
+%-------------------------------------------------------------------
 for i = 1:size(node1,1)
     line([node1(i,1),node2(i,1)],...
         [node1(i,2),node2(i,2)],...
@@ -246,6 +247,7 @@ for i = 1:size(node1,1)
 end
 
 % Set colorbar only if there are valid edges
+%-------------------------------------------------------------------
 if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
     if colbar
@@ -410,10 +412,11 @@ function overlay(mesh,L,write,fname,colbar,pos)
 
 
 % interp shading between nodes or just use mean value?
+%-------------------------------------------------------------------
 interpl = 1; 
 
 % Overlay
-v  = pos; 
+v  = pos;                       % sourcemodel vertices
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
@@ -426,6 +429,7 @@ S  = [min(L(:)),max(L(:))];     % min max values
 
 
 % if overlay,L, is same length as mesh verts, just plot!
+%-------------------------------------------------------------------
 if length(L) == length(mesh.vertices)
     fprintf('Overlay already fits mesh! Plotting...\n');
     
@@ -458,7 +462,8 @@ end
 
 
 % otherwise find closest points (assume both in mm)
-fprintf('Determining closest points between sourcemodel & template vertices (overlay)\n');
+%-------------------------------------------------------------------
+fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 for i = 1:length(x)
         
@@ -495,6 +500,7 @@ y(isnan(y)) = 0;
 y  = full(y);
 
 % spm mesh smoothing
+%-------------------------------------------------------------------
 fprintf('Smoothing overlay...\n');
 y = spm_mesh_smooth(mesh, y(:), 4);
 hh = get(gca,'children');
@@ -669,14 +675,29 @@ function video(mesh,L,colbar,fpath,tv,pos)
 %
 
 % OPTIONS
-%--------------------------------------------
+%-------------------------------------------------------------------
 num         = 1;   % number of brains, 1 or 2
 interpl     = 1;   % interpolate
 brainview   = 'T'; % [T]op, [L]eft or [R]ight
 videolength = 10;  % length in seconds
+extendvideo = 4;   % smooth/extend video by factor of
 
+
+
+% Extend and temporally smooth video by linear interp between points
+%-------------------------------------------------------------------
+if extendvideo > 0
+    fprintf('Extending and smoothing video sequence by linear interpolation\n');
+    time  = tv;
+    for i = 1:size(L,1)
+        dL(i,:) = interp(L(i,:),4);
+    end
+    L  = dL;
+    tv = linspace(time(1),time(end),size(L,2));
+end
 
 % Overlay
+%-------------------------------------------------------------------
 v  = pos;
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
@@ -691,7 +712,8 @@ M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L)',max(L)'];
 
 % find closest points (assume both in mm)
-fprintf('Determining closest points between sourcemodel & template vertices (overlay)\n');
+%-------------------------------------------------------------------------
+fprintf('Determining closest points between sourcemodel & template vertices\n');
 for i = 1:length(x)
 
     % reporting
@@ -711,7 +733,7 @@ fprintf('\n');
 if ~interpl
     OL = mean((OL),1); % mean value of a given vertex
 else
-    fprintf('Averaging proximal vertices (wait...)');
+    fprintf('Averaging local & overlapping vertices (wait...)');
     for i = 1:size(OL,2)
         for j = 1:size(OL,3)
             % average overlapping voxels 
