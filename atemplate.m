@@ -155,7 +155,7 @@ end
 
 % find closest vertices and overlay
 %--------------------------------------------------------------------------
-try L; overlay(mesh,L,write,fname,colbar,pos);end 
+try L; overlay(mesh,double(L),write,fname,colbar,pos);end 
 
 % o colbar is plotting both overlay & network!
 isover = exist('L','var') || exist('V','var');
