@@ -427,10 +427,40 @@ r = (nv/length(pos))*1.3;
 w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
-
-
-% if is same verts as mri, just rescale & overlay
 S  = [min(L(:)),max(L(:))];
+
+
+% if overlay,L, is same length as mesh verts, just plot!
+if length(L) == length(mesh.vertices)
+    fprintf('Overlay already fits mesh! Plotting...\n');
+    
+    % spm mesh smoothing
+    fprintf('Smoothing overlay...\n');
+    y = spm_mesh_smooth(mesh, double(L(:)), 4);
+    hh = get(gca,'children');
+    set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+    drawnow;
+    shading interp
+    colormap('jet');
+    
+    if colbar
+        drawnow; pause(.5);
+        colorbar('peer',gca,'South');
+    end
+    
+    if write;
+        fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
+        g       = gifti;
+        g.cdata = double(y);
+        g.private.metadata(1).name  = 'SurfaceID';
+        g.private.metadata(1).value = [fname 'Overlay.gii'];
+        save(g, [fname  'Overlay.gii']);
+    end
+    return
+end
+
+
+
 
 % otherwise find closest points (assume both in mm)
 fprintf('Determining closest points between sourcemodel & template vertices (overlay)\n');
@@ -483,14 +513,14 @@ if colbar
     colorbar('peer',gca,'South');    
 end
     
-    if write;
-        fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
-        g       = gifti;
-        g.cdata = double(y);
-        g.private.metadata(1).name  = 'SurfaceID';
-        g.private.metadata(1).value = [fname 'Overlay.gii'];
-        save(g, [fname  'Overlay.gii']);
-    end
+if write;
+    fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
+    g       = gifti;
+    g.cdata = double(y);
+    g.private.metadata(1).name  = 'SurfaceID';
+    g.private.metadata(1).value = [fname 'Overlay.gii'];
+    save(g, [fname  'Overlay.gii']);
+end
     
 end
 
