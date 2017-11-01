@@ -311,7 +311,11 @@ function drawnodes(N,pos)
 % 
 
 hold on;
-v       = pos;
+v = pos;
+% align aal labels to mesh
+%v = fixmesh(mesh); % get AAL positions on mesh surface
+
+
 ForPlot = v(find(N),:);
 
 for i = 1:length(ForPlot)
@@ -418,11 +422,12 @@ x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
 OL = sparse(length(L),nv);      % this will be overlay matrix we average
-r = (nv/length(pos))*1.3;       % radius - number of closest points on mesh
+%r  = 1200;                     % radius - number of closest points on mesh
+r = (nv/length(pos))*1.3;
 w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
-S  = [min(L(:)),max(L(:))];     % min max values
+S  = [min(L(:)),max(L(:))];
 
 
 % if overlay,L, is same length as mesh verts, just plot!
@@ -545,16 +550,20 @@ function newpos = fixmesh(g,pos)
 % AS
 
 v = g.vertices;
-v = v - repmat(spherefit(v),[size(v,1),1]); % Centre on ~0
+v = v - repmat(spherefit(v),[size(v,1),1]);% Centre on ~0
 g.vertices=v;
+
 
 % Centre on ~0
 pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
 for i = 1:length(pos)
+    
     this = pos(i,:);
     [t,I] = maxpoints(cdist(v,this),1,'max');
+    
     newpos(i,:) = v(I,:);
+    
 end
 
 end
@@ -612,7 +621,8 @@ function addlabels(V,mesh,pos)
 
 load('labels');
 labels = strrep(labels,'_',' ');
-v      = pos;
+
+v = pos;
 
 % compile list of in-use node indices
 %------------------------------------
@@ -668,13 +678,9 @@ end
 function video(mesh,L,colbar,fpath,tv,pos)
 %
 
-% OPTIONS
-%--------------------------------------------
-num         = 1;   % number of brains, 1 or 2
-interpl     = 1;   % interpolate
-brainview   = 'T'; % [T]op, [L]eft or [R]ight
-videolength = 10;  % length in seconds
-
+num       = 1;   % number of brains, 1 or 2
+interpl   = 1;   % interpolate
+brainview = 'T'; % [T]op, [L]eft or [R]ight
 
 % Overlay
 v  = pos;
@@ -684,10 +690,11 @@ nv = length(mv);                % number of brain vertices
 ntime = size(L,2);
 OL = zeros(size(L,1),nv,ntime); % this will be overlay matrix we average
 r  = 1200;                      % radius - number of closest points on mesh
-r  = (nv/length(pos))*1.3;
 w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
+
+
 S  = [min(L)',max(L)'];
 
 % find closest points (assume both in mm)
@@ -730,6 +737,8 @@ end
 
 y(isnan(y)) = 0;
 y  = full(y);
+%bigimg;view(270,0);
+
 
 % spm mesh smoothing
 fprintf('Smoothing overlay...\n');
@@ -750,6 +759,8 @@ else
         case 'R'; bigimg;view(90,0);  
         case 'L'; bigimg;view(270,0); 
     end
+    
+    %  % TOP
     f = gcf;
 end
 
@@ -760,7 +771,7 @@ catch  vidObj   = VideoWriter(fpath,'Motion JPEG AVI');
 end
 
 set(vidObj,'Quality',100);
-set(vidObj,'FrameRate',size(y,2)/(videolength));
+set(vidObj,'FrameRate',size(y,2)/(10));
 open(vidObj);
 
 for i = 1:ntime
@@ -768,6 +779,7 @@ for i = 1:ntime
     if i > 1; fprintf(repmat('\b',[1 length(str)])); end
     str = sprintf('building: %d of %d\n',i,ntime);
     fprintf(str);
+    %camlight(cam); 
     
     switch num
         case 2
