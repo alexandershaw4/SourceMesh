@@ -64,11 +64,39 @@ function varargout = atemplate(varargin)
 %  OTHER
 %--------------------------------------------------------------------------
 %
-%  atemplate('labels');         plot node labels (AAL90 only ATM)
-%  atemplate('nodes', N);       Plot dots at node==1, i.e. N=[90,1]
+%  atemplate('labels');         plot node labels (AAL90) 
+%
+%  atemplate('labels', all_roi_tissueindex, labels); where all_roi_tissue 
+%  is a 1-by-num-vertices vector containing indices of the roi this vertex
+%  belongs to, and 'labels' contains the labels for each roi. The text
+%  labels are added at the centre of the ROI.
+%  
+%  Labels notes:
+%     - If plotting a network, only edge-connected nodes are labelled.
+%     - If plotting a set of nodes (below), only those are labelled.
+%     - Otherwise, all ROIs/node labels are added!
+%
+%  atemplate('nodes', N);             Plot dots at node==1, i.e. N=[90,1]
 %  atemplate('tracks',tracks,header); plot tracks loaded with trk_read
 %
 %  Note: any combination of the inputs should be possible.
+%
+%
+%
+%
+%  AN EXAMPLE NETWORK: from 5061 vertex sourcemodel with AAL90 labels
+%--------------------------------------------------------------------------
+%
+% load New_AALROI_6mm.mat       % load ft source model, labels and roi_inds
+%
+% net  = randi([0 1],5061,5061);   % generate a network for this sourmod
+% pos  = template_sourcemodel.pos; % get sourcemodel vertices
+% labs = AAL_Labels;               % roi labels
+% rois = all_roi_tissueindex;      % roi vertex indices
+%
+% atemplate('sourcemodel',pos,'network',net,'labels',rois,labs);
+%
+%
 %
 %
 %
@@ -95,12 +123,14 @@ write  = 0;
 fname  = [];
 fighnd = [];
 colbar = 1;
+thelabels = [];
+all_roi_tissueindex = [];
+
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     L   = varargin{i+1}; end
     if strcmp(varargin{i},'sourcemodel'); pos = varargin{i+1}; end
     if strcmp(varargin{i},'network');     A   = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');  T = varargin{i+1}; H = varargin{i+2}; end
-    if strcmp(varargin{i},'labels');  labels = 1;            end
     if strcmp(varargin{i},'nosurf');  pmesh  = 0;            end
     if strcmp(varargin{i},'nodes');   N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');   g = varargin{i+1};     end
@@ -111,7 +141,13 @@ for i  = 1:length(varargin)
                                       fpath = varargin{i+2};
                                       times = varargin{i+3}; end
     if strcmp(varargin{i},'othermesh'); M = varargin{i+1};     
-                                        O = varargin{i+2};   end    
+                                        O = varargin{i+2};   end  
+    if strcmp(varargin{i},'labels');  labels = 1;
+        try all_roi_tissueindex = varargin{i+1};
+            thelabels = varargin{i+2};
+        end
+    end
+
     
 end
 
@@ -186,9 +222,10 @@ try N; drawnodes(N,pos);                      end
 % Add labels
 %------------------------------------------------
 if labels; 
-    if     exist('A','var'); addlabels(A,pos);
-    elseif exist('N','var'); addlabels(diag(N),pos);
-    else   addlabels(ones(90,90),pos);
+    if     exist('A','var'); addlabels(A,pos,all_roi_tissueindex,thelabels);
+    elseif exist('N','var'); addlabels(diag(N),pos,all_roi_tissueindex,thelabels);
+    else;  n = length(pos);
+           addlabels(ones(n,n),pos,all_roi_tissueindex,thelabels);
     end
 end
 
@@ -586,7 +623,14 @@ g.vertices = V;
 
 % plot
 if ~isempty(fighnd)
-    h = plot(fighnd,gifti(g));
+    if isnumeric(fighnd)
+        % Old-type numeric axes handle
+        h = plot(fighnd,gifti(g));
+    elseif ishandle(fighnd)
+        % new for matlab2017b etc
+        % [note editted gifti plot function]
+        h = plot(gifti(g),'fighnd',fighnd);
+    end
 else
     h = plot(gifti(g));
 end
@@ -609,25 +653,44 @@ end
 
 end
 
-function addlabels(V,mesh,pos)
-% Add AAL labels to the plot
+function addlabels(V,pos,all_roi_tissueindex,thelabels)
+% Add labels to the plot.
 %
-% Finds indices of V~=0, which is (90,1) || (1,90)
+% If using AAL90 sourcemodle, these are automatic.
 %
+% If using another sourcemodel:
+% - provide the all_roi_tissueindex from fieldtirp. This is a
+% 1xnum_vertices vector containing indices of rois (i,e. which verts belong
+% to which rois).
+% Also provide labels!
 %
 
-load('labels');
-labels = strrep(labels,'_',' ');
-v      = pos;
+if ( ~isempty(thelabels) && ~isempty(all_roi_tissueindex) ) &&...
+   ( length(pos) == length(all_roi_tissueindex) ) &&...
+   ( length(thelabels) == length(unique(all_roi_tissueindex)) )
+    
+    labels = strrep(thelabels,'_',' ');
+    v      = get_roi_centres(pos,all_roi_tissueindex);
+    roi    = all_roi_tissueindex;
+    
+elseif length(V) == 90
+    load('labels');
+    labels = strrep(labels,'_',' ');
+    v      = pos;
+    roi    = 1:90;
+else
+    fprintf('Labels info not right!\n');
+    return
+end
 
 % compile list of in-use node indices
 %------------------------------------
-to = []; from = [];
+to = []; from = []; 
 for i  = 1:size(V,1)
     ni = find(logical(V(i,:)));
     if any(ni)
-        to   = [to   ni];
-        from = [from repmat(i,[1,length(ni)]) ];
+        to   = [to   roi(ni)];
+        from = [from roi(repmat(i,[1,length(ni)])) ];
     end
 end
 
@@ -646,6 +709,30 @@ for i = 1:length(AN)
     end
 end
 set(t,'Fontsize',14)
+
+end
+
+function [C,verts] = get_roi_centres(pos,all_roi_tissueindex)
+% Find centre points of rois
+%
+%
+v   = pos;
+roi = all_roi_tissueindex;
+
+i   = unique(roi);
+i(find(i==0))=[];
+
+fprintf('Finding centre points of ROIs for labels...');
+for j = 1:length(i)
+    vox    = find(roi==i(j));
+    verts{j}  = v(vox,:);
+    C(j,:) = spherefit(verts{j});
+end
+fprintf('  ... done! \n');
+% % Plot the first roi, mark centre and label:
+% scatter3(v(:,1),v(:,2),v(:,3),'k'); hold on
+% scatter3(verts(:,1),verts(:,2),verts(:,3),'r')
+% scatter3(C(:,1),C(:,2),C(:,3),'b*')
 
 end
 

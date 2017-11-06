@@ -21,6 +21,7 @@ function varargout = plot(varargin)
 
 cdata = [];
 ax = [];
+indc = 0;
 if nargin == 1
     this = varargin{1};
     h = gcf;
@@ -35,6 +36,16 @@ else
             cdata = subsref(varargin{3},struct('type','.','subs','cdata'));
             indc  = 1;
         end
+    elseif strcmp(varargin{2},'fighnd')
+        ax = varargin{3};
+        h = figure(get(ax,'parent'));
+        this = varargin{1};
+        
+        % allow pass of cdata as varargin{3}
+        if nargin == 4;
+            cdata = subsref(varargin{4},struct('type','.','subs','cdata'));
+            indc  = 1;
+        end        
     else
         this = varargin{1};
         h = gcf;
