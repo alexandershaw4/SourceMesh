@@ -6,6 +6,8 @@ Provide data along with it's sourcemodel coordinates, or use the default AAL90.
 
 Essentially it fits the gifti surface (or template brain mesh) to the sourcemodel co-ordinates (or atlas source coords) and allows plotting of functional overlays, networks (opt. with labels) and overlay-videos. It can also add atlas labels to non-atlas sourcemodel data. 
 
+After installing, run checks for all functions using: RunChecks_(). If it runs through without error, everything should be working.
+
 Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. If these cause problems, delete them.
 
 Usages:
