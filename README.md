@@ -10,6 +10,7 @@ Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. I
 
 Usages:
 ```
+%
 %  MESHES:
 %--------------------------------------------------------------------------
 %
@@ -67,9 +68,55 @@ Usages:
 %  OTHER
 %--------------------------------------------------------------------------
 %
-%  atemplate('labels');         plot node labels (AAL90 only ATM)
-%  atemplate('nodes', N);       Plot dots at node==1, i.e. N=[90,1]
+%  atemplate('labels');         plot node labels (AAL90) 
+%
+%  atemplate('labels', all_roi_tissueindex, labels); where all_roi_tissue 
+%  is a 1-by-num-vertices vector containing indices of the roi this vertex
+%  belongs to, and 'labels' contains the labels for each roi. The text
+%  labels are added at the centre of the ROI.
+%  
+%  Labels notes:
+%     - If plotting a network, only edge-connected nodes are labelled.
+%     - If plotting a set of nodes (below), only those are labelled.
+%     - Otherwise, all ROIs/node labels are added!
+%
+%  atemplate('nodes', N);             Plot dots at node==1, i.e. N=[90,1]
 %  atemplate('tracks',tracks,header); plot tracks loaded with trk_read
+%
+%  Note: any combination of the inputs should be possible.
+%
+%
+%
+%
+%  AN EXAMPLE NETWORK: from 5061 vertex sourcemodel with AAL90 labels
+%--------------------------------------------------------------------------
+%
+% load New_AALROI_6mm.mat       % load ft source model, labels and roi_inds
+%
+% net  = randi([0 1],5061,5061);   % generate a network for this sourmod
+% pos  = template_sourcemodel.pos; % get sourcemodel vertices
+% labs = AAL_Labels;               % roi labels
+% rois = all_roi_tissueindex;      % roi vertex indices
+%
+% atemplate('sourcemodel',pos,'network',net,'labels',rois,labs);
+%
+%
+%
+%
+%
+%  Cortical mesh from mri
+%  ---------------------------
+%  If the gifti option is included, input (g) may be the filename of a 
+%  coregistered ctf .mri file. This will call Vol2SurfAS which uses 
+%  fieldtrip & isosurface to normalise, align, segment and extract a
+%  cortical surface. This is then centred, smoothed and converted to a
+%  gifti object.
+%
+%  See also: slice3() slice2()
+%
+% ^trk_read requires along-tract-stats toolbox
+%
+% AS17
 
 ```
 
