@@ -1,16 +1,17 @@
-# MeshAAL
+# SourceMesh
 
-Plot overlays and networks (nodes & edges) on template brain natively in matlab.
+Plot functional overlays, networks (nodes & edges) and more on template brain in matlab.
 
 Provide data along with it's sourcemodel coordinates, or use the default AAL90.
 
-Essentially it fits the gifti surface (or template brain mesh) to the sourcemodel co-ordinates (or atlas source coords) and allows plotting of functional overlays, networks (opt. with labels) and overlay-videos. It can also add atlas labels to non-atlas sourcemodel data. 
+Essentially it fits the gifti surface (or template brain mesh) to the sourcemodel co-ordinates (or atlas source coords) and allows plotting of functional overlays, networks (opt. with labels) and overlay-videos. It can also add atlas labels to non-atlas sourcemodel data using ICP. 
 
 After installing, run checks for all functions using: RunChecks_(). If it runs through without error, everything should be working.
 
 Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. If these cause problems, delete them.
 
-Usages:
+Usages/Help:
+
 ```
 %
 %  MESHES:
