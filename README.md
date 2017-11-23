@@ -1,10 +1,12 @@
 # SourceMesh
 
-Plot functional overlays, networks (nodes & edges) and more on template brain in matlab.
+Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template brain in matlab.
 
-Provide data along with it's sourcemodel coordinates, or use the default AAL90.
+Provide data along with it's sourcemodel coordinates (from, e.g. fieldtrip), or use the default AAL90.
 
-Essentially it fits the gifti surface (or template brain mesh) to the sourcemodel co-ordinates (or atlas source coords) and allows plotting of functional overlays, networks (opt. with labels) and overlay-videos. It can also add atlas labels to non-atlas sourcemodel data using ICP. 
+Essentially it fits the gifti surface (or template brain mesh) to the sourcemodel co-ordinates (or atlas source coords) and allows plotting of functional overlays, nodes, labels, networks (opt. with labels) and overlay-videos on this mesh. 
+
+It can also add atlas labels to non-atlas sourcemodel data using ICP to align the cloud points. Can export (after alignment / interpolation) both structural and functional gifti objects.
 
 After installing, run checks for all functions using: RunChecks_(). If it runs through without error, everything should be working.
 
