@@ -150,22 +150,15 @@ for i  = 1:length(varargin)
     end    
 end
 
-
-
-
-
-
 % template space
 %--------------------------------------------------------------------------
 if template
     atlas = dotemplate(model,pos);
+    %pos   = atlas.M*pos;
     pos   = atlas.pos;
-    try L;
-        S  = [min(L(:)) max(L(:))];
-        NM = atlas.M/sum(atlas.M(:));
-        NL = L(:)'*NM';
-        L  = S(1) + ((S(2)-S(1))).*(NL - min(NL))./(max(NL) - min(NL));
-    end
+    
+    try L; L = L(:)'*atlas.M'; end
+    
 end
 
 
@@ -180,10 +173,6 @@ end
 
 % Centre sourcemodel
 pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
-
-
-
-
 
 
 % Plot Surface
@@ -210,38 +199,38 @@ elseif pmesh
 end
 
 
-
-
-
 % find closest vertices and overlay
 %--------------------------------------------------------------------------
 try L; overlay(mesh,double(L),write,fname,colbar,pos);end 
 
+% o colbar is plotting both overlay & network!
 isover = exist('L','var') || exist('V','var');
 if  isover && exist('A','var') 
     colbar = 0;
     alpha(.2);
 end
 
-
-
 % draw edges and edge-connected nodes
-%--------------------------------------------------------------------------
+%------------------------------------------------
 try A; connections(A,colbar,pos,write,fname); end 
 
-
 % draw dti tracks loaded with trk_read
-%--------------------------------------------------------------------------
+%------------------------------------------------
 try T; drawtracks(T,H,mesh);                  end 
 
-
 % draw N(i) = 1 nodes
-%--------------------------------------------------------------------------
+%------------------------------------------------
 try N; drawnodes(N,pos);                      end 
 
 
+% try M;
+%     [M,y] = othermesh(M,O,mesh,write,fname);
+%     varargout{1} = M;
+%     varargout{2} = y;
+% end
+
 % Add labels
-%--------------------------------------------------------------------------
+%------------------------------------------------
 if labels; 
     if     exist('A','var'); addlabels(A,pos,all_roi_tissueindex,thelabels);
     elseif exist('N','var'); addlabels(diag(N),pos,all_roi_tissueindex,thelabels);
@@ -251,7 +240,7 @@ if labels;
 end
 
 % Make Video
-%--------------------------------------------------------------------------
+%------------------------------------------------
 try V; 
     tv = 1:size(V,2);
     try tv = times; end
@@ -260,13 +249,6 @@ end
 
 
 end
-
-
-% FUNCTIONS
-%--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
-
-
 
 function atlas = dotemplate(model,pos)
 % Put dense sourcemodel into an atlas space using ICP and linear
