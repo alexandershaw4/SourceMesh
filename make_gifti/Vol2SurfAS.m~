@@ -1,11 +1,11 @@
 function g = Vol2SurfAS(file,type,varargin)
-% Convert ctf mri, nifti or (fieldtrip) matlab format mri to a beautiful, smooth 
+% Convert ctf mri or (fieldtrip) matlab format mri to a beautiful, smooth 
 % isosurface gifti object. Designed for use with atemplate plot tool.
 %
 % usage: g = Vol2SurfAS(file,type)
 %        g = Vol2SurfAS('myctfmri.mri','ctf')
 %        g = Vol2SurfAS('mysegmri.mat','ft')
-%        g = Vol2SurfAS('mysegmri.nii.gz','nifti')
+%        g = Vol2SurfAS('mysegmri.mat','ft')
 %
 %
 % optional paired additional inputs:
