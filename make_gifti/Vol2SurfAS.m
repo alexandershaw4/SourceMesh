@@ -1,4 +1,4 @@
-function g = Vol2SurfAS(file,type,varargin)
+function [g,segmentedmri] = Vol2SurfAS(file,type,varargin)
 % Convert ctf mri, nifti or (fieldtrip) matlab format mri to a beautiful, smooth 
 % isosurface gifti object. Designed for use with atemplate plot tool.
 %
@@ -58,9 +58,9 @@ cfg.brainsmooth= 6;
 segmentedmri   = ft_volumesegment(cfg, mri);
 
 switch lower(tissue)
-    case 'gray';
+    case 'gray'
     V          = isosurface(segmentedmri.gray,.5);
-    case 'white';
+    case 'white'
     V          = isosurface(segmentedmri.white,.5);
 end
 
