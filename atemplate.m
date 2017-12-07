@@ -244,7 +244,12 @@ try N; drawnodes(N,pos);                      end
 %--------------------------------------------------------------------------
 if labels; 
     if     exist('A','var'); addlabels(A,pos,all_roi_tissueindex,thelabels);
-    elseif exist('N','var'); addlabels(diag(N),pos,all_roi_tissueindex,thelabels);
+    elseif exist('N','var'); 
+        if sum(ismember(size(N),[1 90])) == 2
+            addlabels(diag(N),pos,all_roi_tissueindex,thelabels);
+        elseif sum(ismember(size(N),[1 90])) == 1
+            addlabels(diag(sum(N,2)),pos,all_roi_tissueindex,thelabels);
+        end
     else;  n = length(pos);
            addlabels(ones(n,n),pos,all_roi_tissueindex,thelabels);
     end
@@ -414,18 +419,39 @@ function drawnodes(N,pos)
 % 
 
 hold on;
-v       = pos;
-ForPlot = v(find(N),:);
+v       = pos*0.9;
 
-for i = 1:length(ForPlot)
-%     if     i < 3; col = 'b';
-%     elseif i > 2 && i < 5; col = 'r';
-%     elseif i > 4 ; col = 'g';
-%     end
-    col = 'r';
-    scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),70,'filled',col);
+
+if size(N,1) > 1 && size(N,2) > 1
+    cols = {'r' 'm','y','g','c','b'};
+    if size(size(N,2)) == 90
+        N = N';
+    end
+    
+    for j = 1:size(N,2)
+        ForPlot = v(find(N(:,j)),:) + (1e-2 * (2*j) ) ;
+        s       = find(N);
+        col     = cols{j};
+        for i   = 1:length(ForPlot)
+            scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),70,col,'filled',...
+                'MarkerFaceAlpha',.6,'MarkerEdgeAlpha',.6);        hold on;
+        end
+    end
+    
+else
+    ForPlot = v(find(N),:);
+    s       = find(N);
+    for i = 1:length(ForPlot)
+    %     if     i < 3; col = 'b';
+    %     elseif i > 2 && i < 5; col = 'r';
+    %     elseif i > 4 ; col = 'g';
+    %     end
+        col = 'r';
+        scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
+    end
 end
-
+set(gcf,'DefaultAxesColorOrder',RGB); jet;
+colorbar
 
 end
 
@@ -740,7 +766,7 @@ if ( ~isempty(thelabels) && ~isempty(all_roi_tissueindex) ) &&...
 elseif length(V) == 90
     load('AAL_labels');
     labels = strrep(labels,'_',' ');
-    v      = pos;
+    v      = pos*0.9;
     roi    = 1:90;
 else
     fprintf('Labels info not right!\n');

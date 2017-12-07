@@ -10,8 +10,10 @@ function g = Vol2SurfAS(file,type,varargin)
 % optional paired additional inputs:
 % ('smooth',  n) - e.g. g = Vol2SurfAS('myctfmri.mri','ctf','smooth',0.15);
 % ('inflate'   ) - e.g. g = Vol2SurfAS('myctfmri.mri','ctf','inflate');
-%
+% ('coreg'     ) - to manuall coregister mri
 % ('tissue', 'white') - return white matter mesh instead of gray
+%
+% - needs spm8 installed
 %
 % AS
 
@@ -19,24 +21,36 @@ tissue = 'gray'; % gray or white
 
 smth   = 0;
 infl   = 0;
+coreg  = 0;
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'smooth');  smth = varargin{i+1}; end
     if strcmp(varargin{i},'inflate'); infl = 1;             end
     if strcmp(varargin{i},'tissue') ; tissue = varargin{i+1}; end
+    if strcmp(varargin{i},'coreg');   coreg = 1;end
 end
 
 switch type
     case {'ctfmri','ctf'}
         mri = ft_read_mri(file,'dataformat', 'ctf_mri4');
+    case {'nifti'}
+        mri = ft_read_mri(file,'dataformat', 'nifti');
     case {'ft','matlab'}
         load(file);
-        %file = 'coregseg_0001.mat';
 end
 
+% manual coregistration
+if coreg
+    cfg          = [];
+    cfg.method   = 'interactive';
+    cfg.coordsys = 'ctf';
+    mri_aligned  = ft_volumerealign(cfg, mri);
+    mri          = mri_aligned;
+end
 
 % normalise & isosurface 
 cfg.template   = [fileparts(mfilename('fullpath')) '/T1.nii'];
-cfg.spmversion = 'spm12';
+fprintf('Warping MRI to template: %s\n',cfg.template);
+cfg.spmversion = 'spm8';
 mri            = ft_volumenormalise(cfg,mri);
 mri            = ft_volumereslice([], mri);
 cfg.brainsmooth= 6;
