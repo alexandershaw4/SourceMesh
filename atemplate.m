@@ -4,7 +4,7 @@ function varargout = atemplate(varargin)
 % NOTE: Unknown BUG when using with Matlab 2015a on Linux.
 % Working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux.
 %
-% IF you get error using the mex files, delete them. 
+% If you get error using the mex files, delete them. 
 % 
 %
 %  MESHES:
@@ -291,7 +291,7 @@ atlas.pos = template_sourcemodel.pos;
 M         = zeros( length(atlas.pos), length(pos) );
 r         = ceil(length(pos)/length(atlas.pos)*1.3);
 w         = fliplr(linspace(.1,1,r));         
-for i = 1:length(atlas.pos)
+for i     = 1:length(atlas.pos)
     
     % reporting
     if i > 1; fprintf(repmat('\b',[size(str)])); end
