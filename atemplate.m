@@ -357,6 +357,7 @@ end
 if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
     if colbar
+        colormap(jet)
         colorbar
     end
 end
@@ -702,8 +703,8 @@ end
 v = g.vertices;
 V = v - repmat(spherefit(v),[size(v,1),1]);
 
-m = min(pos);
-M = max(pos);
+m = min(pos) *1.2;
+M = max(pos) *1.2;
 
 V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
