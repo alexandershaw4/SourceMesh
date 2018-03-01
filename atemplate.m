@@ -231,7 +231,6 @@ end
 % FUNCTIONS
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
-
 function data = parse_plots(data,i)
 
 % unpack triggers
@@ -417,8 +416,8 @@ catch mesh = read_nv();
       fprintf('(Using template brain mesh)\n');
 end
 
-
 end
+
 
 function atlas = dotemplate(model)
 % Put dense sourcemodel into an atlas space using ICP and linear
