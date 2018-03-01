@@ -18,9 +18,11 @@ atemplate('overlay',O,'labels'); close
 fprintf('Overlay done\n');
 s  = 90;
 N  = randi([0 9],s,s);
-N  = N.*randi([0 1],s,s);
-N  = N.*randi([0 1],s,s);
-N  = N.*randi([0 1],s,s);
+ncomp = 90;
+while ncomp > 20
+    N = N .* randi([0 1],s,s);
+    [~,ncomp] = PEig90(N);
+end
 atemplate('network',N,'labels'); close
 fprintf('Network done\n');
 

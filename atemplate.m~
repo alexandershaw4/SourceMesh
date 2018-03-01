@@ -959,17 +959,14 @@ if ( ~isempty(thelabels) && ~isempty(all_roi_tissueindex) ) &&...
     roi    = all_roi_tissueindex;
     
 elseif length(V) == 90
-    
     load('AAL_labels');
     labels = strrep(labels,'_',' ');
     v      = pos*0.95;
     roi    = 1:90;
 elseif (length(V) == length(thelabels)) &&...
        (length(V) == length(pos))
-    
-   labels = strrep(thelabels,'_',' ');
-    v = pos*0.95;
-    roi = 1:length(V);
+    labels = strrep(thelabels,'_',' ');
+    v = pos*0.95
 else
     fprintf('Labels info not right!\n');
     return
