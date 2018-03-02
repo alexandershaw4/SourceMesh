@@ -237,7 +237,7 @@ A = randi([0 10],90,90); % a 90x90 connectivity matrix
 atemplate('gifti',g,'network',A,'labels');
 ```
 
-![alt text](example.gif)
+![alt text](Examples/Ex_OverlayWithNetworkAndLabels.gif)
 
 
 # in development:
