@@ -16,41 +16,51 @@ Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. I
 Usages/Help:
 
 ```
-%
-%  MESHES:
+% MESHES:
 %--------------------------------------------------------------------------
 %
-%  atemplate()               plot a template mesh
-%  atemplate('gifti',mesh)   plot a supplied (gifti) mesh
-%  atemplate('gifti',mesh, 'write',name);  plot mesh & write out gifti
+%  % Plot the default template mesh:
+%  atemplate()         
+%
+%  % Plot a supplied (gifti) mesh:
+%  atemplate('gifti',mesh)   
+%
+%  % Plot mesh & write out gifti:
+%  atemplate('gifti',mesh, 'write',name);  
 %  
 %
-%  OVERLAYS:
+% OVERLAYS:
 %--------------------------------------------------------------------------
 %
-%  atemplate('overlay',L);   plot template mesh with overlay from AAL90. L is [90x1]
+%  % Plot template mesh with overlay from AAL90. L is [90x1]
+%  atemplate('overlay',L);   
 %
-%  atemplate('sourcemodel',sormod,'overlay',L)  plot template with overlay
-%  values L at sourcemodel values sormod, interpolated on surface.
+%  % Plot template with overlay values L at sourcemodel values sormod, interpolated on surface.
+%  % Sormod is n-by-3, L is n-by-1.
+%  atemplate('sourcemodel',sormod,'overlay',L)  
 %
-%  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L)  plot the supplied 
-%  gifti mesh with overlay values L at sourcemodel locations sormod interpolated 
-%  on surface. Sormod is n-by-3, L is n-by-1.
+%  % Plot the supplied gifti mesh with overlay values L at sourcemodel locations 
+%  % sormod interpolated on surface. 
+%  % Sormod is n-by-3, L is n-by-1.
+%  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L)  
 %
+%  %  - Plot as above but write out TWO gifti files:
+%  %  1. MYGifti.gii is the gifti mesh 
+%  %  2. MYGiftiOverlay.gii is the corresponding overlay data
 %  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'write','MYGifti')  
-%  - This does the plot as above but writes out TWO gifti files:
-%    1. MYGifti.gii is the gifti mesh 
-%    2. MYGiftiOverlay.gii is the corresponding overlay data
 %
 %
-%  **Note on sourcemodel option: If sourcemodel from Fieldtrip, swap x & y
-%  by doing sm = [sourcemod(:,2),sourcemod(:,1),sourcemod(:,3)];
+%  *Note on sourcemodel option: Some fieldtrip sourcemodels have x & y
+%  swapped (?), undo by doing sm = [sm(:,2),sm(:,1),sm(:,3)];
 %
 %
-%  VIDEO OVERLAY:
+% VIDEO OVERLAY:
 %--------------------------------------------------------------------------
 %
-%  atemplate('gifti',g,'sourcemodel',sormod,'video',m,'name',times); where
+%  % Plot a video overlay and write it out:
+%  atemplate('gifti',g,'sourcemodel',sormod,'video',m,'name',times); 
+%
+%  % Where:
 %  - g      = the gifti surface to plot
 %  - sormod = sourcemodel vertices
 %  - m      = overlay values [vertices * ntimes] 
@@ -58,47 +68,70 @@ Usages/Help:
 %  - times  = vector of titles (time values?)
 %
 %
-%  NETWORKS:
+% NETWORKS:
 %--------------------------------------------------------------------------
 %
-%  atemplate('network',A);    plot template mesh with 90x90 AAL network, A.
+%  % Plot template mesh with 90x90 AAL network, A:
+%  atemplate('network',A); 
 %
-%  atemplate('sourcemodel',sormod,'network',A);  plot network A  at
-%  sourcemodel locations in sormod. sormod is n-by-3, netowrk is n-by-n.
+%  % Plot network A  at sourcemodel locations in 'sormod'. 
+%  % Sormod is n-by-3, network is n-by-n.
+%  atemplate('sourcemodel',sormod,'network',A);  
 %
+%  % As above but writes out .node and .edge files for the network, and the gifti mesh file.
 %  atemplate('sourcemodel',sormod,'network',A,'write','savename'); 
-%   - as above but writes out .node and .edge files for the network, and
-%   the gifti mesh file.
+%  
+%  % Plot network defined by .edge and .node files:
+%  atemplate('network','edgefile');
 %
 %
-%  OTHER
+% Project to ATLAS
 %--------------------------------------------------------------------------
 %
-%  atemplate('labels');         plot node labels (AAL90) 
+%  % Put overlay into atlas space: [choose aal90, aal78 or aal58]
+%  atemplate('sourcemodel',sormod,'overlay',o,'template','aal58')
 %
-%  atemplate('labels', all_roi_tissueindex, labels); where all_roi_tissue 
-%  is a 1-by-num-vertices vector containing indices of the roi this vertex
-%  belongs to, and 'labels' contains the labels for each roi. The text
-%  labels are added at the centre of the ROI.
+%  % Put network into atlas space: 
+%  atemplate('sourcemodel',sormod,'network',N,'template','aal78')
+%
+%  % Put video into atlas space: 
+%  atemplate('sourcemodel',sormod,'video',m,'name',times,'template','aal78')
+%
+%
+% OTHER:
+%--------------------------------------------------------------------------
+%
+%  % Plot default AAL90 node labels on default mesh:
+%  atemplate('labels');         
+%
+%  % Plot specified labels at centre of roi's specified by all_roi_tissueindex:
+%  atemplate('labels', all_roi_tissueindex, labels); 
+%
+%  % Where:
+%  % all_roi_tissue = a 1-by-num-vertices vector containing indices of the roi this vertex belongs to
+%  % 'labels' = the labels for each roi. 
+%  % The text labels are added at the centre of the ROI.
 %  
 %  Labels notes:
 %     - If plotting a network, only edge-connected nodes are labelled.
 %     - If plotting a set of nodes (below), only those are labelled.
 %     - Otherwise, all ROIs/node labels are added!
 %
-%  atemplate('nodes', N);             Plot dots at node==1, i.e. N=[90,1]
-%  atemplate('tracks',tracks,header); plot tracks loaded with trk_read
+%  % Plot dots at node==1, i.e. N=[90,1]:
+%  atemplate('nodes', N);             
 %
-%  Note: any combination of the inputs should be possible.
+%  % Plot tracks loaded with trk_read, from along-tract-stats toolbox.
+%  % This function requires some work...
+%  atemplate('tracks',tracks,header); 
+%
+%  Any combination of the inputs should be possible.
+%  See scripts in 'Examples' folder for more help.
 %
 %
 %
-%
-%  AN EXAMPLE NETWORK: from 5061 vertex sourcemodel with AAL90 labels
+% AN EXAMPLE NETWORK: from 5061 vertex sourcemodel with AAL90 labels
 %--------------------------------------------------------------------------
-%
-% load New_AALROI_6mm.mat       % load ft source model, labels and roi_inds
-%
+% load New_AALROI_6mm.mat          % load ft source model, labels and roi_inds
 % net  = randi([0 1],5061,5061);   % generate a network for this sourmod
 % pos  = template_sourcemodel.pos; % get sourcemodel vertices
 % labs = AAL_Labels;               % roi labels
@@ -108,21 +141,7 @@ Usages/Help:
 %
 %
 %
-%
-%
-%  Cortical mesh from mri
-%  ---------------------------
-%  If the gifti option is included, input (g) may be the filename of a 
-%  coregistered ctf .mri file. This will call Vol2SurfAS which uses 
-%  fieldtrip & isosurface to normalise, align, segment and extract a
-%  cortical surface. This is then centred, smoothed and converted to a
-%  gifti object.
-%
 %  See also: slice3() slice2()
-%
-% ^trk_read requires along-tract-stats toolbox
-%
-% AS17
 
 ```
 
