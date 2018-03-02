@@ -4,11 +4,12 @@ Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template 
 
 Provide data along with it's sourcemodel coordinates (from, e.g. fieldtrip), or use the default AAL90.
 
-Essentially it fits the gifti surface (or template brain mesh) to the sourcemodel co-ordinates (or atlas source coords) and allows plotting of functional overlays, nodes, labels, networks (opt. with labels) and overlay-videos on this mesh. 
+Essentially it fits the sourcemodel co-ordinates (or atlas source coords) to an MNI-space gifti surface (or template brain mesh) and allows plotting of functional overlays, nodes, labels, networks (opt. with labels) and overlay-videos on this mesh. 
 
-It can also add atlas labels to non-atlas sourcemodel data using ICP to align the cloud points. Can export (after alignment / interpolation) both structural and functional gifti objects.
+It can also add atlas labels to non-atlas sourcemodel data using ICP to align the cloud points. 
+Can export (after alignment / interpolation) both structural and functional gifti objects.
 
-After installing, run checks for all functions using: RunChecks_(). If it runs through without error, everything should be working.
+It can also read and plot .node and .edge files.
 
 Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. If these cause problems, delete them.
 
