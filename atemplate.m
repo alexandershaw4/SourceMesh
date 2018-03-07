@@ -875,7 +875,7 @@ elseif write == 2
         fColsDbl = interp1(linspace(cLims(1),cLims(2),nCols),cMap,cdata);
 
         fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
-        stlwrite(fname,m,'FaceColor',fCols8bit)
+        stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
 end
     
 end
