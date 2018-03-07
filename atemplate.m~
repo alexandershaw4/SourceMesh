@@ -171,7 +171,6 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
     if strcmp(varargin{i},'orthog');      in.orthog = varargin{i+1};end
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
-    if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'fighnd');      in.fighnd = varargin{i+1}; end
     if strcmp(varargin{i},'nocolbar');    in.colbar = 0;             end
     if strcmp(varargin{i},'video');       in.V     = varargin{i+1}; 
@@ -771,14 +770,12 @@ if length(L) == length(mesh.vertices)
         g.private.metadata(1).value = [fname 'Overlay.gii'];
         save(g, [fname  'Overlay.gii']);
     elseif write == 2
-            fprintf('Writing mesh and overlay as STL object\n');
-        % write STL
-        %
+        % w
         % requires v, f, & data
         m.vertices = double(mesh.vertices);
         m.faces    = double(mesh.faces);
         y          = double(y);
-        cdata      = mean(y(m.faces),2);
+        cdata = mean(y(m.faces),2);
 
         % Write binary STL with coloured faces
         cLims = [min(cdata) max(cdata)];      % Transform height values
@@ -786,7 +783,7 @@ if length(L) == length(mesh.vertices)
         fColsDbl = interp1(linspace(cLims(1),cLims(2),nCols),cMap,cdata);
 
         fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
-        stlwrite(fname,f,v,'FaceColor',fCols8bit)
+        stlwrite('testCol.stl',f,v,'FaceColor',fCols8bit)
     end
     return
 end
@@ -852,30 +849,13 @@ if colbar
     colorbar('peer',gca,'South');    
 end
     
-if write == 1;
+if write;
     fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
     g       = gifti;
     g.cdata = double(y);
     g.private.metadata(1).name  = 'SurfaceID';
     g.private.metadata(1).value = [fname 'Overlay.gii'];
     save(g, [fname  'Overlay.gii']);
-elseif write == 2
-    fprintf('Writing mesh and overlay as STL object\n');
-        % write STL
-        %
-        % requires v, f, & data
-        m.vertices = double(mesh.vertices);
-        m.faces    = double(mesh.faces);
-        y          = double(y);
-        cdata      = mean(y(m.faces),2);
-
-        % Write binary STL with coloured faces
-        cLims = [min(cdata) max(cdata)];      % Transform height values
-        nCols = 255;  cMap = jet(nCols);    % onto an 8-bit colour map
-        fColsDbl = interp1(linspace(cLims(1),cLims(2),nCols),cMap,cdata);
-
-        fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
-        stlwrite(fname,m,'FaceColor',fCols8bit)
 end
     
 end
