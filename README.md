@@ -1,9 +1,5 @@
 # SourceMesh
 
-<div class="sketchfab-embed-wrapper"><iframe width="640" height="480" src="https://sketchfab.com/models/9c34500206f641c5a4445dd9d53b7b3e/embed?autospin=0.2&amp;autostart=1" frameborder="0" allowvr allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" onmousewheel=""></iframe> <p style="font-size: 13px; font-weight: normal; margin: 5px; color: #4A4A4A;"> <a href="https://sketchfab.com/models/9c34500206f641c5a4445dd9d53b7b3e?utm_medium=embed&utm_source=website&utm_campain=share-popup" target="_blank" style="font-weight: bold; color: #1CAAD9;">MMN</a> by <a href="https://sketchfab.com/alexandershaw4?utm_medium=embed&utm_source=website&utm_campain=share-popup" target="_blank" style="font-weight: bold; color: #1CAAD9;">alexandershaw4</a> on <a href="https://sketchfab.com?utm_medium=embed&utm_source=website&utm_campain=share-popup" target="_blank" style="font-weight: bold; color: #1CAAD9;">Sketchfab</a> </p> </div>
-
-
-
 Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template brain in matlab.
 
 Provide data along with it's sourcemodel coordinates (from, e.g. fieldtrip), or use the default AAL90.
