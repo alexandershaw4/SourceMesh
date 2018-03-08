@@ -172,6 +172,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'orthog');      in.orthog = varargin{i+1};end
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
+    if strcmp(varargin{i},'writevrml');   in.write  = 3; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'fighnd');      in.fighnd = varargin{i+1}; end
     if strcmp(varargin{i},'nocolbar');    in.colbar = 0;             end
     if strcmp(varargin{i},'video');       in.V     = varargin{i+1}; 
@@ -743,6 +744,15 @@ w  = fliplr(w);                 %
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L(:)),max(L(:))];     % min max values
 
+if write == 2
+    r = (nv/length(pos))*5;
+    w  = linspace(.1,1,r);          % 
+    w  = fliplr(w);                 % 
+elseif write == 3
+    r = (nv/length(pos))*3;
+    w  = linspace(.1,1,r);          % 
+    w  = fliplr(w);                 % 
+end
 
 % if overlay,L, is same length as mesh verts, just plot!
 %-------------------------------------------------------------------
@@ -786,7 +796,10 @@ if length(L) == length(mesh.vertices)
         fColsDbl = interp1(linspace(cLims(1),cLims(2),nCols),cMap,cdata);
 
         fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
-        stlwrite(fname,f,v,'FaceColor',fCols8bit)
+        stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
+        elseif write == 3 % write vrml
+        fprintf('Writing vrml (.wrl) 3D object\n');
+        vrml(gcf,[fname]);
     end
     return
 end
@@ -859,23 +872,26 @@ if write == 1;
     g.private.metadata(1).name  = 'SurfaceID';
     g.private.metadata(1).value = [fname 'Overlay.gii'];
     save(g, [fname  'Overlay.gii']);
-elseif write == 2
-    fprintf('Writing mesh and overlay as STL object\n');
-        % write STL
-        %
-        % requires v, f, & data
+elseif write == 2 % write STL
+        fprintf('Writing mesh and overlay as STL object\n');
         m.vertices = double(mesh.vertices);
         m.faces    = double(mesh.faces);
+        y = spm_mesh_smooth(mesh, y(:), 8); % hard smoothing
         y          = double(y);
         cdata      = mean(y(m.faces),2);
+        
+        I = cdata;
+        Colors   = jet;
+        NoColors = length(Colors);
 
-        % Write binary STL with coloured faces
-        cLims = [min(cdata) max(cdata)];      % Transform height values
-        nCols = 255;  cMap = jet(nCols);    % onto an 8-bit colour map
-        fColsDbl = interp1(linspace(cLims(1),cLims(2),nCols),cMap,cdata);
-
-        fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
+        Ireduced = (I-min(I))/(max(I)-min(I))*(NoColors-1)+1;
+        RGB      = interp1(1:NoColors,Colors,Ireduced);
+        
+        fCols8bit= RGB*255;
         stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
+elseif write == 3 % write vrml
+       fprintf('Writing vrml (.wrl) 3D object\n');
+       vrml(gcf,[fname]);
 end
     
 end
