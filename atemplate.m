@@ -100,7 +100,8 @@ function data = atemplate(varargin)
 %  atemplate('labels', all_roi_tissueindex, labels); 
 %
 %  % Where:
-%  % all_roi_tissue = a 1-by-num-vertices vector containing indices of the roi this vertex belongs to
+%  % all_roi_tissue = a 1-by-num-vertices vector containing indices of the
+% roi this vertex belongs to
 %  % 'labels' = the labels for each roi. 
 %  % The text labels are added at the centre of the ROI.
 %  
@@ -486,7 +487,7 @@ function data = connections(data,A,colbar,write,fname)
 pos = data.sourcemodel.pos;
 
 % Read edge/node files if string
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 if ischar(A)
     [fp,fn,fe]  = fileparts(A);
     [edge,node] = rw_edgenode(fn);
@@ -494,7 +495,7 @@ if ischar(A)
 end
 
 % Edges
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
 RGB = makecolbar(strng);
 
@@ -512,7 +513,7 @@ else
 end
 
 % If too few strengths, just use red edges
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 LimC = 1;
 if all(all(isnan(RGB)))
     RGB  = repmat([1 0 0],[size(RGB,1) 1]);
@@ -527,7 +528,7 @@ data.network.tofrom.node2 = node2;
 
 
 % Paint edges
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 for i = 1:size(node1,1)
     line([node1(i,1),node2(i,1)],...
         [node1(i,2),node2(i,2)],...
@@ -536,7 +537,7 @@ for i = 1:size(node1,1)
 end
 
 % Set colorbar only if there are valid edges
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
     if colbar
@@ -552,7 +553,7 @@ drawnow;
 
 
 % Nodes (of edges only)
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 hold on;
 for i = 1:size(node1,1)
     scatter3(node1(i,1),node1(i,2),node1(i,3),'filled','k');
@@ -727,7 +728,7 @@ function data = overlay(data,L,write,fname,colbar)
 
 
 % interp shading between nodes or just use mean value?
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 interpl = 1; 
 pos     = data.sourcemodel.pos;
 mesh    = data.mesh;
@@ -755,7 +756,7 @@ elseif write == 3
 end
 
 % if overlay,L, is same length as mesh verts, just plot!
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 if length(L) == length(mesh.vertices)
     fprintf('Overlay already fits mesh! Plotting...\n');
     
@@ -773,7 +774,7 @@ if length(L) == length(mesh.vertices)
         colorbar('peer',gca,'South');
     end
     
-    if write == 1;
+    if write == 1
         fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
         g       = gifti;
         g.cdata = double(y);
@@ -783,8 +784,6 @@ if length(L) == length(mesh.vertices)
     elseif write == 2
             fprintf('Writing mesh and overlay as STL object\n');
         % write STL
-        %
-        % requires v, f, & data
         m.vertices = double(mesh.vertices);
         m.faces    = double(mesh.faces);
         y          = double(y);
@@ -797,7 +796,8 @@ if length(L) == length(mesh.vertices)
 
         fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
         stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
-        elseif write == 3 % write vrml
+        elseif write == 3 
+        % write vrml
         fprintf('Writing vrml (.wrl) 3D object\n');
         vrml(gcf,[fname]);
     end
@@ -808,7 +808,7 @@ end
 
 
 % otherwise find closest points (assume both in mm)
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 for i = 1:length(x)
@@ -847,7 +847,7 @@ y(isnan(y)) = 0;
 y  = full(y);
 
 % spm mesh smoothing
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 fprintf('Smoothing overlay...\n');
 y = spm_mesh_smooth(mesh, y(:), 4);
 hh = get(gca,'children');
@@ -872,7 +872,8 @@ if write == 1;
     g.private.metadata(1).name  = 'SurfaceID';
     g.private.metadata(1).value = [fname 'Overlay.gii'];
     save(g, [fname  'Overlay.gii']);
-elseif write == 2 % write STL
+elseif write == 2 
+        % write STL
         fprintf('Writing mesh and overlay as STL object\n');
         m.vertices = double(mesh.vertices);
         m.faces    = double(mesh.faces);
@@ -889,7 +890,8 @@ elseif write == 2 % write STL
         
         fCols8bit= RGB*255;
         stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
-elseif write == 3 % write vrml
+elseif write == 3 
+       % write vrml
        fprintf('Writing vrml (.wrl) 3D object\n');
        vrml(gcf,[fname]);
 end
@@ -1030,7 +1032,7 @@ data.labels.labels  = labels;
 data.labels.centres = v;
 
 % compile list of in-use node indices
-%------------------------------------
+%--------------------------------------------------------------------------
 to = []; from = []; 
 for i  = 1:size(V,1)
     ni = find(logical(V(i,:)));
@@ -1046,7 +1048,7 @@ off = 1.5;
 data.labels.in_use = AN;
 
 % add these to plot with offset
-%------------------------------------
+%--------------------------------------------------------------------------
 for i = 1:length(AN)
     L = labels{AN(i)};
     switch L(end)
@@ -1112,7 +1114,7 @@ function data = video(data,L,colbar,fpath,tv)
 %
 
 % OPTIONS
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 num         = 1;   % number of brains, 1 or 2
 interpl     = 1;   % interpolate
 brainview   = 'T'; % [T]op, [L]eft or [R]ight
@@ -1129,7 +1131,7 @@ data.video.opt.videolength = videolength;
 data.video.opt.extendvideo = extendvideo;
 
 % Extend and temporally smooth video by linear interp between points
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 if extendvideo > 0
     fprintf('Extending and smoothing video sequence by linear interpolation\n');
     time  = tv;
@@ -1144,7 +1146,7 @@ data.video.t = tv;
 %data.video.data = L;
 
 % Overlay
-%-------------------------------------------------------------------
+%--------------------------------------------------------------------------
 v  = pos;
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
@@ -1169,7 +1171,7 @@ M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L)',max(L)'];
 
 % find closest points (assume both in mm)
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 for i = 1:length(x)
 
@@ -1236,7 +1238,7 @@ else
 end
 
 % MAKE THE GRAPH / VIDEO
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 try    vidObj   = VideoWriter(fpath,'MPEG-4');          % CHANGE PROFILE
 catch  vidObj   = VideoWriter(fpath,'Motion JPEG AVI');
 end
