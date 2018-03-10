@@ -1,8 +1,12 @@
 # SourceMesh
 
-Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template brain in matlab.
+Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template brains in matlab.
 
 Provide data along with it's sourcemodel coordinates (from, e.g. fieldtrip), or use the default AAL90.
+
+Extract iso surfaces from nifti volumes or plot statistical nifti volumes on surfaces.
+
+Export 3D images in 3D file formats VRML and STL.
 
 Essentially it fits the sourcemodel co-ordinates (or atlas source coords) to an MNI-space gifti surface (or template brain mesh) and allows plotting of functional overlays, nodes, labels, networks (opt. with labels) and overlay-videos on this mesh. 
 
@@ -30,6 +34,9 @@ Usages/Help:
 %  % Plot mesh & write out gifti:
 %  atemplate('gifti',mesh, 'write',name);  
 %  
+%  % Plot mesh from nifti volume:
+%  atemplate('mesh','mymri.nii')
+%
 %
 % OVERLAYS:
 %--------------------------------------------------------------------------
@@ -51,6 +58,9 @@ Usages/Help:
 %  %  2. MYGiftiOverlay.gii is the corresponding overlay data
 %  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'write','MYGifti')  
 %
+%
+%  % Plot overlay from nifti volume
+%  atemplate('overlay','overlay_volume.nii')
 %
 %  *Note on sourcemodel option: Some fieldtrip sourcemodels have x & y
 %  swapped (?), undo by doing sm = [sm(:,2),sm(:,1),sm(:,3)];
@@ -84,7 +94,7 @@ Usages/Help:
 %  atemplate('sourcemodel',sormod,'network',A,'write','savename'); 
 %  
 %  % Plot network defined by .edge and .node files:
-%  atemplate('network','edgefile');
+%  atemplate('network','edgefile.edge');
 %
 %
 % Project to ATLAS
@@ -103,6 +113,11 @@ Usages/Help:
 % OTHER:
 %--------------------------------------------------------------------------
 %
+%  % Export 3D images (overlays, meshes, networks) as VRML & .stl:
+%  atemplate( ... ,'writestl','filename.stl');
+%  atemplate( ... ,'writevrml','filename.wrl');
+%
+%
 %  % Plot default AAL90 node labels on default mesh:
 %  atemplate('labels');         
 %
@@ -110,7 +125,8 @@ Usages/Help:
 %  atemplate('labels', all_roi_tissueindex, labels); 
 %
 %  % Where:
-%  % all_roi_tissue = a 1-by-num-vertices vector containing indices of the roi this vertex belongs to
+%  % all_roi_tissue = a 1-by-num-vertices vector containing indices of the
+% roi this vertex belongs to
 %  % 'labels' = the labels for each roi. 
 %  % The text labels are added at the centre of the ROI.
 %  
@@ -141,10 +157,7 @@ Usages/Help:
 %
 % atemplate('sourcemodel',pos,'network',net,'labels',rois,labs);
 %
-%
-%
 %  See also: slice3() slice2()
-
 ```
 
 ![alt text](ExampleTracksNodesLabels.gif)
