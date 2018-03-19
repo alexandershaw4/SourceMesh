@@ -80,7 +80,7 @@ function data = atemplate(varargin)
 %  atemplate('sourcemodel',sormod,'network',A,'write','savename'); 
 %  
 %  % Plot network defined by .edge and .node files:
-%  atemplate('network','edgefile');
+%  atemplate('network','edgefile.edge');
 %
 %
 % Project to ATLAS
@@ -171,6 +171,7 @@ in.fighnd    = [];
 in.colbar    = 1;
 in.template  = 0;
 in.orthog    = 0;
+in.inflate   = 0;
 in.thelabels = [];
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
@@ -181,6 +182,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');       in.g = varargin{i+1};     end
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
+    if strcmp(varargin{i},'inflate');     in.inflate = 1;           end
     if strcmp(varargin{i},'orthog');      in.orthog = varargin{i+1};end
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
@@ -216,13 +218,13 @@ end
 %--------------------------------------------------------------------------
 data = sort_sourcemodel(data,in);
 
-% Template space? (currently aal90, aal78 or aal58)
-%--------------------------------------------------------------------------
-[data,in] = sort_template(data,in);
-
 % Get Surface
 %--------------------------------------------------------------------------
 [mesh,data] = get_mesh(in,data);
+
+% Template space? (currently aal90, aal78 or aal58)
+%--------------------------------------------------------------------------
+[data,in] = sort_template(data,in);
 
 % Plot the glass brain we'll put everything else onto
 %--------------------------------------------------------------------------
@@ -329,6 +331,13 @@ elseif  isfield(i,'A') && ischar(i.A)
         
         [~,pos] = rw_edgenode(i.A); 
         pos = pos(:,1:3);
+        
+% elseif  isfield(i,'L') && ischar(i.L)
+%         IF USING A NIFTI AS SOURCEMODEL, NEED THIS *before* TRYING TO DO
+%         TEMPLATE SPACE CONVERSION!
+%
+%         [~,data] = parse_overlay(i.L,data);
+
 else
         fprintf('Assuming AAL90 source vertices by default\n');
         load('AAL_SOURCEMOD');
@@ -367,23 +376,32 @@ if ischar(mesh)
             
             % bounds:
             fprintf('Extracting ISO surface\n');
-            B  = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
-            fv = isosurface(vol,0.5);
+            B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
+            fv  = isosurface(vol,0.5);
+            
+            %fprintf('Smoothing surface\n');
+            %fv.vertices = sms(fv.vertices,fv.faces,1,2);
             
             % swap x y
             v  = fv.vertices;
             v  = [v(:,2) v(:,1) v(:,3)];
             fv.vertices = v;
              
+            % reduce vertex density
             fprintf('Reducing patch density\n');
             nv  = length(fv.vertices);
             count  = 0;
-            while nv > 5000
+            while nv > 60000
                 fv    = reducepatch(fv, 0.5);
                 nv    = length(fv.vertices);
                 count = count + 1;
             end
             
+            %if count > 0
+            %    fprintf('Smoothing surface\n');
+            %    fv.vertices = sms(fv.vertices,fv.faces,1,2);
+            %end
+
             % print
             fprintf('Patch reduction finished after %d iterations\n',count);
             fprintf('Rescaling mesh to sourcemodel\n');
@@ -480,6 +498,18 @@ catch mesh = read_nv();
       fprintf('(Using template brain mesh)\n');
 end
 
+if i.inflate
+    try fprintf('Trying to inflate mesh\n');
+        dmesh.vertices = mesh.vertices;
+        dmesh.faces    = mesh.faces;
+        dmesh = spm_mesh_inflate(dmesh,10);
+        mesh.vertices = dmesh.vertices;
+        mesh.faces    = dmesh.faces;
+    catch
+        fprintf('Couldnt find spm_mesh_inflate: is SPM installed?\n');
+    end
+end
+
 end
 
 
@@ -491,7 +521,7 @@ function atlas = dotemplate(model)
 %
 
 switch model
-    case lower({'aal','aal90'});   load AAL_SOURCEMOD
+    case lower({'aal','aal90'});   load New_AALROI_6mm.mat
     case lower('aal58');           load New_58cortical_AALROI_6mm
     case lower('aal78');           load New_AALROI_Cortical78_6mm
     otherwise
@@ -815,21 +845,25 @@ if ischar(x)
             tri = delaunay(v(:,1),v(:,2),v(:,3));
             fv  = struct('faces',tri,'vertices',v);
             count  = 0;
-            while nv > 5000
+            while nv > 8000
                 fv  = reducepatch(fv, 0.5);
                 nv  = length(fv.vertices);
                 count = count + 1;
             end
-            v = fv.vertices;
+            %v = fv.vertices;
 
             % print
             fprintf('Patch reduction finished after %d iterations\n',count);
             fprintf('Using nifti volume as sourcemodel and overlay!\n');
             fprintf('New sourcemodel has %d vertices\n',nv);
                         
+            % find the indices of the retained vertexes only
+            Ci = compute_reduced_indices(v, fv.vertices);
+
             % Update sourcemodel and ovelray data
+            v                    = fv.vertices;
             data.sourcemodel.pos = v;
-            y                    = C;
+            y                    = C(Ci);
             
         case{'.gii'}
             % load gifti functional
@@ -841,6 +875,15 @@ if ischar(x)
     end
 end
 
+end
+
+function indices = compute_reduced_indices(before, after)
+
+indices = zeros(length(after), 1);
+for i = 1:length(after)
+    dotprods = (before * after(i, :)') ./ sqrt(sum(before.^2, 2));
+    [~, indices(i)] = max(dotprods);
+end
 end
 
 function y = rescale(x,S)
