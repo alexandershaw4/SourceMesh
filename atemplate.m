@@ -604,6 +604,9 @@ if ischar(A)
     end
 end
 
+A(isnan(A)) = 0;
+A(isinf(A)) = 0;
+
 % Edges
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
