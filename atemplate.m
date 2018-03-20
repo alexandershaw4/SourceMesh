@@ -510,7 +510,7 @@ if i.inflate
     try fprintf('Trying to inflate mesh\n');
         dmesh.vertices = mesh.vertices;
         dmesh.faces    = mesh.faces;
-        dmesh = spm_mesh_inflate(dmesh,10);
+        dmesh = spm_mesh_inflate(dmesh,100);
         mesh.vertices = dmesh.vertices;
         mesh.faces    = dmesh.faces;
     catch
