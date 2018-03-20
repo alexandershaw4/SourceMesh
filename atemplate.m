@@ -592,15 +592,17 @@ if ischar(A)
     [edge,node] = rw_edgenode(fn);
     A           = edge;
     
-    if isfield(data.template,'model')
-       fprintf('Doing atlas registration\n');
-       i.template = 1;
-       i.model    = data.template.model;
-       i.labels   = data.template.labels;
-       i.A        = A;
-       data.sourcemodel.pos = node(:,1:3);
-       [data,i]   = sort_template(data,i);
-       A          = i.A;
+    if isfield(data,'template')
+        if isfield(data.template,'model')
+           fprintf('Doing atlas registration\n');
+           i.template = 1;
+           i.model    = data.template.model;
+           i.labels   = data.template.labels;
+           i.A        = A;
+           data.sourcemodel.pos = node(:,1:3);
+           [data,i]   = sort_template(data,i);
+           A          = i.A;
+        end
     end
 end
 
@@ -932,14 +934,16 @@ if ~isnumeric(L)
         fprintf('Overlay does not match sourcemodel!\n');
         return;
    end
-   if isfield(data.template,'model')
-       fprintf('Doing atlas registration\n');
-       i.template = 1;
-       i.model    = data.template.model;
-       i.labels   = data.template.labels;
-       i.L        = L;
-       [data,i]   = sort_template(data,i);
-       L          = i.L;
+   if isfield(data,'template')
+       if isfield(data.template,'model')
+           fprintf('Doing atlas registration\n');
+           i.template = 1;
+           i.model    = data.template.model;
+           i.labels   = data.template.labels;
+           i.L        = L;
+           [data,i]   = sort_template(data,i);
+           L          = i.L;
+       end
    end
 end
 

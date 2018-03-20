@@ -51,7 +51,9 @@ function data = atemplate(varargin)
 %  *Note on sourcemodel option: Some fieldtrip sourcemodels have x & y
 %  swapped (?), undo by doing sm = [sm(:,2),sm(:,1),sm(:,3)];
 %
-%  % Co-register the surfaces of the volumes
+%  % Co-register the surfaces of the nii volumes in mesh and overlay,
+%  % put in aal90 space and add labels:
+%  atemplate('mesh',t1.nii,'overlay',functional.nii,'template','aal90','labels')
 %
 % VIDEO OVERLAY:
 %--------------------------------------------------------------------------
@@ -80,8 +82,10 @@ function data = atemplate(varargin)
 %  % As above but writes out .node and .edge files for the network, and the gifti mesh file.
 %  atemplate('sourcemodel',sormod,'network',A,'write','savename'); 
 %  
-%  % Plot network defined by .edge and .node files:
+%  % Plot network defined by .edge and .node files*:
 %  atemplate('network','edgefile.edge');
+%  % Note, this option sets the 'sourcemodel' coordinates to the vertices
+%  defined in the .node file, unless flag to register to atlas space
 %
 %
 % Project to ATLAS
@@ -134,7 +138,7 @@ function data = atemplate(varargin)
 %
 %
 %
-% AN EXAMPLE NETWORK: from 5061 vertex sourcemodel with AAL90 labels
+% AN EXAMPLE NETWORK [1]: from 5061 vertex sourcemodel with AAL90 labels
 %--------------------------------------------------------------------------
 % load New_AALROI_6mm.mat          % load ft source model, labels and roi_inds
 % net  = randi([0 1],5061,5061);   % generate a network for this sourmod
@@ -145,17 +149,13 @@ function data = atemplate(varargin)
 % atemplate('sourcemodel',pos,'network',net,'labels',rois,labs);
 %
 %
-% Cortical mesh from mri
+% AN EXAMPLE NETWORK [2]: from volume and node/edge files, put in aal58 space:
 %--------------------------------------------------------------------------
-%  If the gifti option is included, input (g) may be the filename of a 
-%  coregistered ctf '.mri' file. This will call Vol2SurfAS which uses 
-%  fieldtrip & isosurface to normalise, align, segment and extract a
-%  cortical surface. This is then centred, smoothed and converted to a
-%  gifti object. Requires 
+% atemplate('mesh',t1.nii,'network','test_sourcemod.edge','template','aal58')
 %
-%  See also: slice3() slice2()
 %
-% 
+%
+%  See also: slice3() slice2() 
 %
 % AS17
 
@@ -430,9 +430,10 @@ function [data,i] = sort_template(data,i)
 if ~isfield(i,'pos')
     i.pos = data.sourcemodel.pos;
 end
-
-data.template.model  = i.model;
-data.template.labels = i.labels;
+try
+    data.template.model  = i.model;
+    data.template.labels = i.labels;
+end
 if i.template
     atlas = dotemplate(i.model);
     rois  = get_roi_centres(atlas.template_sourcemodel.pos,atlas.all_roi_tissueindex);
@@ -591,17 +592,22 @@ if ischar(A)
     [edge,node] = rw_edgenode(fn);
     A           = edge;
     
-    if isfield(data.template,'model')
-       fprintf('Doing atlas registration\n');
-       i.template = 1;
-       i.model    = data.template.model;
-       i.labels   = data.template.labels;
-       i.A        = A;
-       data.sourcemodel.pos = node(:,1:3);
-       [data,i]   = sort_template(data,i);
-       A          = i.A;
+    if isfield(data,'template')
+        if isfield(data.template,'model')
+           fprintf('Doing atlas registration\n');
+           i.template = 1;
+           i.model    = data.template.model;
+           i.labels   = data.template.labels;
+           i.A        = A;
+           data.sourcemodel.pos = node(:,1:3);
+           [data,i]   = sort_template(data,i);
+           A          = i.A;
+        end
     end
 end
+
+A(isnan(A)) = 0;
+A(isinf(A)) = 0;
 
 % Edges
 %--------------------------------------------------------------------------
@@ -928,6 +934,7 @@ if ~isnumeric(L)
         fprintf('Overlay does not match sourcemodel!\n');
         return;
    end
+   if isfield(data,'tem
    if isfield(data.template,'model')
        fprintf('Doing atlas registration\n');
        i.template = 1;
