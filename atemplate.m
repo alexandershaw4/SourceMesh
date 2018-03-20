@@ -430,9 +430,10 @@ function [data,i] = sort_template(data,i)
 if ~isfield(i,'pos')
     i.pos = data.sourcemodel.pos;
 end
-
-data.template.model  = i.model;
-data.template.labels = i.labels;
+try
+    data.template.model  = i.model;
+    data.template.labels = i.labels;
+end
 if i.template
     atlas = dotemplate(i.model);
     rois  = get_roi_centres(atlas.template_sourcemodel.pos,atlas.all_roi_tissueindex);
