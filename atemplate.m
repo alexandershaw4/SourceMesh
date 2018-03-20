@@ -545,6 +545,7 @@ end
 
 function atlas = interp_template(atlas,pos)
 
+fprintf('Scanning points:\n');
 M = zeros( length(atlas.pos), length(pos) );
 r = 1;
 w = 1;

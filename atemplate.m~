@@ -545,6 +545,7 @@ end
 
 function atlas = interp_template(atlas,pos)
 
+fprintf('Scanning 
 M = zeros( length(atlas.pos), length(pos) );
 r = 1;
 w = 1;
@@ -934,15 +935,16 @@ if ~isnumeric(L)
         fprintf('Overlay does not match sourcemodel!\n');
         return;
    end
-   if isfield(data,'tem
-   if isfield(data.template,'model')
-       fprintf('Doing atlas registration\n');
-       i.template = 1;
-       i.model    = data.template.model;
-       i.labels   = data.template.labels;
-       i.L        = L;
-       [data,i]   = sort_template(data,i);
-       L          = i.L;
+   if isfield(data,'template')
+       if isfield(data.template,'model')
+           fprintf('Doing atlas registration\n');
+           i.template = 1;
+           i.model    = data.template.model;
+           i.labels   = data.template.labels;
+           i.L        = L;
+           [data,i]   = sort_template(data,i);
+           L          = i.L;
+       end
    end
 end
 
