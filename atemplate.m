@@ -461,11 +461,13 @@ if i.template
     
     % network
     if isfield(i,'A')
-        S  = [min(i.A(:)) max(i.A(:))];
-        NL = NM'*i.A*NM;
-        A  = S(1) + ((S(2)-S(1))).*(NL - min(NL))./(max(NL) - min(NL));
-        A(isnan(A)) = 0;
-        i.A = A;
+        if isnumeric(i.A)
+            S  = [min(i.A(:)) max(i.A(:))];
+            NL = NM'*i.A*NM;
+            A  = S(1) + ((S(2)-S(1))).*(NL - min(NL))./(max(NL) - min(NL));
+            A(isnan(A)) = 0;
+            i.A = A;
+        end
     end
     
     % video data
@@ -587,6 +589,17 @@ if ischar(A)
     [fp,fn,fe]  = fileparts(A);
     [edge,node] = rw_edgenode(fn);
     A           = edge;
+    
+    if isfield(data.template,'model')
+       fprintf('Doing atlas registration\n');
+       i.template = 1;
+       i.model    = data.template.model;
+       i.labels   = data.template.labels;
+       i.A        = A;
+       data.sourcemodel.pos = node(:,1:3);
+       [data,i]   = sort_template(data,i);
+       A          = i.A;
+    end
 end
 
 % Edges
@@ -915,6 +928,7 @@ if ~isnumeric(L)
         return;
    end
    if isfield(data.template,'model')
+       fprintf('Doing atlas registration\n');
        i.template = 1;
        i.model    = data.template.model;
        i.labels   = data.template.labels;
