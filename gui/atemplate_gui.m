@@ -14,7 +14,7 @@ function varargout = atemplate_gui(varargin)
 
 % Edit the above text to modify the response to help atemplate_gui
 
-% Last Modified by GUIDE v2.5 10-Aug-2017 14:54:39
+% Last Modified by GUIDE v2.5 22-Mar-2018 10:53:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -48,6 +48,8 @@ function atemplate_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % initialise everything
+handles.mesh    = 0;
+
 handles.network = 0;
 handles.overlay = 0;
 handles.nodes   = 0;
@@ -109,23 +111,53 @@ function NodeEdge_Callback(hObject, eventdata, handles)
 % hObject    handle to NodeEdge (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+W = menu('Load from where?','Node/Edge File','Matlab workspace');
 
-[FileName,PathName,FilterIndex] = uigetfile({'*.edge'},'Select edge or node file');
-A = dlmread([PathName '/' FileName]);
+if W == 1
+    [FileName,PathName,FilterIndex] = uigetfile({'*.edge'},'Select edge or node file');
+    [edge,node] = rw_edgenode([PathName '/' FileName]);
+    
+    handles.network = 1;
+    handles.edges   = edge;
+    handles.sourcemodel = node(:,1:3);
+elseif W == 2
+    list = evalin('base','whos');
+    opt  = menu('Select variable (nxn)',{list.name});
+    list = {list.name};
+    var  = list{opt};
+    handles.edges = evalin('base',var);
+    handles.network = 1;
+    
+    if ~isfield(handles,'sourcemodel');
+        W = menu('Which sourcemodel for this network?','Select nx3 matrix from workspace','template');
 
-handles.network = 1;
-handles.edges   = A;
+        switch W
+            case 1
+                list = evalin('base','whos');
+                opt  = menu('Select variable (nx3)',{list.name});
+                list = {list.name};
+                var  = list{opt};
+                handles.sourcemodel = evalin('base',var);
+                handles.sourcemodel = handles.sourcemodel(:,1:3);
+            case 2
+                opts = {'AAL90','AAL78','AAL58'};
+                a = menu('Which template?','AAL90','AAL78','AAL58');
+                handles.template = opts{a};
+                L = menu('Labels?','Yes','No');
+                if L == 1;
+                    handles.labels = 1;
+                else
+                    handles.labels = 0;
+                end
+        end
+    end
+    
+end
 
-L = menu('Labels?','Yes','No');
 % popup = uicontrol('Style', 'popup',...
 %            'String', {'Labels','No Labels'},...
 %            'Position', [20 340 100 50]);
 
-if L == 1;
-    handles.labels = 1;
-else
-    handles.labels = 0;
-end
 
 guidata(hObject, handles);
 
@@ -135,21 +167,29 @@ function Overlay_Callback(hObject, eventdata, handles)
 % hObject    handle to Overlay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-W = menu('Load from where','Matfile','Matlab workspace');
+W = menu('Load from where','Nifti File','Matfile','Matlab workspace');
 
-if W == 2;
+if W == 3;
     list = evalin('base','whos');
-    opt  = menu('Select variable (1x90)',{list.name});
+    opt  = menu('Select variable (nx1)',{list.name});
     list = {list.name};
     var  = list{opt};
     handles.O = evalin('base',var);
     handles.overlay = 1;
 end
-if W == 1;
+if W == 2;
     [FileName,PathName,FilterIndex] = uigetfile({'*.mat'},'Select matfile with variable O');
     x = load([PathName FileName]);
     handles.O = x.O;
     handles.overlay = 1;
+end
+if W == 1
+    [FileName,PathName,FilterIndex] = uigetfile({'*.nii'},'Select Nifti');
+    G = [PathName FileName];
+    
+    handles.overlay = 1;%G;
+    handles.O = G;
+    
 end
 guidata(hObject, handles);
     
@@ -188,22 +228,141 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % update the plot - i.e. call atemplate
 str = {};  cla;
 
-if handles.network;
-    str = {str, 'network', handles.edges};
+if isfield(handles,'mesh')
+    mesh = handles.mesh;
+    if isstruct(mesh) || ischar(mesh) || isfield(mesh,'vertices')
+        str = {str{:}, 'mesh',mesh };
+    end
 end
-if handles.labels;
+
+if isfield(handles,'sourcemodel')
+    str = {str{:},'sourcemodel',handles.sourcemodel};
+end
+if isfield(handles,'network')
+    str = {str{:}, 'network', handles.edges};
+end
+if isfield(handles,'labels')
     str = {str{:}, 'labels'};
 end
-if handles.nodes;
+if isfield(handles,'nodes')
     str = {str{:}, 'nodes', handles.N};
 end
-if handles.overlay;
+if isfield(handles,'overlay')
     str = {str{:}, 'overlay',handles.O};
 end
-if handles.tracks;
+if isfield(handles,'tracks')
     str = {str{:}, 'tracks',handles.T,handles.H};
 end
+if isfield(handles,'template')
+    str = {str{:}, 'template',handles.template};
+end
+
+
 if isempty(str{1});
     str = str(2:end);
 end
 atemplate(str{:});
+
+
+% --------------------------------------------------------------------
+function LoadGifTi_Callback(hObject, eventdata, handles)
+% hObject    handle to LoadGifTi (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+W = menu('Load GiftiMesh from where?','.gii File','Matlab workspace');
+
+if W == 2;
+    list = evalin('base','whos');
+    opt  = menu('Select variable (gifti/patch)',{list.name});
+    list = {list.name};
+    var  = list{opt};
+    
+    handles.mesh = evalin('base',var);
+
+end
+if W == 1;
+    [FileName,PathName,FilterIndex] = uigetfile({'*.gii'},'Select GifTi');
+    %x = load([PathName FileName]);
+    G = gifti([PathName FileName]);
+    
+    handles.mesh = G;
+
+end
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function LoadNifTi_Callback(hObject, eventdata, handles)
+% hObject    handle to LoadNifTi (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[FileName,PathName,FilterIndex] = uigetfile({'*.nii'},'Select NifTi');
+%x = load([PathName FileName]);
+Nifti = ([PathName FileName]);
+
+handles.mesh = Nifti;
+
+guidata(hObject, handles);
+
+
+
+
+% --------------------------------------------------------------------
+function SourceModel_Callback(hObject, eventdata, handles)
+% hObject    handle to SourceModel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+W = menu('Load sourcemodel (vertex list) from where?','Matlab workspace');
+
+if W == 1
+    list = evalin('base','whos');
+    opt  = menu('Select variable (nx3)',{list.name});
+    list = {list.name};
+    var  = list{opt};
+    
+    handles.sourcemodel = evalin('base',var);
+
+end
+
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function Atlas_Callback(hObject, eventdata, handles)
+% hObject    handle to Atlas (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function ExportVRML_Callback(hObject, eventdata, handles)
+% hObject    handle to ExportVRML (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[FileName,PathName,FilterIndex] = uiputfile({'*.wrl'},'Filename');
+
+vrml(gcf,[FileName,PathName]);
+
+% --------------------------------------------------------------------
+function ExportSTL_Callback(hObject, eventdata, handles)
+% hObject    handle to ExportSTL (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function PickAtlas_Callback(hObject, eventdata, handles)
+% hObject    handle to PickAtlas (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+W = menu('Pick ATLAS','AAL90','AAL78','AAL58');
+A = {'AAL90','AAL78','AAL58'};
+
+Atlas = A{W};
+handles.template = Atlas;
+
+L = menu('Labels?','Y','N');
+
+if L == 1; handles.labels = 1; end
+
