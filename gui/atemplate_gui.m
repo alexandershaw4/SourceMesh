@@ -272,9 +272,12 @@ if isfield(handles,'template')
     str = {str{:}, 'template',handles.template};
 end
 
-
-if isempty(str{1});
+try
+if isempty(str{1})
     str = str(2:end);
+end
+catch
+    str = {};
 end
 atemplate(str{:});
 
