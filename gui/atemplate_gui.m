@@ -167,7 +167,7 @@ function Overlay_Callback(hObject, eventdata, handles)
 % hObject    handle to Overlay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-W = menu('Load from where','Nifti File','Matfile','Matlab workspace');
+W = menu('Load from where','Nifti File','Matfile','Matlab workspace','Gifti File');
 
 if W == 3;
     list = evalin('base','whos');
@@ -189,6 +189,21 @@ if W == 1
     
     handles.overlay = 1;%G;
     handles.O = G;
+end
+if W == 4
+    [FileName,PathName,FilterIndex] = uigetfile({'*.gii'},'Select Nifti');
+    G = ([PathName FileName]);
+    G = gifti(G);
+    G = double(G.cdata);
+    G = G(:);
+    
+    handles.overlay = 1;%G;
+    handles.O = G;
+    
+%     if ~isfield(handles,'sourcemodel')
+%         % assume this FUNCTINAL gifti accompanies a mesh gifti
+%         handles.sourcemodel = handles.mesh.vertices;
+%     end
     
 end
 guidata(hObject, handles);
