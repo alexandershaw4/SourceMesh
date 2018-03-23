@@ -490,13 +490,17 @@ if i.template
     data.atlas = atlas;
     NM         = atlas.M;
     
+    % rescale so not change amplitudes
+    m  = max(NM(:));
+    NM = NM/m; 
+    
     % update sourcemodel and labels
     data.sourcemodel = atlas.template_sourcemodel;
     if i.labels; i.thelabels = atlas.AAL_Labels; end
     
     % overlay data
     if isfield(i,'L')
-        if isnumeric(i.L)
+        if isnumeric(i.L) && ndims(i.L) ~= 3
             S  = [min(i.L(:)) max(i.L(:))];
             NL = i.L(:)'*NM;
             L  = S(1) + ((S(2)-S(1))).*(NL - min(NL))./(max(NL) - min(NL));
@@ -609,7 +613,7 @@ for i = 1:length(atlas.pos)
     [junk,ind] = maxpoints(dist(:,i),r,'min');
     M (i,ind)  = w;
 end
-
+fprintf('\n');
 atlas.M = M;
 
 end
@@ -909,7 +913,7 @@ end
 end
 
 function [y,data] = vol2surf(vol,data)
-
+% FUNCTIONAL volume to surface
 
 
 % bounds:
