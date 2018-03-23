@@ -80,6 +80,8 @@ Usages/Help:
 %  % Put overlay in AAL space and use interactive 'peaks' (clickable)
 %  atemplate('sourcemodel',sormod,'overlay',overlayvector,'template','aal90','peaks')
 
+![peaks gui](peaks_1.png)
+
 ![alt text](NodePowOnSurface.gif)
 
 # VIDEO OVERLAY:
