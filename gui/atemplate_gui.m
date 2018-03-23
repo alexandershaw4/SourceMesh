@@ -170,7 +170,7 @@ if W == 3
     handles.overlay = 1;
 end
 if W == 2
-    [FileName,PathName,FilterIndex] = uigetfile({'*.mat'},'Select matfile with variable O');
+    [FileName,PathName,FilterIndex] = uigetfile({'*.mat'},'Select matfile with variable O (nx1) or 3D volume');
     x = load([PathName FileName]);
     handles.O = x.O;
     handles.overlay = 1;
