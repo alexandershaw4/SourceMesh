@@ -591,6 +591,12 @@ end
 
 function atlas = interp_template(atlas,pos)
 
+if length(atlas.pos) == length(pos)
+    fprintf('Overlay and atlas Vectors already match!\n');
+    atlas.M = eye(length(pos));
+    return;
+end
+
 fprintf('Scanning points:\n');
 M = zeros( length(atlas.pos), length(pos) );
 r = 1;
