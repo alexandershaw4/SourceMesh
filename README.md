@@ -38,10 +38,10 @@ Usages/Help:
 %  atemplate()         
 
 %  % Plot a supplied (gifti) mesh:
-%  atemplate('gifti',mesh)   
+%  atemplate('mesh',mesh)   
 
 %  % Plot mesh & write out gifti:
-%  atemplate('gifti',mesh, 'write',name);  
+%  atemplate('mesh',mesh, 'write',name);  
   
 %  % Plot mesh from nifti volume:
 %  atemplate('mesh','mymri.nii')
