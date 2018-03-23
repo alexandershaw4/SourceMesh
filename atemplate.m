@@ -419,6 +419,44 @@ if ischar(mesh)
             mesh.vertices   = v;
             data.mesh       = mesh;
     end
+    
+elseif isnumeric(mesh) && ndims(mesh)==3
+           
+            % bounds:
+            fprintf('Extracting ISO surface\n');
+            B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
+            fv  = isosurface(mesh,0.5);
+            
+            % swap x y
+            v  = fv.vertices;
+            v  = [v(:,2) v(:,1) v(:,3)];
+            fv.vertices = v;
+             
+            % reduce vertex density
+            fprintf('Reducing patch density\n');
+            nv  = length(fv.vertices);
+            count  = 0;
+            while nv > 60000
+                fv    = reducepatch(fv, 0.5);
+                nv    = length(fv.vertices);
+                count = count + 1;
+            end
+
+            % print
+            fprintf('Patch reduction finished after %d iterations\n',count);
+            fprintf('Rescaling mesh to sourcemodel\n');
+            
+            v = fv.vertices;
+            for i = 1:3
+                v(:,i) = rescale(v(:,i),B(:,i));
+            end
+            
+            % return scaled mesh
+            mesh            = [];
+            mesh.faces      = fv.faces;
+            mesh.vertices   = v;
+            data.mesh       = mesh;    
+        
 end
 
 end
@@ -498,7 +536,7 @@ function [mesh,data] = get_mesh(i,data)
 try   mesh = i.g;
       fprintf('Using user provided mesh\n');
       
-      if ischar(mesh)
+      if ischar(mesh) || isnumeric(mesh)
           [mesh,data] = convert_mesh(mesh,data);
       end
       
