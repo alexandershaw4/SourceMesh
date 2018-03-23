@@ -33,8 +33,8 @@ Usages/Help:
 
 
 # MESHES:
-
-%  % Plot the default template mesh:
+```
+% % Plot the default template mesh:
 %  atemplate()         
 
 %  % Plot a supplied (gifti) mesh:
@@ -45,11 +45,12 @@ Usages/Help:
   
 %  % Plot mesh from nifti volume:
 %  atemplate('mesh','mymri.nii')
+```
 
 ![alt text](ExampleMeshRotate.gif)
 
 # OVERLAYS:
-
+```
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
 %  atemplate('overlay',L);   
 
@@ -79,13 +80,14 @@ Usages/Help:
 
 %  % Put overlay in AAL space and use interactive 'peaks' (clickable)
 %  atemplate('sourcemodel',sormod,'overlay',overlayvector,'template','aal90','peaks')
+```
 
 ![peaks gui](peaks_1.png)
 
 ![alt text](NodePowOnSurface.gif)
 
 # VIDEO OVERLAY:
-
+```
 %  % Plot a video overlay and write it out:
 %  atemplate('gifti',g,'sourcemodel',sormod,'video',m,'name',times); 
 %
@@ -95,12 +97,12 @@ Usages/Help:
 %  - m      = overlay values [vertices * ntimes] 
 %  - name   = video savename
 %  - times  = vector of titles (time values?)
-
+```
 
 ![alt text](VideoExample.gif)
 
 # NETWORKS:
-
+```
 %  % Plot template mesh with 90x90 AAL network, A:
 %  atemplate('network',A); 
 
@@ -113,9 +115,10 @@ Usages/Help:
 
 %  % Plot network defined by .edge and .node files:
 %  atemplate('network','edgefile.edge');
+```
 
 # Project to ATLAS
-
+```
 %  % Put overlay into atlas space: [choose aal90, aal78 or aal58]
 %  atemplate('sourcemodel',sormod,'overlay',o,'template','aal58')
 
@@ -124,15 +127,16 @@ Usages/Help:
 
 %  % Put video into atlas space: 
 %  atemplate('sourcemodel',sormod,'video',m,'name',times,'template','aal78')
-
+```
 
 # OTHER:
-
+```
 %  % Export 3D images (overlays, meshes, networks) as VRML & .stl:
 %  atemplate( ... ,'writestl','filename.stl');
 %  atemplate( ... ,'writevrml','filename.wrl');
+```
 
-
+```
 %  % Plot default AAL90 node labels on default mesh:
 %  atemplate('labels');         
 
@@ -152,7 +156,7 @@ Usages/Help:
 
 %  % Plot dots at node==1, i.e. N=[90,1]:
 %  atemplate('nodes', N);             
-
+```
 Any combination of the inputs should be possible.
 See scripts in 'Examples' folder for more help.
 
@@ -160,18 +164,21 @@ A basic interface (limited functionality over command line version).
 
 ![gui1](gui_1.png)
 
-# AN EXAMPLE NETWORK (1): from 5061 vertex sourcemodel with AAL90 labels
-
+# AN EXAMPLE NETWORK (1): 
+# from 5061 vertex sourcemodel with AAL90 labels
+```
 % load New_AALROI_6mm.mat          % load ft source model, labels and roi_inds
 % net  = randi([0 1],5061,5061);   % generate a network for this sourmod
 % pos  = template_sourcemodel.pos; % get sourcemodel vertices
 % labs = AAL_Labels;               % roi labels
 % rois = all_roi_tissueindex;      % roi vertex indices
 % atemplate('sourcemodel',pos,'network',net,'labels',rois,labs);
-
-# AN EXAMPLE NETWORK (2): from volume and node/edge files, put in aal58 space:
-
+```
+# AN EXAMPLE NETWORK (2): 
+# from volume and node/edge files, put in aal58 space:
+```
 % atemplate('mesh',t1.nii,'network','test_sourcemod.edge','template','aal58')
+```
 
 See also: slice3() slice2()
 
