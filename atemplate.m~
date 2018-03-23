@@ -1176,8 +1176,7 @@ drawnow;
 
 if isfield(data,'Peaks')
     if isfield(data.Peaks,'Labels')
-        f0 = get(gca,'parent');
-        f = figure('position',[1531         560         560         420]);
+        f = figure;
         t = uitable(f);
         for i = 1:length(data.Peaks.Labels)
             d{i,1} = data.Peaks.Labels{i};
@@ -1193,7 +1192,6 @@ if isfield(data,'Peaks')
         t.ColumnEditable = true;
         
         %waitfor(f) % while the peaks box is open
-        fprintf('Waiting: Click in peaks table to view peaks!\n');
         while isvalid(f)
             
             waitfor(t,'Data')
@@ -1208,16 +1206,13 @@ if isfield(data,'Peaks')
                     dM(find(~ismember(n,thislab)),:) = 0;
                     dM = dM'*data.overlay.orig(:);
                     Y = spm_mesh_smooth(mesh, dM(:), 4);
-                    
-                    thefig = get(f0,'children');
-                    hh = get(thefig(end),'children');
+                    hh = get(gca,'children');
                     set(hh(end),'FaceVertexCData',Y(:),'FaceColor','interp');
                     drawnow;
                     shading interp
                 else
                     % otherwise just plot the whole lot
-                    thefig = get(f0,'children');
-                    hh = get(thefig(end),'children');
+                    hh = get(gca,'children');
                     set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
                     drawnow;
                     shading interp
