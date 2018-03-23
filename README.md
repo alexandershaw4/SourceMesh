@@ -46,6 +46,8 @@ Usages/Help:
 %  % Plot mesh from nifti volume:
 %  atemplate('mesh','mymri.nii')
 
+![alt text](ExampleMeshRotate.gif)
+
 # OVERLAYS:
 
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
@@ -78,6 +80,7 @@ Usages/Help:
 %  % Put overlay in AAL space and use interactive 'peaks' (clickable)
 %  atemplate('sourcemodel',sormod,'overlay',overlayvector,'template','aal90','peaks')
 
+![alt text](NodePowOnSurface.gif)
 
 # VIDEO OVERLAY:
 
@@ -90,7 +93,9 @@ Usages/Help:
 %  - m      = overlay values [vertices * ntimes] 
 %  - name   = video savename
 %  - times  = vector of titles (time values?)
-%
+
+
+![alt text](VideoExample.gif)
 
 # NETWORKS:
 
@@ -162,12 +167,7 @@ See scripts in 'Examples' folder for more help.
 
 % atemplate('mesh',t1.nii,'network','test_sourcemod.edge','template','aal58')
 
-
 See also: slice3() slice2()
-
-
-![alt text](ExampleTracksNodesLabels.gif)
-
 
 
 # Installation 
@@ -178,87 +178,12 @@ addpath(genpath('~/Downloads/MeshAAL-master'));
 
 Dependencies: fieldtrip & spm
 
-
-# Generate mesh
-Load, align, segment, isosurface, smooth, return gifti.
-
-Uses fieldtrip functions, isosurface & some included funcs.
-```
-g = Vol2SurfAS('my-coreg-ctf-mri.mri','ctf',0.15);
-```
-
-Plot the mesh brain
-```
-atemplate('gifti',g);
-```
-
-Plot & Save (as .gii gifti file)
-```
-atemplate('gifti',g,'write','MyGifti');
-```
-
-![alt text](ExampleMeshRotate.gif)
-
-# Overlay
-For an overlay, you need a 1x90 vector where each of the 90 elements correspond to the 90 AAL regions.
-
-e.g. a pretend vector of t-values
-```
-overlay = randi([-2 4],90,1);
-atemplate('gifti',g,'overlay',overlay); bigimg;
-```
-
-To plot and save both gifti-mesh and gifti-overlay files:
-```
-atemplate('gifti',g,'overlay',overlay,'write', 'MyGiftiFile');
-```
-
-To plot with labels
-```
-atemplate('gifti',g,'overlay',overlay,'labels'); bigimg;
-```
-
-To use a template rather than subject specific surface:
-```
-atemplate('overlay',overlay,'labels'); % (omit 'gifti' argument)
-```
-
-![alt text](NodePowOnSurface.gif)
-
-# Video
-For a video from the frames in double matrix V, when V(90,n) and n is the number of frames / images that make the video.
-
-```
-m = randi([0 4],90,100);
-savename = 'MyVideo';
-times    = 1:1:100;
-
-atemplate('gifti',g,'video',m,savename,times);   
-``` 
-![alt text](VideoExample.gif)
-                                               
-
-
-# Nodes
-For a set of nodes, with only the specified nodes labelled.
-
-A binary 1x90 vector, with 1s for nodes to show.
-
-```
-load('labels')          % list of the 90 AAL labels
-N = randi([0 1],90,1);  % (1,90) logical / binary list
-atemplate('gifti',g,'nodes',N,'labels');
-```
-
-# Network: Edges & Nodes
-For a set of edges and the connected nodes.
-
-```
-A = randi([0 10],90,90); % a 90x90 connectivity matrix
-atemplate('gifti',g,'network',A,'labels');
-```
+# Other Examples
 
 ![alt text](Examples/Ex_OverlayWithNetworkAndLabels.gif)
+
+![alt text](ExampleTracksNodesLabels.gif)
+
 
 
 # in development:
