@@ -55,6 +55,10 @@ function data = atemplate(varargin)
 %  % put in aal90 space and add labels:
 %  atemplate('mesh',t1.nii,'overlay',functional.nii,'template','aal90','labels')
 %
+%
+%  % Put overlay in AAL space and use interactive 'peaks' (clickable)
+%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'template','aal90','peaks')
+%
 % VIDEO OVERLAY:
 %--------------------------------------------------------------------------
 %
