@@ -891,7 +891,7 @@ if ischar(x)
             fprintf('Reading Nifti volume\n');
             ni    = load_nii(x);
             vol   = ni.img;
-            [y,data] = vol2surf(vol,data)
+            [y,data] = vol2surf(vol,data);
 
             
         case{'.gii'}
