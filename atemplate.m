@@ -599,18 +599,17 @@ fprintf('Scanning points:\n');
 M = zeros( length(atlas.pos), length(pos) );
 r = 1;
 w = 1;
+
+dist  = cdist(pos,atlas.pos);    
 for i = 1:length(atlas.pos)
-    
-    % reporting
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(atlas.pos)));
     fprintf(str);
-    
-    % find closest point[s] in cortical mesh
-    dist       = cdist(pos,atlas.pos(i,:));
-    [junk,ind] = maxpoints(dist,r,'min');
+
+    [junk,ind] = maxpoints(dist(:,i),r,'min');
     M (i,ind)  = w;
 end
+
 atlas.M = M;
 
 end
@@ -789,11 +788,7 @@ if size(N,1) > 1 && size(N,2) > 1
 else
     ForPlot = v(find(N),:);
     s       = find(N);
-    for i = 1:length(ForPlot)
-    %     if     i < 3; col = 'b';
-    %     elseif i > 2 && i < 5; col = 'r';
-    %     elseif i > 4 ; col = 'g';
-    %     end
+    for i   = 1:length(ForPlot)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
     end
@@ -1119,19 +1114,16 @@ end
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 for i = 1:length(x)
-        
-    % reporting
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(x)));
     fprintf(str);
-    
-    % find closest point[s] in cortical mesh
+
     dist       = cdist(mv,v(i,:));
     [junk,ind] = maxpoints(dist,r,'min');
     OL(i,ind)  = w*L(i);
     M (i,ind)  = w;
-    
 end
+
 fprintf('\n');
 clear L
 
@@ -1295,7 +1287,7 @@ g.vertices=v;
 pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
 for i = 1:length(pos)
-    this = pos(i,:);
+    this  = pos(i,:);
     [t,I] = maxpoints(cdist(v,this),1,'max');
     newpos(i,:) = v(I,:);
 end
@@ -1553,6 +1545,7 @@ for i = 1:length(x)
 end
 fprintf('\n');
 
+
 if ~interpl
     OL = mean((OL),1); % mean value of a given vertex
 else
@@ -1569,7 +1562,7 @@ end
 
 % normalise and rescale
 for i = 1:size(OL,2)
-    this = OL(:,i);
+    this    = OL(:,i);
     y(:,i)  = S(i,1) + ((S(i,2)-S(i,1))).*(this - min(this))./(max(this) - min(this));
 end
 

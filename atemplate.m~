@@ -599,18 +599,31 @@ fprintf('Scanning points:\n');
 M = zeros( length(atlas.pos), length(pos) );
 r = 1;
 w = 1;
-for i = 1:length(atlas.pos)
-    
-    % reporting
+% for i = 1:length(atlas.pos)
+%     
+%     % reporting
+%     if i > 1; fprintf(repmat('\b',[size(str)])); end
+%     str = sprintf('%d/%d',i,(length(atlas.pos)));
+%     fprintf(str);
+%     
+%     % find closest point[s] in cortical mesh
+%     dist       = cdist(pos,atlas.pos(i,:));
+%     [junk,ind] = maxpoints(dist,r,'min');
+%     M (i,ind)  = w;
+% end
+
+dist  = cdist(pos,atlas.pos);    
+for i = 1:length(x)
     if i > 1; fprintf(repmat('\b',[size(str)])); end
-    str = sprintf('%d/%d',i,(length(atlas.pos)));
+    str = sprintf('%d/%d',i,(length(x)));
     fprintf(str);
-    
-    % find closest point[s] in cortical mesh
-    dist       = cdist(pos,atlas.pos(i,:));
-    [junk,ind] = maxpoints(dist,r,'min');
+
+    [junk,ind] = maxpoints(dist(:,i),r,'min');
     M (i,ind)  = w;
 end
+
+
+
 atlas.M = M;
 
 end
@@ -891,7 +904,7 @@ if ischar(x)
             fprintf('Reading Nifti volume\n');
             ni    = load_nii(x);
             vol   = ni.img;
-            [y,data] = vol2surf(vol,data)
+            [y,data] = vol2surf(vol,data);
 
             
         case{'.gii'}
@@ -921,7 +934,9 @@ function [y,data] = vol2surf(vol,data)
 S = size(vol);
 
 % check if it's a 'full' volume!
-
+if length(find(vol)) == prod(S)
+    vol = vol - mode(vol);
+end
 
 B = [min(data.mesh.vertices); max(data.mesh.vertices)];
 
@@ -1116,19 +1131,15 @@ end
 %--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
+dist  = cdist(mv,v);    
 for i = 1:length(x)
-        
-    % reporting
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(x)));
     fprintf(str);
-    
-    % find closest point[s] in cortical mesh
-    dist       = cdist(mv,v(i,:));
-    [junk,ind] = maxpoints(dist,r,'min');
+
+    [junk,ind] = maxpoints(dist(:,i),r,'min');
     OL(i,ind)  = w*L(i);
     M (i,ind)  = w;
-    
 end
 fprintf('\n');
 clear L
@@ -1535,21 +1546,32 @@ S  = [min(L)',max(L)'];
 % find closest points (assume both in mm)
 %--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
-for i = 1:length(x)
+% for i = 1:length(x)
+% 
+%     % reporting
+%     if i > 1; fprintf(repmat('\b',[size(str)])); end
+%     str = sprintf('%d/%d',i,(length(x)));
+%     fprintf(str);    
+% 
+%     % find closest point[s] in cortical mesh
+%     dist       = cdist(mv,v(i,:));
+%     [junk,ind] = maxpoints(dist,r,'min');
+%     OL(i,ind,:)= w'*L(i,:);
+%     M (i,ind)  = w;  
+%     
+% end
+% fprintf('\n');
 
-    % reporting
+dist  = cdist(mv,v);    
+for i = 1:length(x)
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(x)));
-    fprintf(str);    
+    fprintf(str);
 
-    % find closest point[s] in cortical mesh
-    dist       = cdist(mv,v(i,:));
-    [junk,ind] = maxpoints(dist,r,'min');
-    OL(i,ind,:)= w'*L(i,:);
-    M (i,ind)  = w;  
-    
+    [junk,ind] = maxpoints(dist(:,i),r,'min');
+    OL(i,ind)  = w*L(i);
+    M (i,ind)  = w;
 end
-fprintf('\n');
 
 if ~interpl
     OL = mean((OL),1); % mean value of a given vertex
