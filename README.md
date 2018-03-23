@@ -29,7 +29,8 @@ Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. I
 
 *UPDATE: Can export meshes with overlays and networks as .stl and .wrl objects. See example interactive here: https://sketchfab.com/models/9c34500206f641c5a4445dd9d53b7b3e
 
-Usages/Help:
+# USAGE:
+Takes paired 'Property','Name' values. Examples below. Also see scripts in Examples/.
 
 
 # MESHES:
@@ -38,7 +39,7 @@ Usages/Help:
 %  atemplate()         
 
 %  % Plot a supplied (gifti) mesh:
-%  atemplate('mesh',mesh)   
+%  atemplate('mesh',mesh)   % where mesh is a struct or gifti object with 'veritces' and 'faces' fields
 
 %  % Plot mesh & write out gifti:
 %  atemplate('mesh',mesh, 'write',name);  
