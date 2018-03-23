@@ -161,6 +161,9 @@ Any combination of the inputs should be possible.
 See scripts in 'Examples' folder for more help.
 
 # A basic interface (limited functionality over command line version).
+```
+atemplate_gui
+```
 
 ![gui1](gui_1.png)
 
