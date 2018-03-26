@@ -912,6 +912,18 @@ end
 
 end
 
+function y = sym_pad_vector(x,n)
+
+if length(x) ~= n
+    k = n - length(x);
+    k = floor(k/2);
+    y = [zeros(1,k) x zeros(1,k)];
+    
+else y = x;
+end
+
+end
+
 function [y,data] = vol2surf(vol,data)
 % FUNCTIONAL volume to surface
 
@@ -937,9 +949,9 @@ z = linspace(B(1,3),B(2,3),S(3));
 [~,~,C]       = find(vol);
 
 % compile a new vertex list
-
 fprintf('Compiling new vertex list (%d verts)\n',length(nix));
 v = [x(nix); y(niy); z(niz)]';
+v = double(v);
 
 % reduce patch
 fprintf('Reducing patch density\n');
@@ -953,7 +965,6 @@ while nv > 8000
     nv  = length(fv.vertices);
     count = count + 1;
 end
-%v = fv.vertices;
 
 % print
 fprintf('Patch reduction finished after %d iterations\n',count);
@@ -961,6 +972,7 @@ fprintf('Using nifti volume as sourcemodel and overlay!\n');
 fprintf('New sourcemodel has %d vertices\n',nv);
 
 % find the indices of the retained vertexes only
+fprintf('Retrieving vertex colours\n');
 Ci = compute_reduced_indices(v, fv.vertices);
 
 % Update sourcemodel and ovelray data
@@ -1146,6 +1158,7 @@ y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
 
 y(isnan(y)) = 0;
 y  = full(y);
+y  = double(y);
 
 % spm mesh smoothing
 %--------------------------------------------------------------------------
