@@ -937,12 +937,9 @@ z = linspace(B(1,3),B(2,3),S(3));
 [~,~,C]       = find(vol);
 
 % compile a new vertex list
-for i = 1:length(nix)
-    if i > 1; fprintf(repmat('\b',[1 length(Str)])); end
-    Str = sprintf('Compiling new vertex list (%d/%d verts)\n',i,length(nix));
-    fprintf(Str);
-    v(i,:) = [x(nix(i)) y(niy(i)) z(niz(i))];
-end
+
+fprintf('Compiling new vertex list (%d verts)\n',length(nix));
+v = [x(nix); y(niy); z(niz)]';
 
 % reduce patch
 fprintf('Reducing patch density\n');
@@ -1144,6 +1141,7 @@ end
 
 
 % normalise and rescale
+OL = double(full(OL));
 y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
 
 y(isnan(y)) = 0;
