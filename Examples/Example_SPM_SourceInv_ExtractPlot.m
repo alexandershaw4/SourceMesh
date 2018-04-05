@@ -34,8 +34,8 @@ atemplate('sourcemodel',v,'overlay',mean(Source,2))
 
 % Plot video of activity on the forward model mesh, ...
 % but put in AAL90 space for faster computation:
-atemplate('gifti',gifti(mesh),'sourcemodel',v,'template','aal','video',Source,'myvid',time)
+atemplate('gifti',gifti(mesh),'sourcemodel',v,'template','aal90','video',Source,'myvid',time)
 
 % Plot video of activity on the smooth mesh, ...
 % but put in AAL90 space for faster computation & subsample time:
-atemplate('sourcemodel',v,'template','aal','video',Source(:,1:6:end),'myvid2',time(1:6:end))
+atemplate('sourcemodel',v,'template','aal90','video',Source(:,1:6:end),'myvid2',time(1:6:end))

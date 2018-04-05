@@ -1245,6 +1245,7 @@ if isfield(data,'Peaks')
                     n       = 1:size(dM,1);
                     dM(find(~ismember(n,thislab)),:) = 0;
                     dM = dM'*data.overlay.orig(:);
+                    dM = full(double(dM));
                     Y = spm_mesh_smooth(mesh, dM(:), 4);
                     
                     thefig = get(f0,'children');
