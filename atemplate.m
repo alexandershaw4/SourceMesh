@@ -514,7 +514,7 @@ if i.template
         if isnumeric(i.A)
             S  = [min(i.A(:)) max(i.A(:))];
             NL = NM'*i.A*NM;
-            A  = S(1) + ((S(2)-S(1))).*(NL - min(NL))./(max(NL) - min(NL));
+            A  = S(1) + ((S(2)-S(1))).*(NL - min(NL(:)))./(max(NL(:)) - min(NL(:)));
             A(isnan(A)) = 0;
             i.A = A;
         end
