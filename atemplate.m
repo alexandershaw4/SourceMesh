@@ -237,8 +237,8 @@ data = sort_sourcemodel(data,in);
 
 % Plot the glass brain we'll put everything else onto
 %--------------------------------------------------------------------------
-mesh = parse_mesh(mesh,in,data);
-data.mesh = mesh;
+[mesh,data] = parse_mesh(mesh,in,data);
+data.mesh   = mesh;
 
 % Do the plots: overlays, networks, tracts, nodes, videos etc.
 %--------------------------------------------------------------------------
@@ -360,14 +360,14 @@ data.sourcemodel.pos = pos;
 
 end
 
-function mesh = parse_mesh(mesh,i,data)
+function [mesh,data] = parse_mesh(mesh,i,data)
 % Figure out whether we actually want to plot a glass brain mesh, or not
 
 
 if     i.pmesh && ~isfield(i,'T')
-       mesh = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos);
+       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos);
 elseif i.pmesh
-       mesh = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos);
+       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos);
 end
 
 end
@@ -1310,24 +1310,37 @@ end
 
 end
 
-function g = meshmesh(g,write,fname,fighnd,a,pos);
+function [g,pos] = meshmesh(g,write,fname,fighnd,a,pos);
 
 if isempty(a);
     a = .6;
 end
 
 % centre and scale mesh
-v = g.vertices;
-V = v - repmat(spherefit(v),[size(v,1),1]);
+%v = g.vertices;
+%V = v - repmat(spherefit(v),[size(v,1),1]);
 
-m = min(pos) *1.1;
-M = max(pos) *1.1;
+%m = min(pos) *1.1;
+%M = max(pos) *1.1;
+%
+%V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+%V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+%V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+%
+%g.vertices = V;
 
+m = min(g.vertices);% *1.1;
+M = max(g.vertices);% *1.1;
+
+V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
 V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
 V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+%
+%g.vertices = V;
+pos = V;
 
-g.vertices = V;
+
 
 % plot
 if ~isempty(fighnd)
