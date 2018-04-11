@@ -1249,6 +1249,8 @@ if isfield(data,'components')
             d{i,2} = false;
         end
         d = [ {'All' , false }; d];
+        %d{i+1,1} = 'All';
+        %d{i+1,2} = false;
 
         t.Data = d;
         t.ColumnName = {'Component'};
@@ -1261,12 +1263,12 @@ if isfield(data,'components')
             waitfor(t,'Data')
             i = find(cell2mat(t.Data(:,2)));
             if any(i)
-                if i > 1
-                    i  = i - 1;
+                if i < length(d)
+                    %work backwards to project only this component
+                    %dM = P(i,:)*M;
                     dM = M*0;
-                    dM(P(i),:) = M(P(i),:);
-                    this = data.overlay.orig*dM;               
-                    Y = spm_mesh_smooth(mesh, this(:), 4);
+                    dM(
+                    Y = spm_mesh_smooth(mesh, dM(:), 4);
 
                     thefig = get(f0,'children');
                     hh = get(thefig(end),'children');
