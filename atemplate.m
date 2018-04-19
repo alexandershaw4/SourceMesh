@@ -44,6 +44,8 @@ function data = atemplate(varargin)
 %  %  2. MYGiftiOverlay.gii is the corresponding overlay data
 %  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'write','MYGifti')  
 %
+%  % Return nifti volume:
+%  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'writenii','mynifti')
 %
 %  % Plot overlay from nifti volume
 %  atemplate('overlay','overlay_volume.nii')
@@ -200,6 +202,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writevrml');   in.write  = 3; in.fname = varargin{i+1}; end
+    if strcmp(varargin{i},'writenii');    in.write  = 4; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'fighnd');      in.fighnd = varargin{i+1}; end
     if strcmp(varargin{i},'nocolbar');    in.colbar = 0;             end
     if strcmp(varargin{i},'video');       in.V     = varargin{i+1}; 
@@ -824,66 +827,6 @@ RGB      = interp1(1:NoColors,Colors,Ireduced);
 
 end
 
-function data = drawtracks(data,tracks,header)
-% IN PROGRESS - BAD CODE - DONT USE
-%
-% - Use trk_read from 'along-tract-stats' toolbox
-%
-mesh = data.mesh;
-
-hold on; clc;
-All = [];
-
-% put all tracks into a single matrix so we can fit a sphere
-for iTrk = 1:length(tracks)
-    if iTrk > 1; fprintf(repmat('\b',size(str))); end
-    str = sprintf('Building volume for sphere fit (%d of %d)\n',iTrk,length(tracks));
-    fprintf(str);
-    
-    matrix = tracks(iTrk).matrix;
-    matrix(any(isnan(matrix(:,1:3)),2),:) = [];
-    All = [All ; matrix];
-end
-
-% centre on 0 by subtracting sphere centre
-iAll      = All;
-iAll(:,1) = All(:,1)*-1;
-iAll(:,2) = All(:,2)*-1;
-Centre = spherefit(iAll);
-maxpts = max(arrayfun(@(x) size(x.matrix, 1), tracks));
-
-% Use minmax template vertices as bounds
-MM(1,:) = min(mesh.vertices);
-MM(2,:) = max(mesh.vertices);
-MT(1,:) = min(iAll-repmat(Centre,[size(iAll,1),1]));
-MT(2,:) = max(iAll-repmat(Centre,[size(iAll,1),1]));
-
-pullback = min(MM(:,2)) - min(MT(:,2));
-pullup   = max(MM(:,3)) - max(MT(:,3));
-
-D = mean((MM)./MT);
-
-% this time draw the tracks
-for iTrk = 1:length(tracks)
-    matrix = tracks(iTrk).matrix;
-    matrix(any(isnan(matrix(:,1:3)),2),:) = [];
-    
-    matrix(:,1) = matrix(:,1)*-1; % flip L-R
-    matrix(:,2) = matrix(:,2)*-1; % flip F-B
-    M           = matrix - repmat(Centre,[size(matrix,1),1]); % centre
-    M           = M.*repmat(D,[size(M,1),1]);
-    M(:,2)      = M(:,2) + (pullback*1.1);                          % pullback
-    M(:,3)      = M(:,3) + (pullup*1.1);                            % pull up
-
-    h = patch([M(:,1)' nan], [M(:,2)' nan], [M(:,3)' nan], 0);
-    cdata = [(0:(size(matrix, 1)-1))/(maxpts) nan];
-    set(h,'cdata', cdata, 'edgecolor','interp','facecolor','none');
-end
-
-h = get(gcf,'Children');
-set(h,'visible','off');
-
-end
 
 function [y,data] = parse_overlay(x,data)
 
@@ -1061,7 +1004,8 @@ x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
 OL = sparse(length(L),nv);      % this will be overlay matrix we average
-r = (nv/length(pos))*1.3;       % radius - number of closest points on mesh
+r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
+r  = max(r,1);                  % catch when the overlay is over specified!
 w  = linspace(.1,1,r);          % weights for closest points
 w  = fliplr(w);                 % 
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
@@ -1085,6 +1029,12 @@ if length(L) == length(mesh.vertices)
     % spm mesh smoothing
     fprintf('Smoothing overlay...\n');
     y = spm_mesh_smooth(mesh, double(L(:)), 4);
+    
+    % when using a NaN-masked overlay, smoothing can result in all(nan)
+    if all(isnan(y))
+        y = L(:);
+    end
+    
     hh = get(gca,'children');
     set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
     drawnow;
@@ -1118,10 +1068,17 @@ if length(L) == length(mesh.vertices)
 
         fCols8bit = fColsDbl*255; % Pass cols in 8bit (0-255) RGB triplets
         stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
-        elseif write == 3 
+        
+    elseif write == 3 
         % write vrml
         fprintf('Writing vrml (.wrl) 3D object\n');
         vrml(gcf,[fname]);
+        
+    elseif write == 4
+%         fprintf('Generating nifti volume for writing\n');
+%         V = sm2vol(mesh.vertices,256,y,50);
+%         fprintf('Writing nifti volume\n');
+%         niftiwrite(V, [fname '.nii']);
     end
     %return
 %end
@@ -1139,7 +1096,8 @@ for i = 1:length(x)
     fprintf(str);
 
     dist       = cdist(mv,v(i,:));
-    [junk,ind] = maxpoints(dist,r,'min');
+    
+    [junk,ind] = maxpoints(dist,max(r,1),'min');
     OL(i,ind)  = w*L(i);
     M (i,ind)  = w;
 end
@@ -1212,9 +1170,22 @@ elseif write == 2
         fCols8bit= RGB*255;
         stlwrite([fname '.stl'],m,'FaceColor',fCols8bit)
 elseif write == 3 
-       % write vrml
-       fprintf('Writing vrml (.wrl) 3D object\n');
-       vrml(gcf,[fname]);
+    % write vrml
+    fprintf('Writing vrml (.wrl) 3D object\n');
+    vrml(gcf,[fname]);
+elseif write == 4
+    fprintf('Generating nifti volume for writing\n');
+    
+    %new.vertices = [mesh.vertices(:,2) mesh.vertices(:,1) mesh.vertices(:,3)];
+    %new.faces    = [mesh.faces(:,2)    mesh.faces(:,1)    mesh.faces(:,3)];
+    new = mesh;
+    
+    dim = ceil(nthroot(length(y),3));
+    V   = sm2vol(new.vertices,dim*3,y,256);
+    
+    % just return the volume in the output for now
+    data.overlay.volume = V;
+        
 end
 
 end
@@ -1274,6 +1245,7 @@ if isfield(data,'pca')
                     thefig = get(f0,'children');
                     hh = get(thefig(end),'children');
                     set(hh(end),'FaceVertexCData',Y(:),'FaceColor','interp');
+                    set(hh(end),'FaceAlpha',1);
                     drawnow;
                     shading interp
                 else
@@ -1414,6 +1386,7 @@ if isfield(data,'Peaks')
                     thefig = get(f0,'children');
                     hh = get(thefig(end),'children');
                     set(hh(end),'FaceVertexCData',Y(:),'FaceColor','interp');
+                    set(hh(end),'FaceAlpha',1);
                     drawnow;
                     shading interp
                 else
