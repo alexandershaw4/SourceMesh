@@ -1029,9 +1029,14 @@ if length(L) == length(mesh.vertices)
     % spm mesh smoothing
     fprintf('Smoothing overlay...\n');
     y = spm_mesh_smooth(mesh, double(L(:)), 4);
+    percNaN = length(find(isnan(L)))/length(L)*100;
+    newpNaN = length(find(isnan(y)))/length(y)*100;
     
-    % when using a NaN-masked overlay, smoothing can result in all(nan)
-    if all(isnan(y))
+    % when using a NaN-masked overlay, smoothing can result in all(nan) or
+    % an increase in the number of nans: enforce a 5% tolerance on this, which
+    % forces reverting to the uns-smoothed version if reached
+    if all(isnan(y)) || newpNaN > (percNaN*1.05)
+        fprintf('Reverting to non-smoothed overlay due to too many NaNs\n');
         y = L(:);
     end
     

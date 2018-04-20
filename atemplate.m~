@@ -44,7 +44,7 @@ function data = atemplate(varargin)
 %  %  2. MYGiftiOverlay.gii is the corresponding overlay data
 %  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'write','MYGifti')  
 %
-%  % Write nifti volume:
+%  % Return nifti volume:
 %  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'writenii','mynifti')
 %
 %  % Plot overlay from nifti volume
@@ -1029,6 +1029,13 @@ if length(L) == length(mesh.vertices)
     % spm mesh smoothing
     fprintf('Smoothing overlay...\n');
     y = spm_mesh_smooth(mesh, double(L(:)), 4);
+    
+    
+    % when using a NaN-masked overlay, smoothing can result in all(nan)
+    if all(isnan(y))
+        y = L(:);
+    end
+    
     hh = get(gca,'children');
     set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
     drawnow;
@@ -1174,27 +1181,12 @@ elseif write == 4
     %new.faces    = [mesh.faces(:,2)    mesh.faces(:,1)    mesh.faces(:,3)];
     new = mesh;
     
-    %dim = ceil(nthroot(length(y),3));
-    %V = sm2vol(new.vertices,dim*3,y,256);
-    V = sm2vol(new.vertices,2,y,256);
+    dim = ceil(nthroot(length(y),3));
+    V   = sm2vol(new.vertices,dim*3,y,256);
+    
+    % just return the volume in the output for now
     data.overlay.volume = V;
         
-    % distance (in cm) between voxels (n.^3)
-    A = 10*cdist(mesh.vertices(1,:),mesh.vertices(2,:));
-    C = repmat( 0.5*(dim*3), [1 3] );
-    
-    clear nii
-    fprintf('Writing nifti volume\n');
-    nii = make_nii(V,A/3,C,64);
-    save_nii(nii,[fname '.nii']);
-    
-    
-    
-%     niftiwrite(V, [fname '.nii']);
-%     info = niftiinfo([fname '.nii']);
-%     info.raw.cal_min = min(y);
-%     info.raw.cal_max = max(y);
-%     niftiwrite(V, [fname '.nii'],info);
 end
 
 end
