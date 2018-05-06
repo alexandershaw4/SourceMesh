@@ -184,6 +184,7 @@ in.partialvol = 0;
 in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
+in.tf_interactive = 0;
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
@@ -198,7 +199,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'inflate');     in.inflate = 1;           end
     if strcmp(varargin{i},'orthog');      in.orthog = varargin{i+1};end
     if strcmp(varargin{i},'components');  in.components = 1;        end
-    if strcmp(varargin{i},'pca');         in.pca = 1;               end
+    if strcmp(varargin{i},'pca');         in.pca = 1;               end    
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writevrml');   in.write  = 3; in.fname = varargin{i+1}; end
@@ -209,6 +210,7 @@ for i  = 1:length(varargin)
                                           in.fpath = varargin{i+2}; 
                                           in.times = varargin{i+3}; end
     if strcmp(varargin{i},'othermesh');   in.M = varargin{i+1}; in.O = varargin{i+2};   end  
+    if strcmp(varargin{i},'tf_interactive');in.tf_interactive = varargin{i+1}; end
     if strcmp(varargin{i},'labels');      in.labels = 1;
         try in.all_roi_tissueindex = varargin{i+1};
             in.thelabels = varargin{i+2};
@@ -275,6 +277,7 @@ if isfield(inputs,'L')
     data.partialvol = i.partialvol;
     data.components = i.components;
     data.pca        = i.pca;
+    data.tf_interactive = i.tf_interactive;
     data            = overlay(data, (i.L),i.write,i.fname,i.colbar);
 end 
 
@@ -1179,23 +1182,51 @@ elseif write == 3
     fprintf('Writing vrml (.wrl) 3D object\n');
     vrml(gcf,[fname]);
 elseif write == 4
-    fprintf('Generating nifti volume for writing\n');
-    
-    %new.vertices = [mesh.vertices(:,2) mesh.vertices(:,1) mesh.vertices(:,3)];
-    %new.faces    = [mesh.faces(:,2)    mesh.faces(:,1)    mesh.faces(:,3)];
+    fprintf('Generating nifti volume for writing\n');    
     new = mesh;
-    
     dim = ceil(nthroot(length(y),3));
     V   = sm2vol(new.vertices,dim*3,y,256);
-    
     % just return the volume in the output for now
     data.overlay.volume = V;
-        
 end
 
 end
 drawnow;
 
+
+% if a timefreqanal structure was passed: allow click-for-plot (see Mylcmv)
+%--------------------------------------------------------------------------
+if isfield(data,'tf_interactive') && isstruct(data.tf_interactive)
+    tf   = data.tf_interactive;
+    f0   = get(gca,'parent');
+    f    = figure('position',[1531         560         560         420]);
+    %waitfor(f) % while the box is open
+    fprintf('Waiting: Click in table to view corresponding time-freq!\n');
+
+    %while isvalid(f)
+    H    = datacursormode(f0);
+    H.DisplayStyle = 'datatip';
+
+    ch = get(f0,'children');
+    waitfor(f0.WindowButtonMotionFcn)
+            H    = datacursormode(f0);
+            INFO = getCursorInfo(H);
+            
+            if isstruct(INFO) && isfield(INFO,'Position')
+                current      = INFO.Position;
+                fprintf('Got point: fetching time-freq plot\n');
+                [this,thisi] = find( cdist(current,INFO.Target.Vertices) == 0);
+                
+                figure(f);
+                tf.index = thisi; % choose vertex (source) index to plot, rerun for plot
+                timefreqanal(tf);
+                drawnow;
+            end
+    %end
+end
+
+% if a spatial PCA was requested
+%--------------------------------------------------------------------------
 if isfield(data,'pca')
     if data.pca
         f = mesh.faces;
@@ -1213,6 +1244,7 @@ if isfield(data,'pca')
         
         ncomp = pc;
         fprintf('Found %d principal components\n',pc);
+        data.overlay.pca = comp;
         
         f0 = get(gca,'parent');
         f  = figure('position',[1531         560         560         420]);
@@ -1262,11 +1294,13 @@ if isfield(data,'pca')
                     shading interp
                 end
             end
-
+        
         end  
     end
 end
 
+% if search of local maxima was requested
+%--------------------------------------------------------------------------
 if isfield(data,'components')
     if data.components
                 
@@ -1352,6 +1386,8 @@ if isfield(data,'components')
     end
 end
 
+% If 'Peaks' was requested while using an AAL atlas
+%--------------------------------------------------------------------------
 if isfield(data,'Peaks')
     if isfield(data.Peaks,'Labels')
         f0 = get(gca,'parent');
