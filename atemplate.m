@@ -1262,37 +1262,40 @@ if isfield(data,'pca')
         %waitfor(f) % while the peaks box is open
         fprintf('Waiting: Click in table to view components!\n');
         while isvalid(f)
+            try
+                waitfor(t,'Data')
+                i = find(cell2mat(t.Data(:,2)));
+                if any(i)
+                    if i > 1
+                        i  = i - 1;
+                        if size(comp,2) == length(mesh.vertices)
+                            this = full(comp(i,:));
+                        else
+                            this = full(comp(i,:)*M');
+                        end
+                        if all(size(this) > 1)
+                            this = sum(this,1);
+                        end
 
-            waitfor(t,'Data')
-            i = find(cell2mat(t.Data(:,2)));
-            if any(i)
-                if i > 1
-                    i  = i - 1;
-                    if size(comp,2) == length(mesh.vertices)
-                        this = full(comp(i,:));
+                        Y = spm_mesh_smooth(mesh, this(:), 8);
+
+                        thefig = get(f0,'children');
+                        hh = get(thefig(end),'children');
+                        set(hh(end),'FaceVertexCData',Y(:),'FaceColor','interp');
+                        set(hh(end),'FaceAlpha',1);
+                        drawnow;
+                        shading interp
                     else
-                        this = full(comp(i,:)*M');
+                        %otherwise just plot the whole lot
+                        thefig = get(f0,'children');
+                        hh = get(thefig(end),'children');
+                        set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+                        drawnow;
+                        shading interp
                     end
-                    if all(size(this) > 1)
-                        this = sum(this,1);
-                    end
-                    
-                    Y = spm_mesh_smooth(mesh, this(:), 8);
-
-                    thefig = get(f0,'children');
-                    hh = get(thefig(end),'children');
-                    set(hh(end),'FaceVertexCData',Y(:),'FaceColor','interp');
-                    set(hh(end),'FaceAlpha',1);
-                    drawnow;
-                    shading interp
-                else
-                    %otherwise just plot the whole lot
-                    thefig = get(f0,'children');
-                    hh = get(thefig(end),'children');
-                    set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
-                    drawnow;
-                    shading interp
                 end
+            catch
+                return;
             end
         
         end  
