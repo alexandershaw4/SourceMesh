@@ -411,10 +411,11 @@ if ischar(mesh)
             fprintf('Reducing patch density\n');
             nv  = length(fv.vertices);
             count  = 0;
+                        
             while nv > 60000
-                fv    = reducepatch(fv, 0.5);
-                nv    = length(fv.vertices);
-                count = count + 1;
+               fv    = reducepatch(fv, 0.5);
+               nv    = length(fv.vertices);
+               count = count + 1;
             end
             
             %if count > 0
@@ -423,7 +424,7 @@ if ischar(mesh)
             %end
 
             % print
-            fprintf('Patch reduction finished after %d iterations\n',count);
+            fprintf('Patch reduction finished\n');
             fprintf('Rescaling mesh to sourcemodel\n');
             
             v = fv.vertices;
@@ -455,6 +456,7 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             fprintf('Reducing patch density\n');
             nv  = length(fv.vertices);
             count  = 0;
+            
             while nv > 60000
                 fv    = reducepatch(fv, 0.5);
                 nv    = length(fv.vertices);
@@ -462,7 +464,7 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             end
 
             % print
-            fprintf('Patch reduction finished after %d iterations\n',count);
+            fprintf('Patch reduction finished\n');
             fprintf('Rescaling mesh to sourcemodel\n');
             
             v = fv.vertices;
@@ -913,14 +915,15 @@ nv  = length(v);
 tri = delaunay(v(:,1),v(:,2),v(:,3));
 fv  = struct('faces',tri,'vertices',v);
 count  = 0;
+
 while nv > 8000
-    fv  = reducepatch(fv, 0.5);
-    nv  = length(fv.vertices);
-    count = count + 1;
+   fv  = reducepatch(fv, 0.5);
+   nv  = length(fv.vertices);
+   count = count + 1;
 end
 
 % print
-fprintf('Patch reduction finished after %d iterations\n',count);
+fprintf('Patch reduction finished\n');
 fprintf('Using nifti volume as sourcemodel and overlay!\n');
 fprintf('New sourcemodel has %d vertices\n',nv);
 
