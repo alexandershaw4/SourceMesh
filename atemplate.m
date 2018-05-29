@@ -1101,6 +1101,7 @@ else
 %--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
+tic
 for i = 1:length(x)
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(x)));
@@ -1112,6 +1113,8 @@ for i = 1:length(x)
     OL(i,ind)  = w*L(i);
     M (i,ind)  = w;
 end
+stime = toc;
+fprintf('Routine took %d seconds\n',stime);
 
 fprintf('\n');
 clear L
