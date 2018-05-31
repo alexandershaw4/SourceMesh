@@ -1055,6 +1055,7 @@ if length(L) == length(mesh.vertices)
     drawnow;
     shading interp
     colormap('jet');
+    alpha 1;
     
     if colbar
         drawnow; pause(.5);
@@ -1156,10 +1157,10 @@ set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
 drawnow;
 shading interp
 colormap('jet');
+alpha 1;
 
 data.overlay.data = y;
 data.overlay.smooth_weights = M;
-
 
 if colbar
     drawnow; pause(.5);
