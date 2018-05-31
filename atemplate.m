@@ -1,8 +1,6 @@
 function data = atemplate(varargin)
 % Add networks and overlays to a smoothed brain mesh or gifti object.
 %
-% NOTE: Unknown BUG when using with Matlab 2015a on Linux.
-% Tested working with Matlab 2014a & 2017a on Mac & Matlab 2012a on Linux.
 %
 % If you get error using the mex files, delete them. 
 % 
@@ -723,8 +721,14 @@ end
 if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
     if colbar
-        colormap(jet)
-        colorbar
+        %colormap(jet)
+        %colorbar
+        drawnow; pause(.5);
+        a1 = gca;
+        axb = axes('position', get(a1, 'position'));
+        set(axb,'visible','off')
+        axes(axb);
+        colorbar('peer',a1,'South');
     end
 end
 if LimC && colbar
@@ -1054,7 +1058,11 @@ if length(L) == length(mesh.vertices)
     
     if colbar
         drawnow; pause(.5);
-        colorbar('peer',gca,'South');
+        a1 = gca;
+        axb = axes('position', get(a1, 'position'));
+        set(axb,'visible','off')
+        axes(axb);
+        colorbar('peer',a1,'South');
     end
     
     if write == 1
@@ -1155,7 +1163,11 @@ data.overlay.smooth_weights = M;
 
 if colbar
     drawnow; pause(.5);
-    colorbar('peer',gca,'South');    
+    a1 = gca;
+    axb = axes('position', get(a1, 'position'));
+    set(axb,'visible','off')
+    axes(axb);
+    colorbar('peer',a1,'South');
 end
     
 if write == 1;
@@ -1862,7 +1874,12 @@ for i = 1:ntime
     set(findall(gca, 'type', 'text'), 'visible', 'on');
     
     if colbar
-        colorbar
+        drawnow; pause(.5);
+        a1 = gca;
+        axb = axes('position', get(a1, 'position'));
+        set(axb,'visible','off')
+        axes(axb);
+        colorbar('peer',a1,'South');
     end
     drawnow;
             
