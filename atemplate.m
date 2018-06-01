@@ -281,7 +281,7 @@ end
 
 isover = exist('L','var') || exist('V','var');
 if  isover && exist('A','var') 
-    colbar = 0;
+    i.colbar = 0;
     alpha(.2);
 end
 
@@ -436,6 +436,14 @@ if ischar(mesh)
             mesh.faces      = fv.faces;
             mesh.vertices   = v;
             data.mesh       = mesh;
+            
+        case{'.gii'}
+            % load the gifti
+            gi   = gifti(mesh);
+            mesh          = [];
+            mesh.faces    = gi.faces;
+            mesh.vertices = gi.vertices;
+            data.mesh     = mesh;
     end
     
 elseif isnumeric(mesh) && ndims(mesh)==3
@@ -856,8 +864,13 @@ if ischar(x)
             % load gifti functional
             gi = gifti(x);
             y  = double(gi.cdata);
-            if length(Y) ~= length(data.sourcemodel.pos)
+            if length(y) ~= length(data.sourcemodel.pos)
                 fprintf('Gifti overlay does not match sourcemodel!\n');
+                if length(y) == length(data.mesh.vertices)
+                    fprintf(['...but it does match the mesh size.\nUsing '...
+                    'mesh vertices as sourcemodel\n']);
+                    data.sourcemodel.pos = data.mesh.vertices;
+                end     
             end
     end
 end
@@ -1008,18 +1021,18 @@ interpl = 1;
 pos     = data.sourcemodel.pos;
 mesh    = data.mesh;
 
-% Overlay
-v  = pos;                       % sourcemodel vertices
-x  = v(:,1);                    % AAL x verts
-mv = mesh.vertices;             % brain mesh vertices
-nv = length(mv);                % number of brain vertices
-OL = sparse(length(L),nv);      % this will be overlay matrix we average
-r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
-r  = max(r,1);                  % catch when the overlay is over specified!
-w  = linspace(.1,1,r);          % weights for closest points
-w  = fliplr(w);                 % 
-M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
-S  = [min(L(:)),max(L(:))];     % min max values
+% % Overlay
+% v  = pos;                       % sourcemodel vertices
+% x  = v(:,1);                    % AAL x verts
+% mv = mesh.vertices;             % brain mesh vertices
+% nv = length(mv);                % number of brain vertices
+% OL = sparse(length(L),nv);      % this will be overlay matrix we average
+% r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
+% r  = max(r,1);                  % catch when the overlay is over specified!
+% w  = linspace(.1,1,r);          % weights for closest points
+% w  = fliplr(w);                 % 
+% M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
+% S  = [min(L(:)),max(L(:))];     % min max values
 
 if write == 2
     r = (nv/length(pos))*5;
@@ -1058,12 +1071,8 @@ if length(L) == length(mesh.vertices)
     alpha 1;
     
     if colbar
-        drawnow; pause(.5);
-        a1 = gca;
-        axb = axes('position', get(a1, 'position'));
-        set(axb,'visible','off')
-        axes(axb);
-        colorbar('peer',a1,'South');
+        %colorbar('peer',a1,'South');
+        data.overlay.cb = InteractiveColorbar;
     end
     
     if write == 1
@@ -1108,6 +1117,22 @@ else
 
 % otherwise find closest points (assume both in mm)
 %--------------------------------------------------------------------------
+
+% Overlay
+v  = pos;                       % sourcemodel vertices
+x  = v(:,1);                    % AAL x verts
+mv = mesh.vertices;             % brain mesh vertices
+nv = length(mv);                % number of brain vertices
+OL = sparse(length(L),nv);      % this will be overlay matrix we average
+r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
+r  = max(r,1);                  % catch when the overlay is over specified!
+w  = linspace(.1,1,r);          % weights for closest points
+w  = fliplr(w);                 % 
+M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
+S  = [min(L(:)),max(L(:))];     % min max values
+
+
+
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 tic
@@ -1163,12 +1188,8 @@ data.overlay.data = y;
 data.overlay.smooth_weights = M;
 
 if colbar
-    drawnow; pause(.5);
-    a1 = gca;
-    axb = axes('position', get(a1, 'position'));
-    set(axb,'visible','off')
-    axes(axb);
-    colorbar('peer',a1,'South');
+    %colorbar('peer',a1,'South');
+    data.overlay.cb = InteractiveColorbar;
 end
     
 if write == 1;
