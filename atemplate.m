@@ -61,10 +61,10 @@ function data = atemplate(varargin)
 %
 %
 %  % Find local maxima in overlay:
-%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'components')
+%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'components','nocolbar')
 %
 %  % Do PCA on overlay
-%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'pca')
+%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'pca','nocolbar')
 %
 %
 % VIDEO OVERLAY:
