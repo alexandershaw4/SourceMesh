@@ -18,6 +18,16 @@ Automatically label peaks in functional overlays and show interactively.
 
 Export stationary (camera rotation) and temporal (function over time) videos.
 
+Perform spatial PCA and find local maxima.
+
+# Supported filetypes
+
+Reads: .nii / .nii.gz / .edge / .node / .gii 
+
+Writes: .nii / .gii / .node .edge / .stl / .vrml / videos (format dependent on system)
+
+
+
 # How it works
 
 Essentially it fits the sourcemodel co-ordinates (or atlas source coords) to an MNI-space gifti surface (or template brain mesh) and allows plotting of functional overlays, nodes, labels, networks (opt. with labels) and overlay-videos on this mesh. 
