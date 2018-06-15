@@ -397,6 +397,14 @@ if ischar(mesh)
     [fp,fn,fe] = fileparts(mesh);
     
     switch fe
+        
+        case{'.gz'}
+            fprintf('Unpacking .gz\n');
+            gunzip(mesh);
+            mesh = strrep(mesh,'.gz','');
+            [mesh, data] = convert_mesh(mesh,data);
+            return;
+            
         case{'.nii'}
             % load nifti volume file
             fprintf('Reading Nifti volume\n');
@@ -859,6 +867,15 @@ if ischar(x)
     [fp,fn,fe] = fileparts(x);
     
     switch fe
+        
+        case{'.gz'}
+            fprintf('Unpacking .gz\n');
+            gunzip(x);
+            x = strrep(x,'.gz','');
+            
+            [y,data] = parse_overlay(x,data);
+            return;
+            
         case{'.nii'}
             
             % load nifti volume file

@@ -61,9 +61,11 @@ function data = atemplate(varargin)
 %
 %
 %  % Find local maxima in overlay:
-%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'pca')
+%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'components','nocolbar')
 %
-%  % Fi
+%  % Do PCA on overlay
+%  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'pca','nocolbar')
+%
 %
 % VIDEO OVERLAY:
 %--------------------------------------------------------------------------
@@ -395,6 +397,12 @@ if ischar(mesh)
     [fp,fn,fe] = fileparts(mesh);
     
     switch fe
+        
+        case{'.gz'}
+            gunzip(mesh);
+            mesh = strrep(mesh,'.gz','');
+            
+            
         case{'.nii'}
             % load nifti volume file
             fprintf('Reading Nifti volume\n');
