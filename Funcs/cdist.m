@@ -18,11 +18,15 @@ function D = cdist(mv,v) %#codegen
 
 %
 
-%if ismatrix(v)
-    a = v';
-    b = mv';
 
-    aa=sum(a.*a,1); bb=sum(b.*b,1); ab=a'*b; 
-    d = sqrt(abs(repmat(aa',[1 size(bb,2)]) + repmat(bb,[size(aa,2) 1]) - 2*ab));
-    D = d';
-%end
+% this is a fully vectorised version of the above code, which should be quicker.
+%------------------------------------------------------------------------------
+a = v';
+b = mv';
+
+aa = sum(a.*a,1); 
+bb = sum(b.*b,1); 
+ab = a'*b;
+d  = sqrt(abs(repmat(aa',[1 size(bb,2)]) + repmat(bb,[size(aa,2) 1]) - 2*ab));
+D  = d';
+
