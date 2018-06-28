@@ -28,6 +28,13 @@ function data = atemplate(varargin)
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
 %  atemplate('overlay',L);   
 %
+%  % Plot overlay aligned to mesh using a Euclidean search (default):
+%  atemplate('overlay',L,'method','euclidean');  
+%
+%  % Plot overlay aligned to mesh using a sphere-capture method:
+%  atemplate('overlay',L,'method','spheres');  
+%
+%
 %  % Plot template with overlay values L at sourcemodel values sormod, interpolated on surface.
 %  % Sormod is n-by-3, L is n-by-1.
 %  atemplate('sourcemodel',sormod,'overlay',L)  

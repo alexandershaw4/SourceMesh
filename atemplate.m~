@@ -28,6 +28,9 @@ function data = atemplate(varargin)
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
 %  atemplate('overlay',L);   
 %
+%  % Plot overlay aligned to mesh using 
+%
+%
 %  % Plot template with overlay values L at sourcemodel values sormod, interpolated on surface.
 %  % Sormod is n-by-3, L is n-by-1.
 %  atemplate('sourcemodel',sormod,'overlay',L)  
@@ -1030,8 +1033,12 @@ if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
    end
 end
 
+% method for searching between the 3D coordinates
 if isfield(data,'method')
-    if ismember(data.method,{'
+    if ismember(data.method,{'euclidean','spheres'})
+        method = data.method;
+    end
+end
 
 data.overlay.orig = L;
 if data.peaks
@@ -1167,8 +1174,9 @@ S  = [min(L(:)),max(L(:))];     % min max values
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 switch method
-    case 'sphere'
+    case 'spheres'
 
+        fprintf('Using inside-spheres algorithm\n');
         tic
         for i = 1:length(x)
         %     if i > 1; fprintf(repmat('\b',[size(str)])); end
@@ -1212,6 +1220,7 @@ switch method
 
     case 'euclidean'
 
+        fprintf('Using euclidean seach algorithm\n');
         tic
         for i = 1:length(x)
             if i > 1; fprintf(repmat('\b',[size(str)])); end
