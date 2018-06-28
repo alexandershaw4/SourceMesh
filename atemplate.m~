@@ -1030,12 +1030,8 @@ if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
    end
 end
 
-% method for searching between the 3D coordinates
 if isfield(data,'method')
-    if ismember(data.method,{'euclidean','spheres'})
-        method = data.method;
-    end
-end
+    if ismember(data.method,{'
 
 data.overlay.orig = L;
 if data.peaks
@@ -1171,9 +1167,8 @@ S  = [min(L(:)),max(L(:))];     % min max values
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 switch method
-    case 'spheres'
+    case 'sphere'
 
-        fprintf('Using inside-spheres algorithm\n');
         tic
         for i = 1:length(x)
         %     if i > 1; fprintf(repmat('\b',[size(str)])); end
@@ -1217,7 +1212,6 @@ switch method
 
     case 'euclidean'
 
-        fprintf('Using euclidean seach algorithm\n');
         tic
         for i = 1:length(x)
             if i > 1; fprintf(repmat('\b',[size(str)])); end
