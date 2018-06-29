@@ -28,10 +28,10 @@ function data = atemplate(varargin)
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
 %  atemplate('overlay',L);   
 %
-%  % Plot overlay aligned to mesh using a Euclidean search (default):
+%  % Plot overlay aligned to mesh using a Euclidean search:
 %  atemplate('overlay',L,'method','euclidean');  
 %
-%  % Plot overlay aligned to mesh using a sphere-capture method:
+%  % Plot overlay aligned to mesh using a sphere-based trap radius method (def):
 %  atemplate('overlay',L,'method','spheres');  
 %
 %
