@@ -197,7 +197,7 @@ in.partialvol = 0;
 in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
-in.method     = 'euclidean';
+in.method     = 'spheres';
 in.tf_interactive = 0;
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
@@ -1038,10 +1038,9 @@ if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
 end
 
 % method for searching between the 3D coordinates
-if isfield(data,'method')
-    if ismember(data.method,{'euclidean','spheres'})
-        method = data.method;
-    end
+if ismember(data.method,{'euclidean','spheres'})
+     method = data.method;
+else,method = 'euclidean';  
 end
 
 data.overlay.orig = L;
@@ -1062,19 +1061,6 @@ end
 interpl = 1; 
 pos     = data.sourcemodel.pos;
 mesh    = data.mesh;
-
-% % Overlay
-% v  = pos;                       % sourcemodel vertices
-% x  = v(:,1);                    % AAL x verts
-% mv = mesh.vertices;             % brain mesh vertices
-% nv = length(mv);                % number of brain vertices
-% OL = sparse(length(L),nv);      % this will be overlay matrix we average
-% r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
-% r  = max(r,1);                  % catch when the overlay is over specified!
-% w  = linspace(.1,1,r);          % weights for closest points
-% w  = fliplr(w);                 % 
-% M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
-% S  = [min(L(:)),max(L(:))];     % min max values
 
 if write == 2
     r = (nv/length(pos))*5;
@@ -1151,8 +1137,6 @@ if length(L) == length(mesh.vertices)
 %         fprintf('Writing nifti volume\n');
 %         niftiwrite(V, [fname '.nii']);
     end
-    %return
-%end
 
 
 else
@@ -1183,15 +1167,17 @@ switch method
         fprintf('Using inside-spheres algorithm\n');
         tic
         for i = 1:length(x)
-        %     if i > 1; fprintf(repmat('\b',[size(str)])); end
-        %     str = sprintf('%d/%d',i,(length(x)));
-        %     fprintf(str);
-
             if any(L(i))      
                 newv = [];
                 r  = 5;
                 th = 0:pi/50:2*pi;
-                r0 = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];        
+                r0 = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
+                
+                r0 = th.*fliplr(th);
+                r0 = r0/max(r0);
+                r0 = r0*r;
+                r0 = r0 ;%+ v(i,3);
+                
                 z0 = linspace(v(i,3)-r,v(i,3)+r,101);
 
                 for zi = 1:length(z0)
@@ -1201,10 +1187,11 @@ switch method
                     newv  = [newv; [xunit' yunit' zunit']];
                 end
 
-                % hold on;
-                % s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
-                % s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b','filled');
-                % drawnow;
+                 %hold on;
+                 %s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
+                 %s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
+                 %s2.MarkerEdgeAlpha = 0.1;
+                 %drawnow;
 
                 bx = [min(newv); max(newv)]; % bounding box
 
@@ -1371,8 +1358,8 @@ if isfield(data,'pca')
         f = mesh.faces;
         A = spm_mesh_adjacency(f);
         sy = y'*speye(length(y));
-        %ya = sy.*A.*sy;
         ya = sy.*A;
+        
         pks = findpeaks(y);
         pks = min(length(pks),12);
         [U,S,V] = svds(ya,pks);
