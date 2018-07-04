@@ -74,6 +74,7 @@ function data = atemplate(varargin)
 %  atemplate('sourcemodel',sormod,'overlay',randi([0 9],1000,1),'pca','nocolbar')
 %
 %
+%
 % VIDEO OVERLAY:
 %--------------------------------------------------------------------------
 %
@@ -155,6 +156,8 @@ function data = atemplate(varargin)
 %  Any combination of the inputs should be possible.
 %  See scripts in 'Examples' folder for more help.
 %
+% 
+%
 %
 %
 % AN EXAMPLE NETWORK [1]: from 5061 vertex sourcemodel with AAL90 labels
@@ -182,7 +185,7 @@ function data = atemplate(varargin)
 % Parse inputs
 %--------------------------------------------------------------------------
 in.all_roi_tissueindex = [];
-data        = struct;
+data         = struct;
 in.pmesh     = 1;
 in.labels    = 0;
 in.write     = 0;
@@ -199,8 +202,11 @@ in.thelabels  = [];
 in.pca        = 0;
 in.method     = 'spheres';
 in.tf_interactive = 0;
+in.hemi = 'both'; % hemisphere to plot
+
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
+    if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
     if strcmp(varargin{i},'partialvol');  in.partialvol = 1;      end
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
@@ -392,11 +398,15 @@ end
 function [mesh,data] = parse_mesh(mesh,i,data)
 % Figure out whether we actually want to plot a glass brain mesh, or not
 
+% if only one hemisphere plot
+hemi      = i.hemi;
+data.hemi = hemi;
+
 
 if     i.pmesh && ~isfield(i,'T')
-       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos);
+       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos,hemi);
 elseif i.pmesh
-       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos);
+       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos,hemi);
 end
 
 end
@@ -774,11 +784,11 @@ drawnow;
 
 % Nodes (of edges only)
 %--------------------------------------------------------------------------
-hold on;
-for i = 1:size(node1,1)
-    scatter3(node1(i,1),node1(i,2),node1(i,3),'filled','k');
-    scatter3(node2(i,1),node2(i,2),node2(i,3),'filled','k');
-end
+% hold on;
+% for i = 1:size(node1,1)
+%     scatter3(node1(i,1),node1(i,2),node1(i,3),'filled','k');
+%     scatter3(node2(i,1),node2(i,2),node2(i,3),'filled','k');
+% end
 
 drawnow;
 
@@ -1019,56 +1029,26 @@ function data = overlay(data,L,write,fname,colbar)
 
 % Add this special case, where using default 81k mesh and 90-node AAL
 % overlay, we'll use pre-computed weights
+%--------------------------------------------------------------------------
 if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924
      fprintf('Using default AAL90 weights for this mesh\n');
      load('AAL90DefaultWeights','M','NumComp','indz','w');
      
-     % incorporate overlay into weights matrix
+     % incorporate overlay into precomputed weights matrix
      for k = 1:length(L)
          M(k,indz(k,:)) = L(k) * M(k,indz(k,:));
      end
      
      % normalise by number of overlapping points at this vertex
      for i = 1:size(M,2)
-         M(:,i) = sum( M(:,i) ) / length(find(M(:,i))) ;
-     end     
+         y(i) = sum( M(:,i) ) / length(find(M(:,i))) ;
+     end   
      
-     
-     
-     
-%     
-%     y  = L(:)'*M;
-%     for i = 1:size(M,2)
-%         % average overlapping voxels
-%         y(i) = y(i) * sum( M(:,i) ) / length(find(M(:,i))) ;
-%     end
-%     
-%     y(isnan(y)) = 0;
-%     
-%     S  = [min(L(:)),max(L(:))];    
-%     y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
-%     y(isnan(y)) = 0;
-%     L  = y;
-
-    
-    
-    
-    
-%     y  = L(:)'*M./NumComp;
-%     
-%     iinf = find(isinf(y));
-%     for k = 1:length(iinf)
-%         if     y(iinf(k)) > 0; y(iinf(k)) = max(L);
-%         elseif y(iinf(k)) < 0; y(iinf(k)) = min(L);
-%         end
-%     end
-%     
-%     y(isnan(y)) = 0;
-%     
-%     S  = [min(L(:)),max(L(:))];    
-%     y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
-%     y(isnan(y)) = 0;
-%     L  = y;
+     % rescale y by L limits
+     S  = [min(L(:)),max(L(:))];   
+     y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
+     y(isnan(y)) = 0;
+     L  = y;
 end
 
 
@@ -1298,6 +1278,7 @@ switch method
             str = sprintf('%d/%d',i,(length(x)));
             fprintf(str);
 
+            % restrict search to this hemisphere
             LR     = v(i,1);
             IsLeft = (LR-cnt(1)) < 0;
             
@@ -1704,7 +1685,7 @@ end
 
 end
 
-function [g,pos] = meshmesh(g,write,fname,fighnd,a,pos);
+function [g,pos] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere);
 
 if isempty(a);
     a = .6;
@@ -1735,19 +1716,47 @@ V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,
 pos = V;
 
 
+% only one hemisphere?
+v = g.vertices;
+f = g.faces;
+c = spherefit(v);
+
+left  = find(v(:,1) < c(1));
+right = find(v(:,1) > c(1));
+
+lfaces = find(sum(ismember(f,left),2)==3);
+rfaces = find(sum(ismember(f,right),2)==3);
+
+% return left/right indices
+g.vleft  = left;
+g.vright = right;
+g.fleft  = lfaces;
+g.fright = rfaces;
+
+switch hemisphere
+    case {'left','L','l'};
+        pg.vertices = v(left,:);
+        pg.faces    = f(lfaces,:);
+    case{'right','R','r'};
+        pg.vertices = v(right,:);
+        these       = f(rfaces,:);
+        pg.faces    = f(rfaces,:)-(min(these(:))-1);
+    otherwise
+        pg = g;
+end
 
 % plot
 if ~isempty(fighnd)
     if isnumeric(fighnd)
         % Old-type numeric axes handle
-        h = plot(fighnd,gifti(g));
+        h = plot(fighnd,gifti(pg));
     elseif ishandle(fighnd)
         % new for matlab2017b etc
         % [note editted gifti plot function]
-        h = plot(gifti(g),'fighnd',fighnd);
+        h = plot(gifti(pg),'fighnd',fighnd);
     end
 else
-    h = plot(gifti(g));
+    h = plot(gifti(pg));
 end
 C = [.5 .5 .5];
 
