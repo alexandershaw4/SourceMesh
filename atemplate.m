@@ -1350,6 +1350,9 @@ y  = double(y);
 fprintf('Smoothing overlay...\n');
 y = spm_mesh_smooth(mesh, y(:), 4);
 
+data.overlay.data = y;
+data.overlay.smooth_weights = M;
+
 % only project requested hemisphere
 switch data.hemi
     case{'left','L','l'}; vi = data.mesh.vleft;
@@ -1367,8 +1370,6 @@ shading interp
 colormap('jet');
 alpha 1;
 
-data.overlay.data = y;
-data.overlay.smooth_weights = M;
 
 if colbar
     %colorbar('peer',a1,'South');
