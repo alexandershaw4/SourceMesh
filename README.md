@@ -4,9 +4,11 @@ Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template 
 
 Provide data along with it's sourcemodel coordinates (from, e.g. fieldtrip), use the default AAL90 vertices or define a sourcemodel based on a nifti volume.
 
-Extract iso surfaces from nifti volumes or plot statistical nifti volumes on surfaces.
+Extract iso surfaces from nifti volumes or project statistical nifti volumes on surfaces.
 
 Plot Gifti surfaces and overlays.
+
+Plot whole brain or left / right hemisphere only.
 
 Read & write .edge and .node files.
 
@@ -20,12 +22,14 @@ Export stationary (camera rotation) and temporal (function over time) videos.
 
 Perform spatial PCA and find local maxima.
 
+
+![figure](V1_RenderRight.png)
+
 # Supported filetypes
 
 Reads: .nii / .nii.gz / .edge / .node / .gii 
 
 Writes: .nii / .gii / .node .edge / .stl / .vrml / videos (format dependent on system)
-
 
 
 # How it works
