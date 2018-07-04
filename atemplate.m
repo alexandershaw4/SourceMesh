@@ -1016,6 +1016,34 @@ function data = overlay(data,L,write,fname,colbar)
 % fname is filename is write = 1;
 %
 
+
+% Add this special case, where using default 81k mesh and 90-node AAL
+% overlay, we'll use pre-computed weights
+%--------------------------------------------------------------------------
+if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924
+     fprintf('Using default AAL90 weights for this mesh\n');
+     load('AAL90DefaultWeights','M','NumComp','indz','w');
+     
+     % incorporate overlay into precomputed weights matrix
+     for k = 1:length(L)
+         M(k,indz(k,:)) = L(k) * M(k,indz(k,:));
+     end
+     
+     % normalise by number of overlapping points at this vertex
+     for i = 1:size(M,2)
+         y(i) = sum( M(:,i) ) / length(find(M(:,i))) ;
+     end   
+     
+     % rescale y by L limits
+     S  = [min(L(:)),max(L(:))];   
+     y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
+     y(isnan(y)) = 0;
+     L  = y;
+end
+
+
+% deal with the overlay if it's a filename or volume
+%-------------------------------------------------------------
 if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
     % is this is filename of a nifti or gifti file
    [L,data] = parse_overlay(L,data);
@@ -1037,12 +1065,15 @@ if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
    end
 end
 
-% method for searching between the 3D coordinates
+% method for searching between the 3D coordinate
+%-------------------------------------------------------------
 if ismember(data.method,{'euclidean','spheres'})
      method = data.method;
 else,method = 'euclidean';  
 end
 
+% If atlas data and peaks frequested, label them
+%-------------------------------------------------------------
 data.overlay.orig = L;
 if data.peaks
     n     = mean(L)+(2*std(L));
@@ -1158,26 +1189,35 @@ M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L(:)),max(L(:))];     % min max values
 
 
+% Get centre point of cortical mesh so we know left/right
+cnt = spherefit(mv);
+Lft = mv(:,1) < cnt(1);
+Rht = mv(:,1) > cnt(1);
+
+Lft = find(Lft);
+Rht = find(Rht);
 
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 
 switch method
     case 'spheres'
 
-        fprintf('Using inside-spheres algorithm\n');
+        fprintf('Using inside-spheres search algorithm\n');
         tic
         for i = 1:length(x)
             if any(L(i))      
                 newv = [];
-                r  = 5;
+                r  = 10;
                 th = 0:pi/50:2*pi;
                 r0 = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
                 
+                % make [circle] radius change with z-direction (height)
                 r0 = th.*fliplr(th);
                 r0 = r0/max(r0);
                 r0 = r0*r;
-                r0 = r0 ;%+ v(i,3);
+                r0 = r0 ;
                 
+                % the height at which each circle making the sphere will go
                 z0 = linspace(v(i,3)-r,v(i,3)+r,101);
 
                 for zi = 1:length(z0)
@@ -1187,20 +1227,30 @@ switch method
                     newv  = [newv; [xunit' yunit' zunit']];
                 end
 
+                 % plot for debugging..................................
                  %hold on;
                  %s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
                  %s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
                  %s2.MarkerEdgeAlpha = 0.1;
                  %drawnow;
+                 
+                 
+                 % determine whether this point if left or right hemisphere
+                 LR     = v(i,1);
+                 IsLeft = (LR-cnt(1)) < 0;
+                 
+                 if IsLeft; lri = Lft;
+                 else;      lri = Rht;
+                 end
 
                 bx = [min(newv); max(newv)]; % bounding box
 
                 inside = ...
-                    [mv(:,1) > bx(1,1) & mv(:,1) < bx(2,1) &...
-                     mv(:,2) > bx(1,2) & mv(:,2) < bx(2,2) &...
-                     mv(:,3) > bx(1,3) & mv(:,3) < bx(2,3) ];
+                    [mv(lri,1) > bx(1,1) & mv(lri,1) < bx(2,1) &...
+                     mv(lri,2) > bx(1,2) & mv(lri,2) < bx(2,2) &...
+                     mv(lri,3) > bx(1,3) & mv(lri,3) < bx(2,3) ];
 
-                ind = find(inside);
+                ind = lri(find(inside));
                 OL(i,ind) = L(i);
                 M (i,ind) = 1;
 
@@ -1211,16 +1261,23 @@ switch method
 
     case 'euclidean'
 
-        fprintf('Using euclidean seach algorithm\n');
+        fprintf('Using euclidean search algorithm\n');
         tic
         for i = 1:length(x)
             if i > 1; fprintf(repmat('\b',[size(str)])); end
             str = sprintf('%d/%d',i,(length(x)));
             fprintf(str);
 
-            dist       = cdist(mv,v(i,:));
+            LR     = v(i,1);
+            IsLeft = (LR-cnt(1)) < 0;
+            
+            if IsLeft; lri = Lft;
+            else;      lri = Rht;
+            end
 
+            dist       = cdist(mv(lri,:),v(i,:));
             [junk,ind] = maxpoints(dist,max(r,1),'min');
+            ind        = lri(ind);
             OL(i,ind)  = w*L(i);
             M (i,ind)  = w;
 
@@ -1246,6 +1303,7 @@ else
     for i = 1:size(OL,2)
         % average overlapping voxels
         L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
+        NumComp(i) =  length(find(OL(:,i)));
     end
     OL = L;
 end
@@ -1870,10 +1928,17 @@ for i = 1:length(x)
     if i > 1; fprintf(repmat('\b',[size(str)])); end
     str = sprintf('%d/%d',i,(length(x)));
     fprintf(str);    
-
-    % find closest point[s] in cortical mesh
-    dist       = cdist(mv,v(i,:));
-    [junk,ind] = maxpoints(dist,r,'min');
+    
+    LR     = v(i,1);
+    IsLeft = (LR-cnt(1)) < 0;
+    
+    if IsLeft; lri = Lft;
+    else;      lri = Rht;
+    end
+    
+    dist       = cdist(mv(lri,:),v(i,:));    
+    [junk,ind] = maxpoints(dist,max(r,1),'min');   
+    ind        = lri(ind);    
     OL(i,ind,:)= w'*L(i,:);
     M (i,ind)  = w;  
     
