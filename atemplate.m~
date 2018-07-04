@@ -21,6 +21,12 @@ function data = atemplate(varargin)
 %  % Plot mesh from nifti volume:
 %  atemplate('mesh','mymri.nii')
 %
+%  % Plot only one hemisphere:
+%  atemplate('hemi','left'); atemplate('hemi','L'); atemplate('hemi','l');
+%  atemplate('hemi','right');atemplate('hemi','R'); atemplate('hemi','r');
+%
+%  atemplate('gifti',mesh,'hemi','left') 
+%
 %
 % OVERLAYS:
 %--------------------------------------------------------------------------
@@ -1028,7 +1034,7 @@ function data = overlay(data,L,write,fname,colbar)
 
 
 % Add this special case, where using default 81k mesh and 90-node AAL
-% overlay, we'll use pre-computed weights
+% overlay, we'll use pre-computed weights for speed
 %--------------------------------------------------------------------------
 if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924
      fprintf('Using default AAL90 weights for this mesh\n');
@@ -1049,6 +1055,7 @@ if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 
      y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
      y(isnan(y)) = 0;
      L  = y;
+     data.method = 'precomputed (AAL)';
 end
 
 
@@ -1077,7 +1084,7 @@ end
 
 % method for searching between the 3D coordinate
 %-------------------------------------------------------------
-if ismember(data.method,{'euclidean','spheres'})
+if ismember(data.method,{'euclidean','spheres','precomputed (AAL)'})
      method = data.method;
 else,method = 'euclidean';  
 end
@@ -1131,6 +1138,16 @@ if length(L) == length(mesh.vertices)
         fprintf('Reverting to non-smoothed overlay due to too many NaNs\n');
         y = L(:);
     end
+    
+    % only project requested hemisphere
+    switch data.hemi
+        case{'left','L','l'}; vi = data.mesh.vleft;
+        case{'right','R','r'};vi = data.mesh.vright;
+        otherwise;            vi = 1:length(data.mesh.vertices);
+    end
+    
+    % update overlay vector to only vertices in this hemisphere
+    y = y(vi);
     
     hh = get(gca,'children');
     set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
@@ -1332,6 +1349,20 @@ y  = double(y);
 %--------------------------------------------------------------------------
 fprintf('Smoothing overlay...\n');
 y = spm_mesh_smooth(mesh, y(:), 4);
+
+data.overlay.data = y;
+data.overlay.smooth_weights = M;
+
+% only project requested hemisphere
+switch data.hemi
+    case{'left','L','l'}; vi = data.mesh.vleft;
+    case{'right','R','r'};vi = data.mesh.vright;
+    otherwise;            vi = 1:length(data.mesh.vertices);
+end
+
+% update overlay vector to only vertices in this hemisphere
+y = y(vi);
+    
 hh = get(gca,'children');
 set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
 drawnow;
@@ -1339,8 +1370,6 @@ shading interp
 colormap('jet');
 alpha 1;
 
-data.overlay.data = y;
-data.overlay.smooth_weights = M;
 
 if colbar
     %colorbar('peer',a1,'South');
@@ -1692,8 +1721,8 @@ if isempty(a);
 end
 
 % centre and scale mesh
-%v = g.vertices;
-%V = v - repmat(spherefit(v),[size(v,1),1]);
+v = g.vertices;
+g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
 %m = min(pos) *1.1;
 %M = max(pos) *1.1;
@@ -1740,7 +1769,10 @@ switch hemisphere
     case{'right','R','r'};
         pg.vertices = v(right,:);
         these       = f(rfaces,:);
-        pg.faces    = f(rfaces,:)-(min(these(:))-1);
+        
+        
+        %pg.faces    = f(rfaces,:)-(min(these(:))-1);
+        pg.faces    = f(rfaces,:)- (these(1,:)-1);
     otherwise
         pg = g;
 end
@@ -1958,6 +1990,14 @@ w  = fliplr(w);                 %
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L)',max(L)'];
 
+% Get centre point of cortical mesh so we know left/right
+cnt = spherefit(mv);
+Lft = mv(:,1) < cnt(1);
+Rht = mv(:,1) > cnt(1);
+
+Lft = find(Lft);
+Rht = find(Rht);
+
 % find closest points (assume both in mm)
 %--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
@@ -2033,6 +2073,15 @@ else
     f = gcf;
 end
 
+
+% only project requested hemisphere
+switch data.hemi
+    case{'left','L','l'}; vi = data.mesh.vleft;
+    case{'right','R','r'};vi = data.mesh.vright;
+    otherwise;            vi = 1:length(data.mesh.vertices);
+end
+
+
 % MAKE THE GRAPH / VIDEO
 %--------------------------------------------------------------------------
 try    vidObj   = VideoWriter(fpath,'MPEG-4');          % CHANGE PROFILE
@@ -2071,7 +2120,7 @@ for i = 1:ntime
         
         case 1
             hh = get(gca,'children');
-            set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');
+            set(hh(end),'FaceVertexCData',y(vi,i), 'FaceColor','interp');
             caxis([min(S(:,1)) max(S(:,2))]);
             shading interp
     end

@@ -1721,8 +1721,8 @@ if isempty(a);
 end
 
 % centre and scale mesh
-%v = g.vertices;
-%V = v - repmat(spherefit(v),[size(v,1),1]);
+v = g.vertices;
+g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
 %m = min(pos) *1.1;
 %M = max(pos) *1.1;
@@ -1763,13 +1763,12 @@ g.fleft  = lfaces;
 g.fright = rfaces;
 
 switch hemisphere
-    case {'left','L','l'};
+    case {'left','L','l'}
         pg.vertices = v(left,:);
         pg.faces    = f(lfaces,:);
-    case{'right','R','r'};
+    case{'right','R','r'}
         pg.vertices = v(right,:);
-        these       = f(rfaces,:);
-        pg.faces    = f(rfaces,:)-(min(these(:))-1);
+        pg.faces    = f(rfaces,:)- (min(right)-1);
     otherwise
         pg = g;
 end
@@ -1987,6 +1986,14 @@ w  = fliplr(w);                 %
 M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L)',max(L)'];
 
+% Get centre point of cortical mesh so we know left/right
+cnt = spherefit(mv);
+Lft = mv(:,1) < cnt(1);
+Rht = mv(:,1) > cnt(1);
+
+Lft = find(Lft);
+Rht = find(Rht);
+
 % find closest points (assume both in mm)
 %--------------------------------------------------------------------------
 fprintf('Determining closest points between sourcemodel & template vertices\n');
@@ -2062,6 +2069,15 @@ else
     f = gcf;
 end
 
+
+% only project requested hemisphere
+switch data.hemi
+    case{'left','L','l'}; vi = data.mesh.vleft;
+    case{'right','R','r'};vi = data.mesh.vright;
+    otherwise;            vi = 1:length(data.mesh.vertices);
+end
+
+
 % MAKE THE GRAPH / VIDEO
 %--------------------------------------------------------------------------
 try    vidObj   = VideoWriter(fpath,'MPEG-4');          % CHANGE PROFILE
@@ -2100,7 +2116,7 @@ for i = 1:ntime
         
         case 1
             hh = get(gca,'children');
-            set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');
+            set(hh(end),'FaceVertexCData',y(vi,i), 'FaceColor','interp');
             caxis([min(S(:,1)) max(S(:,2))]);
             shading interp
     end
