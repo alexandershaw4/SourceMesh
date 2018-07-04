@@ -1225,6 +1225,7 @@ Lft = find(Lft);
 Rht = find(Rht);
 
 fprintf('Determining closest points between sourcemodel & template vertices\n');
+mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
 switch method
     case 'spheres'
@@ -1234,7 +1235,8 @@ switch method
         for i = 1:length(x)
             if any(L(i))      
                 newv = [];
-                r  = 10;
+                r  = 5;
+                %r  = length(L)/(mr.^2);
                 th = 0:pi/50:2*pi;
                 r0 = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
                 
