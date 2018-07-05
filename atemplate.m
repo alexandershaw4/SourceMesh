@@ -206,7 +206,9 @@ in.partialvol = 0;
 in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
+in.flip       = 0;
 in.method     = 'spheres';
+in.affine     = 0;
 in.tf_interactive = 0;
 in.hemi = 'both'; % hemisphere to plot
 
@@ -222,10 +224,12 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');       in.g = varargin{i+1};     end
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
+    if strcmp(varargin{i},'affine');      in.affine = varargin{i+1};end
     if strcmp(varargin{i},'inflate');     in.inflate = 1;           end
     if strcmp(varargin{i},'orthog');      in.orthog = varargin{i+1};end
     if strcmp(varargin{i},'components');  in.components = 1;        end
     if strcmp(varargin{i},'pca');         in.pca = 1;               end    
+    if strcmp(varargin{i},'flip');        in.flip = 1;              end
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writevrml');   in.write  = 3; in.fname = varargin{i+1}; end
@@ -408,11 +412,16 @@ function [mesh,data] = parse_mesh(mesh,i,data)
 hemi      = i.hemi;
 data.hemi = hemi;
 
+% if affine supplied or flip flag
+affine = i.affine;
+flip   = i.flip;
 
 if     i.pmesh && ~isfield(i,'T')
-       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos,hemi);
+       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
+           .3,data.sourcemodel.pos,hemi,affine,flip);
 elseif i.pmesh
-       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,.3,data.sourcemodel.pos,hemi);
+       [mesh,data.sourcemodel.pos] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
+           .3,data.sourcemodel.pos,hemi,affine,flip);
 end
 
 end
@@ -1355,15 +1364,15 @@ y = spm_mesh_smooth(mesh, y(:), 4);
 data.overlay.data = y;
 data.overlay.smooth_weights = M;
 
-% only project requested hemisphere
-switch data.hemi
-    case{'left','L','l'}; vi = data.mesh.vleft;
-    case{'right','R','r'};vi = data.mesh.vright;
-    otherwise;            vi = 1:length(data.mesh.vertices);
-end
-
-% update overlay vector to only vertices in this hemisphere
-y = y(vi);
+% % only project requested hemisphere
+% switch data.hemi
+%     case{'left','L','l'}; vi = data.mesh.vleft;
+%     case{'right','R','r'};vi = data.mesh.vright;
+%     otherwise;            vi = 1:length(data.mesh.vertices);
+% end
+% 
+% % update overlay vector to only vertices in this hemisphere
+% y = y(vi);
     
 hh = get(gca,'children');
 set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
@@ -1716,25 +1725,43 @@ end
 
 end
 
-function [g,pos] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere);
+function [g,pos] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip)
 
 if isempty(a);
     a = .6;
 end
 
-% centre and scale mesh
 v = g.vertices;
+
+% apply affine if req.
+if length(affine) == 4
+    fprintf('Applying affine transform\n');
+    va = [v ones(length(v),1)]*affine;
+    v  = va(:,1:3);
+    g.vertices = v;
+end
+
+% flip x/y if required but POST affine transform
+if flip
+    v = g.vertices;
+    v = v(:,[2 1 3]);
+    g.vertices = v;
+end
+
+% check rotation
+yl = max(v(:,2)) - min(v(:,2));
+xl = max(v(:,1)) - min(v(:,1));
+
+if xl > yl
+    v       = v(:,[2 1 3]);
+    g.faces = g.faces(:,[2 1 3]);
+end
+
+% centre and scale mesh
 g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
-%m = min(pos) *1.1;
-%M = max(pos) *1.1;
-%
-%V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-%V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-%V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-%
-%g.vertices = V;
 
+% ensure sourcemodel (pos) is around same scale as mesh boundaries
 m = min(g.vertices);% *1.1;
 M = max(g.vertices);% *1.1;
 
@@ -1742,9 +1769,7 @@ V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
 V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
 V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-%
-%g.vertices = V;
-pos = V;
+pos      = V;
 
 
 % only one hemisphere?
@@ -1759,18 +1784,29 @@ lfaces = find(sum(ismember(f,left),2)==3);
 rfaces = find(sum(ismember(f,right),2)==3);
 
 % return left/right indices
-g.vleft  = left;
-g.vright = right;
-g.fleft  = lfaces;
-g.fright = rfaces;
+g.vleft            = v*NaN;
+g.vleft(left,:)    = v(left,:);
+g.vright           = v*NaN;
+g.vright(right,:)  = v(right,:);
+g.fleft            = f*NaN;
+g.fleft(lfaces,:)  = f(lfaces,:);
+g.fright           = f*NaN;
+g.fright(rfaces,:) = f(rfaces,:);
+
 
 switch hemisphere
     case {'left','L','l'}
-        pg.vertices = v(left,:);
-        pg.faces    = f(lfaces,:);
+        pg.vertices         = v*NaN;
+        pg.vertices(left,:) = v(left,:);
+        pg.faces           = f*NaN;
+        pg.faces(lfaces,:) = f(lfaces,:);
+  
     case{'right','R','r'}
-        pg.vertices = v(right,:);
-        pg.faces    = f(rfaces,:)- (min(right)-1);
+        pg.vertices          = v*NaN;
+        pg.vertices(right,:) = v(right,:);
+        pg.faces           = f*NaN;
+        pg.faces(rfaces,:) = f(rfaces,:);        
+        
     otherwise
         pg = g;
 end
@@ -2073,11 +2109,11 @@ end
 
 
 % only project requested hemisphere
-switch data.hemi
-    case{'left','L','l'}; vi = data.mesh.vleft;
-    case{'right','R','r'};vi = data.mesh.vright;
-    otherwise;            vi = 1:length(data.mesh.vertices);
-end
+% switch data.hemi
+%     case{'left','L','l'}; vi = data.mesh.vleft;
+%     case{'right','R','r'};vi = data.mesh.vright;
+%     otherwise;            vi = 1:length(data.mesh.vertices);
+% end
 
 
 % MAKE THE GRAPH / VIDEO
@@ -2118,7 +2154,7 @@ for i = 1:ntime
         
         case 1
             hh = get(gca,'children');
-            set(hh(end),'FaceVertexCData',y(vi,i), 'FaceColor','interp');
+            set(hh(end),'FaceVertexCData',y(:,i), 'FaceColor','interp');
             caxis([min(S(:,1)) max(S(:,2))]);
             shading interp
     end
