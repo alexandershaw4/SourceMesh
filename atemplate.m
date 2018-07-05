@@ -1376,20 +1376,14 @@ y  = double(y);
 % spm mesh smoothing
 %--------------------------------------------------------------------------
 fprintf('Smoothing overlay...\n');
-y = spm_mesh_smooth(mesh, y(:), 4);
+y  = spm_mesh_smooth(mesh, y(:), 4);
+y(isnan(y)) = 0;
+y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+y(isnan(y)) = 0;
+
 
 data.overlay.data = y;
 data.overlay.smooth_weights = M;
-
-% % only project requested hemisphere
-% switch data.hemi
-%     case{'left','L','l'}; vi = data.mesh.vleft;
-%     case{'right','R','r'};vi = data.mesh.vright;
-%     otherwise;            vi = 1:length(data.mesh.vertices);
-% end
-% 
-% % update overlay vector to only vertices in this hemisphere
-% y = y(vi);
     
 hh = get(gca,'children');
 set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
