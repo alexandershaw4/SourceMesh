@@ -1148,15 +1148,15 @@ if length(L) == length(mesh.vertices)
         y = L(:);
     end
     
-    % only project requested hemisphere
-    switch data.hemi
-        case{'left','L','l'}; vi = data.mesh.vleft;
-        case{'right','R','r'};vi = data.mesh.vright;
-        otherwise;            vi = 1:length(data.mesh.vertices);
-    end
+%     % only project requested hemisphere
+%     switch data.hemi
+%         case{'left','L','l'}; vi = data.mesh.vleft;
+%         case{'right','R','r'};vi = data.mesh.vright;
+%         otherwise;            vi = 1:length(data.mesh.vertices);
+%     end
     
     % update overlay vector to only vertices in this hemisphere
-    y = y(vi);
+    %y = y(vi);
     
     hh = get(gca,'children');
     set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
