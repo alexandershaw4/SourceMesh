@@ -982,7 +982,7 @@ S = size(vol);
 
 % check if it's a 'full' volume!
 if length(find(vol)) == prod(S)
-    vol = vol - mode(vol);
+    vol = vol - mode(vol(:));
 end
 
 B = [min(data.mesh.vertices); max(data.mesh.vertices)];
