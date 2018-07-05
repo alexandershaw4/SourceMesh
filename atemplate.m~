@@ -733,6 +733,22 @@ end
 A(isnan(A)) = 0;
 A(isinf(A)) = 0;
 
+% rescale network positions inside boundaries of mesh
+% (i thought meshmesh had already done this?)
+bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
+offset = 0.99;
+for ip = 1:3
+    pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
+                (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
+    pos(:,ip) = pos(:,ip)*offset;
+end
+
+% redirect to clseast mesh point (vertex?)
+for ip = 1:length(pos)
+    [~,this]=min(cdist(pos(ip,:),data.mesh.vertices));
+    pos(ip,:) = data.mesh.vertices(this,:);
+end
+
 % Edges
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
@@ -765,6 +781,7 @@ data.network.RGB  = RGB;
 data.network.tofrom.node1 = node1;
 data.network.tofrom.node2 = node2;
 
+S = 0 + (3 - 0) .* (S - min(S)) ./ (max(S) - min(S));
 
 % Paint edges
 %--------------------------------------------------------------------------
@@ -1148,15 +1165,15 @@ if length(L) == length(mesh.vertices)
         y = L(:);
     end
     
-    % only project requested hemisphere
-    switch data.hemi
-        case{'left','L','l'}; vi = data.mesh.vleft;
-        case{'right','R','r'};vi = data.mesh.vright;
-        otherwise;            vi = 1:length(data.mesh.vertices);
-    end
+%     % only project requested hemisphere
+%     switch data.hemi
+%         case{'left','L','l'}; vi = data.mesh.vleft;
+%         case{'right','R','r'};vi = data.mesh.vright;
+%         otherwise;            vi = 1:length(data.mesh.vertices);
+%     end
     
     % update overlay vector to only vertices in this hemisphere
-    y = y(vi);
+    %y = y(vi);
     
     hh = get(gca,'children');
     set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
@@ -1784,21 +1801,14 @@ lfaces = find(sum(ismember(f,left),2)==3);
 rfaces = find(sum(ismember(f,right),2)==3);
 
 % return left/right indices
-g.vleft         = v*NaN;
-g.vleft(left,:) = v(left,:);
-
-g.vright          = v*NaN;
-g.vright(right,:) = v(right,:);
-
-g.fleft           = f*NaN;
-g.fleft(lfaces,:) = f(lfaces,:);
-
+g.vleft            = v*NaN;
+g.vleft(left,:)    = v(left,:);
+g.vright           = v*NaN;
+g.vright(right,:)  = v(right,:);
+g.fleft            = f*NaN;
+g.fleft(lfaces,:)  = f(lfaces,:);
 g.fright           = f*NaN;
-g.fright(rfaces,:) = 
-
-ml = min(left);
-mr = min(right);
-
+g.fright(rfaces,:) = f(rfaces,:);
 
 
 switch hemisphere

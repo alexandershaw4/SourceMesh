@@ -733,6 +733,22 @@ end
 A(isnan(A)) = 0;
 A(isinf(A)) = 0;
 
+% rescale network positions inside boundaries of mesh
+% (i thought meshmesh had already done this?)
+bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
+offset = 0.99;
+for ip = 1:3
+    pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
+                (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
+    pos(:,ip) = pos(:,ip)*offset;
+end
+
+% redirect to clseast mesh point (vertex?)
+for ip = 1:length(pos)
+    [~,this]=min(cdist(pos(ip,:),data.mesh.vertices));
+    pos(ip,:) = data.mesh.vertices(this,:);
+end
+
 % Edges
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
@@ -765,6 +781,7 @@ data.network.RGB  = RGB;
 data.network.tofrom.node1 = node1;
 data.network.tofrom.node2 = node2;
 
+S = 0.1 + (3 - 0) .* (S - min(S)) ./ (max(S) - min(S));
 
 % Paint edges
 %--------------------------------------------------------------------------
