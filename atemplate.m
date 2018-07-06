@@ -1,8 +1,10 @@
 function data = atemplate(varargin)
 % Add networks and overlays to a smoothed brain mesh or gifti object.
 %
+% Plots: volumes, surfaces, overlays, networks, labels, videos. 
+% Examples and usages below.
 %
-% If you get error using the mex files, delete them. 
+% If you get errors using the mex files, delete them. 
 % 
 %
 %
@@ -24,8 +26,10 @@ function data = atemplate(varargin)
 %  % Plot only one hemisphere:
 %  atemplate('hemi','left'); atemplate('hemi','L'); atemplate('hemi','l');
 %  atemplate('hemi','right');atemplate('hemi','R'); atemplate('hemi','r');
-%
 %  atemplate('gifti',mesh,'hemi','left') 
+%
+%  Plot volume and supply affine transformation matrix:
+%  atemplate('mesh','mymri.nii','affine',affinematrix)
 %
 %
 % OVERLAYS:
@@ -34,7 +38,7 @@ function data = atemplate(varargin)
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
 %  atemplate('overlay',L);   
 %
-%  % Plot overlay aligned to mesh using a Euclidean search:
+%  % Plot overlay aligned to mesh using a Euclidean ICP search:
 %  atemplate('overlay',L,'method','euclidean');  
 %
 %  % Plot overlay aligned to mesh using a sphere-based trap radius method (def):
@@ -183,7 +187,6 @@ function data = atemplate(varargin)
 %
 %
 %
-%  See also: slice3() slice2() 
 %
 % AS17
 
