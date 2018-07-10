@@ -794,7 +794,7 @@ S = 0.1 + (3 - 0) .* (S - min(S)) ./ (max(S) - min(S));
 % Paint edges
 %--------------------------------------------------------------------------
 for i = 1:size(node1,1)
-    line([node1(i,1),node2(i,1)],...
+    l0(i)=line([node1(i,1),node2(i,1)],...
         [node1(i,2),node2(i,2)],...
         [node1(i,3),node2(i,3)],...
         'LineWidth',S(i),'Color',[RGB(i,:)]);
@@ -804,6 +804,7 @@ end
 %--------------------------------------------------------------------------
 if any(i) && colbar
     set(gcf,'DefaultAxesColorOrder',RGB)
+    set(gcf,'Colormap',RGB)
     if colbar
         %colormap(jet)
         %colorbar
@@ -812,10 +813,14 @@ if any(i) && colbar
         axb = axes('position', get(a1, 'position'));
         set(axb,'visible','off')
         axes(axb);
+        %set(a1,'DefaultAxesColorOrder',RGB)
+        set(gcf,'Colormap',RGB)
+        colormap(jet);
         colorbar('peer',a1,'South');
     end
 end
 if LimC && colbar
+    axes(a1);
     caxis(R);
 end
 
@@ -1830,6 +1835,7 @@ switch hemisphere
         pg = g;
 end
 
+
 % plot
 if ~isempty(fighnd)
     if isnumeric(fighnd)
@@ -1841,7 +1847,7 @@ if ~isempty(fighnd)
         h = plot(gifti(pg),'fighnd',fighnd);
     end
 else
-    h = plot(gifti(pg));
+    h  = plot(gifti(pg));
 end
 C = [.5 .5 .5];
 
@@ -1854,7 +1860,6 @@ set(h(end),'visible','off');
 drawnow; hold on;
 
 p = [];
-
 
 if write;
     fprintf('Writing mesh gifti file: %s\n',[fname '.gii']);
