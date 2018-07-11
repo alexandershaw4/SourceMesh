@@ -948,7 +948,17 @@ if ischar(x)
             ni    = load_nii(x);
             vol   = ni.img;
             [y,data] = vol2surf(vol,data);
+            
+            % ensure sourcemodel (pos) is around same scale as mesh boundaries
+            m = min(data.mesh.vertices);% *1.1;
+            M = max(data.mesh.vertices);% *1.1;
 
+            pos      = data.sourcemodel.pos;
+            V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+            V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+            V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+            V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+            data.sourcemodel.pos = V;
             
         case{'.gii'}
             % load gifti functional
