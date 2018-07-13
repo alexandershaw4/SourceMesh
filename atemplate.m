@@ -1188,8 +1188,10 @@ if length(L) == length(mesh.vertices)
         y = L(:);
     end
     
-    hh = get(mesh.h(end),'children');
-    set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+    %hh = get(mesh.h(end),'children');
+    %set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+    set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+    
     drawnow;
     shading interp
     colormap('jet');
@@ -1398,8 +1400,9 @@ y(isnan(y)) = 0;
 data.overlay.data = y;
 data.overlay.smooth_weights = M;
     
-hh = get(gca,'children');
-set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+%hh = get(gca,'children');
+%set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
+set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
 drawnow;
 shading interp
 colormap('jet');
@@ -1865,8 +1868,10 @@ set(h,'FaceColor',[C]); box off;
 grid off;  set(h,'EdgeColor','none');
 alpha(a); set(gca,'visible','off');
 
-h = get(gcf,'Children');
-set(h(end),'visible','off');
+%h = get(gcf,'Children');
+%set(h(end),'visible','off');
+set(gca,'visible','off')
+
 drawnow; hold on;
 
 p = [];
