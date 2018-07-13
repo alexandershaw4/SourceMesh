@@ -29,3 +29,14 @@ s(2) = subplot(122); atemplate('overlay',over(:),'fighnd',s(2),'nocolbar');
 % together in the window
 %--------------------------------------------------------------------------
 linksubplot(s)
+
+
+
+% Alternatively, plot overlay in left and right subplots, linked:
+%--------------------------------------------------------------------------
+figure('position',[1000 142 1343 836]);
+
+s(1) = subplot(121); atemplate('overlay',over,'hemi','l','fighnd',s(1),'nocolbar')
+s(2) = subplot(122); atemplate('overlay',over,'hemi','r','fighnd',s(2),'nocolbar')
+
+linksubplots(s)
