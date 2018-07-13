@@ -818,7 +818,8 @@ if any(i) && colbar
         %set(a1,'DefaultAxesColorOrder',RGB)
         set(gcf,'Colormap',RGB)
         
-        if netcmap; colormap(netcmap);
+        if any(any(netcmap ~= 0)); 
+                    colormap(netcmap);
         else;       colormap(jet);
         end
         
@@ -923,7 +924,7 @@ function RGB = makecolbar(I,netcmap)
 % Register colorbar values to our overlay /  T-vector
 %
 
-if netcmap
+if any(any(netcmap ~= 0))
     Colors = colormap(netcmap);
 else
     Colors   = jet;
