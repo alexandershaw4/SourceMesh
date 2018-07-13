@@ -212,7 +212,7 @@ in.pca        = 0;
 in.flip       = 0;
 in.method     = 'spheres';
 in.affine     = 0;
-in.netcmap    = 0;
+in.netmap     = 0;
 in.tf_interactive = 0;
 in.hemi = 'both'; % hemisphere to plot
 
@@ -234,7 +234,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'components');  in.components = 1;        end
     if strcmp(varargin{i},'pca');         in.pca = 1;               end    
     if strcmp(varargin{i},'flip');        in.flip = 1;              end
-    if strcmp(varargin{i},'netcmap');     in.netcmap= varargin{i+1};end
+    if strcmp(varargin{i},'netcmap');      
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writevrml');   in.write  = 3; in.fname = varargin{i+1}; end
@@ -326,7 +326,7 @@ end
 
 % networks
 if isfield(inputs,'A')
-    data = connections(data,i.A,i.colbar,i.write,i.fname,i.netcmap); 
+    data = connections(data,i.A,i.colbar,i.write,i.fname); 
 end 
 
 % tracts
@@ -713,7 +713,7 @@ y = (max(x(:)) - min(x(:))) * ( (y - min(y(:))) / (max(y(:)) - min(y(:))) );
 
 end
 
-function data = connections(data,A,colbar,write,fname,netcmap)
+function data = connections(data,A,colbar,write,fname)
 % Network (Node & Edges) plotter.
 %
 %
@@ -762,7 +762,7 @@ end
 % Edges
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
-RGB = makecolbar(strng,netcmap);
+RGB = makecolbar(strng);
 
 % LineWidth (scaled) for strength
 if any(strng)
@@ -817,11 +817,7 @@ if any(i) && colbar
         axes(axb);
         %set(a1,'DefaultAxesColorOrder',RGB)
         set(gcf,'Colormap',RGB)
-        
-        if netcmap; colormap(netcmap);
-        else;       colormap(jet);
-        end
-        
+        colormap(jet);
         colorbar('peer',a1,'South');
     end
 end
@@ -919,16 +915,11 @@ data.drawnodes.data = ForPlot;
 
 end
 
-function RGB = makecolbar(I,netcmap)
+function RGB = makecolbar(I)
 % Register colorbar values to our overlay /  T-vector
 %
 
-if netcmap
-    Colors = colormap(netcmap);
-else
-    Colors   = jet;
-end
-
+Colors   = jet;
 NoColors = length(Colors);
 
 Ireduced = (I-min(I))/(max(I)-min(I))*(NoColors-1)+1;
