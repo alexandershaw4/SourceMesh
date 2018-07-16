@@ -79,8 +79,11 @@ if ~isempty(cdata)
 end
 
 axes(ax);
-camlight;
-camlight(-80,-10);
+%camlight;
+%camlight(-80,-10);
+camlight left
+camlight right
+
 lighting phong;
 axes(ax);
 cameramenu;
