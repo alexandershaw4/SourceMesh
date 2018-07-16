@@ -762,12 +762,15 @@ end
 % Edges
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
-RGB = makecolbar(strng,netcmap);
+
+% place both signed absmax value in overlay so that colorbar is symmetrical
+strng2 = [strng; -max(abs(strng)); max(abs(strng))];
+RGB    = makecolbar(strng2,netcmap);
 
 % LineWidth (scaled) for strength
 if any(strng)
-    R = [min(strng),max(strng)];
-    S = ( strng - R(1) ) + 1e-3;
+    R = [-max(abs(strng)),max(abs(strng))];
+    S = ( abs(strng) - R(1) ) + 1e-3;
     
     % If all edges same value, make thicker
     if  max(S(:)) == 1e-3; 
@@ -791,7 +794,9 @@ data.network.RGB  = RGB;
 data.network.tofrom.node1 = node1;
 data.network.tofrom.node2 = node2;
 
-S = 0.1 + (3 - 0) .* (S - min(S)) ./ (max(S) - min(S));
+if ~any(isnan( (S - min(S)) ./ (max(S) - min(S)) ))
+    S = 0.1 + (3 - 0) .* (S - min(S)) ./ (max(S) - min(S));
+end
 
 % Paint edges
 %--------------------------------------------------------------------------
