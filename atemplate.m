@@ -210,7 +210,7 @@ in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
 in.flip       = 0;
-in.method     = 'spheres';
+in.method     = 'euclidean';
 in.affine     = 0;
 in.netcmap    = 0;
 in.tf_interactive = 0;
@@ -1221,12 +1221,12 @@ if length(L) == length(mesh.vertices)
         y = L(:);
     end
     
-    %hh = get(mesh.h(end),'children');
-    %set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
     set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
     
     drawnow;
     shading interp
+    % force symmetric caxis bounds
+    s = max(abs(y(:))); caxis([-s s]);
     colormap('jet');
     alpha 1;
     
@@ -1302,17 +1302,23 @@ fprintf('Determining closest points between sourcemodel & template vertices\n');
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
 switch method
-    case 'spheres'
+    case 'spheres' % this would be better called 'box' in its current form
+        
+        
+        % Places a box (boundaries) around a sphere inflated around each
+        % vertex point (a 'trap window') by a fixed radius. Mesh points
+        % within these bounds are assigned to this vertex
+        %------------------------------------------------------------------
 
         fprintf('Using inside-spheres search algorithm\n');
         tic
         for i = 1:length(x)
             if any(L(i))      
                 newv = [];
-                r  = 5;
-                %r  = length(L)/(mr.^2);
-                th = 0:pi/50:2*pi;
-                r0 = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
+                r   = 7;
+                res = 20;
+                th  = 0:pi/res:2*pi;
+                r0  = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
                 
                 % make [circle] radius change with z-direction (height)
                 r0 = th.*fliplr(th);
@@ -1321,8 +1327,9 @@ switch method
                 r0 = r0 ;
                 
                 % the height at which each circle making the sphere will go
-                z0 = linspace(v(i,3)-r,v(i,3)+r,101);
+                z0 = linspace(v(i,3)-r,v(i,3)+r,(res*2)+1);
 
+                % this generates the vertices of the sphere
                 for zi = 1:length(z0)
                     xunit = r0(zi) * cos(th) + v(i,1);
                     yunit = r0(zi) * sin(th) + v(i,2);
@@ -1331,13 +1338,12 @@ switch method
                 end
 
                  % plot for debugging..................................
-                 %hold on;
-                 %s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
-                 %s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
-                 %s2.MarkerEdgeAlpha = 0.1;
-                 %drawnow;
-                 
-                 
+%                  hold on;
+%                  s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
+%                  s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
+%                  s2.MarkerEdgeAlpha = 0.1;
+%                  drawnow;
+
                  % determine whether this point if left or right hemisphere
                  LR     = v(i,1);
                  IsLeft = (LR-cnt(1)) < 0;
@@ -1347,7 +1353,6 @@ switch method
                  end
 
                 bx = [min(newv); max(newv)]; % bounding box
-
                 inside = ...
                     [mv(lri,1) > bx(1,1) & mv(lri,1) < bx(2,1) &...
                      mv(lri,2) > bx(1,2) & mv(lri,2) < bx(2,2) &...
@@ -1363,6 +1368,11 @@ switch method
         fprintf('Routine took %d seconds\n',stime);
 
     case 'euclidean'
+        
+        % Computes (vectorised) euclidean distance from each vertex to
+        % every mesh point. Selects closest n to represent vertex values and 
+        % weights by distabnce. n is defined by nmeshpoints / nvertex *1.3
+        %------------------------------------------------------------------
 
         fprintf('Using euclidean search algorithm\n');
         tic
@@ -1384,6 +1394,7 @@ switch method
             ind        = lri(ind);
             OL(i,ind)  = w*L(i);
             M (i,ind)  = w;
+            indz(i,:)  = ind;
 
             % plot point and projection
             %hold on;
@@ -1429,24 +1440,27 @@ y(isnan(y)) = 0;
 y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
 y(isnan(y)) = 0;
 
-
-data.overlay.data = y;
+% return these in data structre
+data.overlay.data           = y;
 data.overlay.smooth_weights = M;
+data.overlay.NumComp        = NumComp;
+data.overlay.indz           = indz;
+data.overlay.w              = w;
     
-%hh = get(gca,'children');
-%set(hh(end),'FaceVertexCData',y(:),'FaceColor','interp');
 set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
 drawnow;
 shading interp
+% force symmetric caxis bounds
+s = max(abs(y(:))); caxis([-s s]);
 colormap('jet');
 alpha 1;
 
 
 if colbar
-    %colorbar('peer',a1,'South');
     data.overlay.cb = InteractiveColorbar;
 end
     
+% switches for writing out other file formats
 if write == 1;
     fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
     g       = gifti;
