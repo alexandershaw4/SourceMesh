@@ -927,7 +927,7 @@ if size(N,1) > 1 && size(N,2) > 1
 else
     ForPlot = v(find(N),:);
     %s       = find(N);
-    s = ones(length(find(N)),1)*40;
+    s = 1;
     for i   = 1:length(ForPlot)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
