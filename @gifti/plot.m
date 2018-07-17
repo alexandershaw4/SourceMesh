@@ -63,7 +63,8 @@ if isempty(ax), ax = axes('Parent',h); end
 
 % Alex add: only make size x=y if not a subplot (i.e. no handle)
 if ~ishandle(varargin{1});
-    axis(ax,'equal');
+    %axis(ax,'equal');
+    axis(ax,'image');
 end
 
 axis(ax,'off');
