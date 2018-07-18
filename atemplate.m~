@@ -1311,7 +1311,7 @@ switch method
         nmesh.faces    = data.mesh.faces;
         dv             = round(v*RND)/RND;
         
-        % Compute normals (spm)
+        % Compute FACE normals 
         fprintf('Computing normals & face (triangle) centroids\n');
         tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
                             nmesh.vertices(:,2),nmesh.vertices(:,3));
@@ -1321,7 +1321,8 @@ switch method
         % Compute triangle centroids
         f        = nmesh.faces;
         for If   = 1:length(f)
-            pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:); nmesh.vertices(f(If,3),:)];
+            pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
+                            nmesh.vertices(f(If,3),:)];
             
             % Triangle centroid
             FaceCent(If,:) = mean(pnts,1);
@@ -1332,7 +1333,7 @@ switch method
 
         
         % Now search outwards along normal line
-        step   = -1.5:1:1.5;
+        step   = -1.5:.1:1.5;
         found  = zeros(length(f),1); 
         nhits  = 0;
         fcol   = zeros(length(step),length(f));
@@ -1348,11 +1349,12 @@ switch method
             for j = 1:length(dv)
                 %if ~found(j)
                 
-                    % find where a functional vertex
+                    % find where a functional vertex has the coordinate of
+                    % the normal line of a face at the current depth
                     loc = find(sum(ismember(these,dv(j,:))')==3);
 
                     if any(loc)
-                        found(j)    = 1;
+                        found(j)    = 1 + found(j); % update number of h
                         fcol(i,loc) = L(j);
                         nhits       = nhits + length(loc);
                     end

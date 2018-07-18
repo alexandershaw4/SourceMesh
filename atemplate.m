@@ -1311,7 +1311,7 @@ switch method
         nmesh.faces    = data.mesh.faces;
         dv             = round(v*RND)/RND;
         
-        % Compute normals (spm)
+        % Compute FACE normals 
         fprintf('Computing normals & face (triangle) centroids\n');
         tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
                             nmesh.vertices(:,2),nmesh.vertices(:,3));
@@ -1321,7 +1321,8 @@ switch method
         % Compute triangle centroids
         f        = nmesh.faces;
         for If   = 1:length(f)
-            pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:); nmesh.vertices(f(If,3),:)];
+            pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
+                            nmesh.vertices(f(If,3),:)];
             
             % Triangle centroid
             FaceCent(If,:) = mean(pnts,1);
@@ -1332,7 +1333,7 @@ switch method
 
         
         % Now search outwards along normal line
-        step   = -1.5:.1:1.5;
+        step   = -1.5:1:1.5;
         found  = zeros(length(f),1); 
         nhits  = 0;
         fcol   = zeros(length(step),length(f));
@@ -1353,9 +1354,9 @@ switch method
                     loc = find(sum(ismember(these,dv(j,:))')==3);
 
                     if any(loc)
-                        found(j)    = 1 + found(j);
-                        fcol(i,loc) = L(j);
-                        nhits       = nhits + length(loc);
+                        found(j)    = 1 + found(j); % update number of hits this face has had
+                        fcol(i,loc) = L(j);         % put the overlay (L) value at this face
+                        nhits       = nhits + length(loc); % update tot number of hits for this depth
                     end
                 %end
             end
@@ -1367,20 +1368,23 @@ switch method
         % Pick maximum value for each face from the different 'depths'
         fcol = max(fcol);
         
-        % we have a colour value for each FACE but matlab works much better
-        % with vertex colour data because it can interp vertex data - so
-        % cast this back to vertex colour data:
-        tovert    = mv*0;
-        tovert(f) = repmat(fcol,[1 3]);
-        y         = max(tovert');
+%         % we have a colour value for each FACE but matlab works much better
+%         % with vertex colour data because it can interp vertex data - so
+%         % cast this back to vertex colour data:
+%         tovert    = mv*0;
+%         tovert(f) = repmat(fcol,[1 3]);
+%         y         = max(tovert');
+%         
+%         %y         = spm_mesh_smooth(nmesh, y(:), 4);
+%         y(isnan(y)) = 0;
+%         y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
+%         y(isnan(y)) = 0;
+% 
+%         %set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+%         %drawnow;shading interp
         
-        %y         = spm_mesh_smooth(nmesh, y(:), 4);
-        y(isnan(y)) = 0;
-        y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
-        y(isnan(y)) = 0;
-
-        set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
-        drawnow;shading interp
+        set(mesh.h,'FaceVertexCData',fcol(:));
+        mesh.h.FaceColor = 'flat';
         s = max(abs(fcol(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
