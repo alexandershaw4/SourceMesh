@@ -210,7 +210,7 @@ in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
 in.flip       = 0;
-in.method     = 'spheres';
+in.method     = 'euclidean';
 in.affine     = 0;
 in.netcmap    = 0;
 in.tf_interactive = 0;
@@ -1166,7 +1166,7 @@ end
 
 % method for searching between the 3D coordinate
 %-------------------------------------------------------------
-if ismember(data.method,{'euclidean','spheres','precomputed (AAL)'})
+if ismember(data.method,{'euclidean','spheres','precomputed (AAL)','raycast'})
      method = data.method;
 else,method = 'euclidean';  
 end
@@ -1301,7 +1301,91 @@ Rht = find(Rht);
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
+RND = 1; % decimation/rounding value
 switch method
+    
+    case 'raycast'
+        
+        % make new mesh and overlay points, decimated / rounded
+        nmesh.vertices = round(data.mesh.vertices*RND)/RND;
+        nmesh.faces    = data.mesh.faces;
+        dv             = round(v*RND)/RND;
+        
+        % Compute normals (spm)
+        fprintf('Computing normals & face (triangle) centroids\n');
+        tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
+                            nmesh.vertices(:,2),nmesh.vertices(:,3));
+        FaceNorm = tr.faceNormal;
+        
+                                
+        % Compute triangle centroids
+        f        = nmesh.faces;
+        for If   = 1:length(f)
+            pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:); nmesh.vertices(f(If,3),:)];
+            
+            % Triangle centroid
+            FaceCent(If,:) = mean(pnts,1);
+        end
+        
+        % Decimate to the same scale as the vertices
+        FaceCent = round(FaceCent*RND)/RND;
+
+        
+        % Now search outwards along normal line
+        step   = -1.5:1:1.5;
+        found  = zeros(length(f),1); 
+        nhits  = 0;
+        fcol   = zeros(length(step),length(f));
+        tic    ;
+         
+        for i  = 1:length(step)
+            fprintf('Ray casting step: %d/%d',i,length(step));
+            
+            these = FaceCent + (step(i)*FaceNorm);
+            these = round(these*RND)/RND;
+            nhits = 0;
+            
+            for j = 1:length(dv)
+                %if ~found(j)
+                
+                    % find where a functional vertex
+                    loc = find(sum(ismember(these,dv(j,:))')==3);
+
+                    if any(loc)
+                        found(j)    = 1;
+                        fcol(i,loc) = L(j);
+                        nhits       = nhits + length(loc);
+                    end
+                %end
+            end
+            fprintf(' (%d hits)\n', nhits);
+        end
+        
+        fprintf('Finished search in %d sec\n',toc);
+        
+        % Pick maximum value for each face from the different 'depths'
+        fcol = max(fcol);
+        
+        % we have a colour value for each FACE but matlab works much better
+        % with vertex colour data because it can interp vertex data - so
+        % cast this back to vertex colour data:
+        tovert    = mv*0;
+        tovert(f) = repmat(fcol,[1 3]);
+        y         = max(tovert');
+        
+        %y         = spm_mesh_smooth(nmesh, y(:), 4);
+        y(isnan(y)) = 0;
+        y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
+        y(isnan(y)) = 0;
+
+        set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+        drawnow;shading interp
+        s = max(abs(fcol(:))); caxis([-s s]);
+        colormap('jet');
+        alpha 1;
+        
+    
+    
     case 'spheres' % this would be better called 'box' in its current form
         
         
@@ -1316,7 +1400,7 @@ switch method
             if any(L(i))      
                 newv = [];
                 r   = 7;
-                res = 25;
+                res = 20;
                 th  = 0:pi/res:2*pi;
                 r0  = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
                 
@@ -1327,7 +1411,7 @@ switch method
                 r0 = r0 ;
                 
                 % the height at which each circle making the sphere will go
-                z0 = linspace(v(i,3)-r,v(i,3)+r,());
+                z0 = linspace(v(i,3)-r,v(i,3)+r,(res*2)+1);
 
                 % this generates the vertices of the sphere
                 for zi = 1:length(z0)
@@ -1344,13 +1428,6 @@ switch method
 %                  s2.MarkerEdgeAlpha = 0.1;
 %                  drawnow;
 
-                % compute triangulation only once, as olnly the centre
-                % point will change
-                if i == 1;
-                    tri = delaunayTriangulation(newv);
-                    %tri = tri.ConnectivityList(:,1:3);
-                end
-                 
                  % determine whether this point if left or right hemisphere
                  LR     = v(i,1);
                  IsLeft = (LR-cnt(1)) < 0;
@@ -1401,6 +1478,7 @@ switch method
             ind        = lri(ind);
             OL(i,ind)  = w*L(i);
             M (i,ind)  = w;
+            indz(i,:)  = ind;
 
             % plot point and projection
             %hold on;
@@ -1413,50 +1491,60 @@ switch method
         fprintf('Routine took %d seconds\n',stime);
 end
 
+switch method
+    case 'raycast' 
+        % Don't do anything
+        
+        
+    otherwise
+        
+        fprintf('\n');
+        clear L
 
-fprintf('\n');
-clear L
+        if ~interpl
+             % mean value of a given vertex
+            OL = mean((OL),1);
+        else
+            for i = 1:size(OL,2)
+                % average overlapping voxels
+                L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
+                NumComp(i) =  length(find(OL(:,i)));
+            end
+            OL = L;
+        end
 
-if ~interpl
-     % mean value of a given vertex
-    OL = mean((OL),1);
-else
-    for i = 1:size(OL,2)
-        % average overlapping voxels
-        L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
-        NumComp(i) =  length(find(OL(:,i)));
-    end
-    OL = L;
+
+        % normalise and rescale
+        OL = double(full(OL));
+        y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+
+        y(isnan(y)) = 0;
+        y  = full(y);
+        y  = double(y);
+
+        % spm mesh smoothing
+        %--------------------------------------------------------------------------
+        fprintf('Smoothing overlay...\n');
+        y  = spm_mesh_smooth(mesh, y(:), 4);
+        y(isnan(y)) = 0;
+        y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+        y(isnan(y)) = 0;
+
+        % return these in data structre
+        data.overlay.data           = y;
+        data.overlay.smooth_weights = M;
+        data.overlay.NumComp        = NumComp;
+        data.overlay.indz           = indz;
+        data.overlay.w              = w;
+
+        set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+        drawnow;
+        shading interp
+        % force symmetric caxis bounds
+        s = max(abs(y(:))); caxis([-s s]);
+        colormap('jet');
+        alpha 1;
 end
-
-
-% normalise and rescale
-OL = double(full(OL));
-y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
-
-y(isnan(y)) = 0;
-y  = full(y);
-y  = double(y);
-
-% spm mesh smoothing
-%--------------------------------------------------------------------------
-fprintf('Smoothing overlay...\n');
-y  = spm_mesh_smooth(mesh, y(:), 4);
-y(isnan(y)) = 0;
-y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
-y(isnan(y)) = 0;
-
-% return these in data structre
-data.overlay.data           = y;
-data.overlay.smooth_weights = M;
-    
-set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
-drawnow;
-shading interp
-% force symmetric caxis bounds
-s = max(abs(y(:))); caxis([-s s]);
-colormap('jet');
-alpha 1;
 
 
 if colbar
