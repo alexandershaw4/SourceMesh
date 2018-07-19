@@ -1447,7 +1447,8 @@ switch method
                 ind = lri(find(inside));
                 OL(i,ind) = L(i);
                 M (i,ind) = 1;
-
+                indz{i}   = ind;
+                w         = 1;
             end
         end
         stime = toc;
