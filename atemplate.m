@@ -1306,11 +1306,17 @@ switch method
     
     case 'raycast'
         
+        
+        % Increase resoluition of volume?
+        nmesh.vertices = data.mesh.vertices * 5;
+        dv             = v * 5;
+        
         % make new mesh and overlay points, decimated / rounded to integers
         % (mm)
-        nmesh.vertices = round(data.mesh.vertices*RND)/RND;
+        nmesh.vertices = round(nmesh.vertices*RND)/RND;
         nmesh.faces    = data.mesh.faces;
-        dv             = round(v*RND)/RND;
+        dv             = round(dv*RND)/RND;
+        
         
         % volume the data so vertices are (offset) indices
         fprintf('Gridding data for ray cast\n');
@@ -1318,10 +1324,34 @@ switch method
         ndv = min(dv)-1;
         
         for i = 1:length(dv)
-            vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = ...
-                max( L(i) , ...
-            vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) );
+            if L(i) ~= 0
+                a(1)  = L(i);
+                a(2)  = vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3));
+                [~,I] = max(abs(a));
+                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = a(I);                
+            end
         end
+                
+        %Smooth
+        fprintf('Volume Smoothing\n');tic
+        
+        % Alex 3D smoothing function
+        %-------------------------------------
+        %c    = round( size(vol)*0.05 );
+        %vol  = NewMeanFilt3D(vol,c(1),c(2),c(3));
+        
+        % Matlab 3D smoothing function
+        %-------------------------------------
+        vol  = smooth3(vol,'box',5);
+        
+        fprintf('Done (%d seconds)\n',toc);
+        
+        %Rescale after smoothing
+        fprintf('Rescaling smoothed volume\n');
+        V   = spm_vec(vol);
+        V   = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+        vol = spm_unvec(V, vol); 
+        
         
         % Compute FACE normals 
         fprintf('Computing FACE normals & centroids\n');
@@ -1341,40 +1371,48 @@ switch method
         end
         
         % Decimate to the same scale as the vertices
-        FaceCent = round(FaceCent*RND)/RND;
+        %FaceCent = round(FaceCent*RND)/RND;
     
         % Now search outwards along normal line
-        step   = -3:.05:3;
+        %step   = -4:.05:2;
+        step = -50:2:25;
         found  = zeros(length(f),1); 
         nhits  = 0;
-        fcol   = zeros(length(f),1);
+        fcol   = zeros(length(step),length(f));
         tic    ;
          
         perc = round(linspace(1,length(step),10));
         for i  = 1:length(step)
+            hits{i} = 0;
             
             if ismember(i,perc)
                 fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
             end
             
             these = FaceCent + (step(i)*FaceNorm);
-            these = round(these*RND)/RND;
             
             % convert these points to indices of the volume
             these(:,1) = these(:,1) - ndv(1);
             these(:,2) = these(:,2) - ndv(2);
             these(:,3) = these(:,3) - ndv(3);
-            these = round(these*RND)/RND;
+            these      = round(these*RND)/RND;
             
             for j = 1:length(these)
                 try
-                    fcol(j) = max( vol(these(j,1),these(j,2),these(j,3)) ,...
-                                fcol(j) );
+                    fcol(i,j) = vol(these(j,1),these(j,2),these(j,3));
+                    hits{i} = hits{i} + 1;
                 end
             end
         end
         
         fprintf('Finished in %d sec\n',toc);
+        
+        % Retain largest absolute value for each face
+        [~,I] = max(abs(fcol));
+        for i = 1:length(I)
+            nfcol(i) = fcol(I(i),i);
+        end
+        fcol = nfcol;
         
         % Set face colour data on mesh, requires setting FaceColor= 'flat'
         set(mesh.h,'FaceVertexCData',fcol(:));
@@ -1384,8 +1422,9 @@ switch method
         alpha 1;
         
         % Return the face colours
-        data.overlay.data = fcol(:);
-        
+        data.overlay.data  = fcol(:);
+        data.overlay.steps = step;
+        data.overlay.hits  = hits;
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -1854,7 +1893,11 @@ end
 end
 
 
+function y = makeodd(x)
 
+y = 2*floor(x/2)+1;
+
+end
 
 
 function x = killinterhems(x);

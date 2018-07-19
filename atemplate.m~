@@ -1306,23 +1306,64 @@ switch method
     
     case 'raycast'
         
-        % make new mesh and overlay points, decimated / rounded
-        nmesh.vertices = round(data.mesh.vertices*RND)/RND;
-        nmesh.faces    = data.mesh.faces;
-        dv             = round(v*RND)/RND;
         
-        % volume (grid) the data
+        % Increase resoluition of volume?
+        nmesh.vertices = data.mesh.vertices * 5;
+        dv             = v * 5;
+        
+        % make new mesh and overlay points, decimated / rounded to integers
+        % (mm)
+        nmesh.vertices = round(nmesh.vertices*RND)/RND;
+        nmesh.faces    = data.mesh.faces;
+        dv             = round(dv*RND)/RND;
+        
+        
+        % volume the data so vertices are (offset) indices
+        fprintf('Gridding data for ray cast\n');
         vol = zeros( (max(dv) - min(dv))+1 );
         ndv = min(dv)-1;
         
         for i = 1:length(dv)
-            vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = ...
-                max( L(i) , ...
-            vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) );
+            if L(i) ~= 0
+                a(1)  = L(i);
+                a(2)  = vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3));
+                [~,I] = max(abs(a));
+                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = a(I);                
+            end
         end
         
+        % i'm hoping this hard coded smoothing will be fast
+        for i = 1:size(vol,1)
+            for j = 1:size(vol,2)
+                for k = 1:size(vol,3)
+                    
+                    a = vol(i+0,j+0,k+0);
+                    
+                    try; vol(i-1,j+0,k+0) = (vol(i-1,j+0,k+0) + a )/ 2; end
+                    try; vol(i+1,j+0,k+0) = (vol(i+1,j+0,k+0) + a )/ 2; end
+                    try; vol(i+0,j-1,k+0) = (vol(i+0,j-1,k+0) + a )/ 2; end
+                    try; vol(i+0,j+1,k+0) = (vol(i+0,j+1,k+0) + a )/ 2; end
+
+                end
+            end
+        end
+        
+        % Smooth
+        %fprintf('Volume Smoothing\n');
+        %c    = round( size(vol)*0.1 );
+        %vol  = NewMeanFilt3D(vol,c(1),c(2),c(3));
+        
+        % Rescale after smoothing
+        %fprintf('Rescaling smoothed volume\n');
+        %V   = spm_vec(vol);
+        %V   = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+        %vol = spm_unvec(V, vol); 
+        
+        %vol  = smooth3(vol,'box',5);
+        %vol  = smooth3(vol,'box',5);
+        
         % Compute FACE normals 
-        fprintf('Computing normals & face (triangle) centroids\n');
+        fprintf('Computing FACE normals & centroids\n');
         tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
                             nmesh.vertices(:,2),nmesh.vertices(:,3));
         FaceNorm = tr.faceNormal;
@@ -1339,64 +1380,60 @@ switch method
         end
         
         % Decimate to the same scale as the vertices
-        FaceCent = round(FaceCent*RND)/RND;
-
-        
+        %FaceCent = round(FaceCent*RND)/RND;
+    
         % Now search outwards along normal line
-        %step   = -1.5:1:1.5;
-        step   = -3:.02:3;
+        %step   = -4:.05:2;
+        step = -50:2:5;
         found  = zeros(length(f),1); 
         nhits  = 0;
-        fcol   = zeros(length(f),1);
+        fcol   = zeros(length(step),length(f));
         tic    ;
          
-        perc = length(step);
-        perc = 1:
+        perc = round(linspace(1,length(step),10));
         for i  = 1:length(step)
-            fprintf('Ray casting step: %d/%d\n',i,length(step));
+            hits{i} = 0;
+            
+            if ismember(i,perc)
+                fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
+            end
             
             these = FaceCent + (step(i)*FaceNorm);
-            these = round(these*RND)/RND;
             
             % convert these points to indices of the volume
             these(:,1) = these(:,1) - ndv(1);
             these(:,2) = these(:,2) - ndv(2);
             these(:,3) = these(:,3) - ndv(3);
+            these      = round(these*RND)/RND;
             
             for j = 1:length(these)
                 try
-                    fcol(j) = max( vol(these(j,1),these(j,2),these(j,3)) ,...
-                                fcol(j) );
+                    fcol(i,j) = vol(these(j,1),these(j,2),these(j,3));
+                    hits{i} = hits{i} + 1;
                 end
             end
-            
         end
         
-        fprintf('Finished search in %d sec\n',toc);
+        fprintf('Finished in %d sec\n',toc);
         
-
-%         % we have a colour value for each FACE but matlab works much better
-%         % with vertex colour data because it can interpolate vertex data - so
-%         % cast this back to vertex colour data:
-%         tovert    = mv*0;
-%         tovert(f) = repmat(fcol,[1 3]);
-%         y         = max(tovert');
-%         
-%         %y         = spm_mesh_smooth(nmesh, y(:), 4);
-%         y(isnan(y)) = 0;
-%         y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
-%         y(isnan(y)) = 0;
-% 
-%         %set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
-%         %drawnow;shading interp
+        % Retain largest absolute value for each face
+        [~,I] = max(abs(fcol));
+        for i = 1:length(I)
+            nfcol(i) = fcol(I(i),i);
+        end
+        fcol = nfcol;
         
-        % Nope - just plot the face colour data with no interpolation 
+        % Set face colour data on mesh, requires setting FaceColor= 'flat'
         set(mesh.h,'FaceVertexCData',fcol(:));
         mesh.h.FaceColor = 'flat';
         s = max(abs(fcol(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
         
+        % Return the face colours
+        data.overlay.data  = fcol(:);
+        data.overlay.steps = step;
+        data.overlay.hits  = hits;
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -1458,7 +1495,8 @@ switch method
                 ind = lri(find(inside));
                 OL(i,ind) = L(i);
                 M (i,ind) = 1;
-
+                indz{i}   = ind;
+                w         = 1;
             end
         end
         stime = toc;
