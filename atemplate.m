@@ -1313,7 +1313,7 @@ switch method
         dv             = round(v*RND)/RND;
         
         % volume the data so vertices are (offset) indices
-        fprintf('Gridding data\n');
+        fprintf('Gridding data for ray cast\n');
         vol = zeros( (max(dv) - min(dv))+1 );
         ndv = min(dv)-1;
         
