@@ -1306,12 +1306,14 @@ switch method
     
     case 'raycast'
         
-        % make new mesh and overlay points, decimated / rounded
+        % make new mesh and overlay points, decimated / rounded to integers
+        % (mm)
         nmesh.vertices = round(data.mesh.vertices*RND)/RND;
         nmesh.faces    = data.mesh.faces;
         dv             = round(v*RND)/RND;
         
-        % volume (grid) the data
+        % volume the data so vertices are (offset) indices
+        fprintf('Gridding data\n');
         vol = zeros( (max(dv) - min(dv))+1 );
         ndv = min(dv)-1;
         
@@ -1322,7 +1324,7 @@ switch method
         end
         
         % Compute FACE normals 
-        fprintf('Computing normals & face (triangle) centroids\n');
+        fprintf('Computing FACE normals & centroids\n');
         tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
                             nmesh.vertices(:,2),nmesh.vertices(:,3));
         FaceNorm = tr.faceNormal;
@@ -1352,7 +1354,7 @@ switch method
         for i  = 1:length(step)
             
             if ismember(i,perc)
-                fprintf('Ray casting: %d%%\n',(10*find(i==perc)));
+                fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
             end
             
             these = FaceCent + (step(i)*FaceNorm);
@@ -1370,34 +1372,18 @@ switch method
                                 fcol(j) );
                 end
             end
-            
         end
         
-        fprintf('Finished search in %d sec\n',toc);
+        fprintf('Finished in %d sec\n',toc);
         
-
-%         % we have a colour value for each FACE but matlab works much better
-%         % with vertex colour data because it can interpolate vertex data - so
-%         % cast this back to vertex colour data:
-%         tovert    = mv*0;
-%         tovert(f) = repmat(fcol,[1 3]);
-%         y         = max(tovert');
-%         
-%         %y         = spm_mesh_smooth(nmesh, y(:), 4);
-%         y(isnan(y)) = 0;
-%         y  = S(1) + ((S(2)-S(1))).*(y - min(y))./(max(y) - min(y));
-%         y(isnan(y)) = 0;
-% 
-%         %set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
-%         %drawnow;shading interp
-        
-        % Nope - just plot the face colour data with no interpolation 
+        % Set face colour data on mesh, requires setting FaceColor= 'flat'
         set(mesh.h,'FaceVertexCData',fcol(:));
         mesh.h.FaceColor = 'flat';
         s = max(abs(fcol(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
         
+        % Return the face colours
         data.overlay.data = fcol(:);
         
     
