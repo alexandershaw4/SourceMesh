@@ -1340,10 +1340,8 @@ switch method
         
         % Decimate to the same scale as the vertices
         FaceCent = round(FaceCent*RND)/RND;
-
-        
+    
         % Now search outwards along normal line
-        %step   = -1.5:1:1.5;
         step   = -3:.05:3;
         found  = zeros(length(f),1); 
         nhits  = 0;
@@ -1352,7 +1350,6 @@ switch method
          
         perc = round(linspace(1,length(step),10));
         for i  = 1:length(step)
-            %fprintf('Ray casting step: %d/%d\n',i,length(step));
             
             if ismember(i,perc)
                 fprintf('Ray casting: %d%%\n',(10*find(i==perc)));
@@ -1365,6 +1362,7 @@ switch method
             these(:,1) = these(:,1) - ndv(1);
             these(:,2) = these(:,2) - ndv(2);
             these(:,3) = these(:,3) - ndv(3);
+            these = round(these*RND)/RND;
             
             for j = 1:length(these)
                 try
@@ -1399,6 +1397,8 @@ switch method
         s = max(abs(fcol(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
+        
+        data.overlay.data = fcol(:);
         
     
     
