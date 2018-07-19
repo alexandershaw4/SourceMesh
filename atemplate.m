@@ -1311,6 +1311,16 @@ switch method
         nmesh.faces    = data.mesh.faces;
         dv             = round(v*RND)/RND;
         
+        % volume (grid) the data
+        vol = zeros( (max(dv) - min(dv))+1 );
+        ndv = min(dv)-1;
+        
+        for i = 1:length(dv)
+            vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = ...
+                max( L(i) , ...
+            vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) );
+        end
+        
         % Compute FACE normals 
         fprintf('Computing normals & face (triangle) centroids\n');
         tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
@@ -1333,43 +1343,43 @@ switch method
 
         
         % Now search outwards along normal line
-        step   = -1.5:1:1.5;
+        %step   = -1.5:1:1.5;
+        step   = -3:.05:3;
         found  = zeros(length(f),1); 
         nhits  = 0;
-        fcol   = zeros(length(step),length(f));
+        fcol   = zeros(length(f),1);
         tic    ;
          
+        perc = round(linspace(1,length(step),10));
         for i  = 1:length(step)
-            fprintf('Ray casting step: %d/%d',i,length(step));
+            %fprintf('Ray casting step: %d/%d\n',i,length(step));
+            
+            if ismember(i,perc)
+                fprintf('Ray casting: %d%%\n',(10*find(i==perc)));
+            end
             
             these = FaceCent + (step(i)*FaceNorm);
             these = round(these*RND)/RND;
-            nhits = 0;
             
-            for j = 1:length(dv)
-                %if ~found(j)
-                
-                    % find where a functional vertex has the coordinate of
-                    % the normal line of a face at the current depth
-                    loc = find(sum(ismember(these,dv(j,:))')==3);
-
-                    if any(loc)
-                        found(j)    = 1 + found(j); % update number of hits this face has had
-                        fcol(i,loc) = L(j);         % put the overlay (L) value at this face
-                        nhits       = nhits + length(loc); % update tot number of hits for this depth
-                    end
-                %end
+            % convert these points to indices of the volume
+            these(:,1) = these(:,1) - ndv(1);
+            these(:,2) = these(:,2) - ndv(2);
+            these(:,3) = these(:,3) - ndv(3);
+            
+            for j = 1:length(these)
+                try
+                    fcol(j) = max( vol(these(j,1),these(j,2),these(j,3)) ,...
+                                fcol(j) );
+                end
             end
-            fprintf(' (%d hits)\n', nhits);
+            
         end
         
         fprintf('Finished search in %d sec\n',toc);
         
-        % Pick maximum value for each face from the different 'depths'
-        fcol = max(fcol);
-        
+
 %         % we have a colour value for each FACE but matlab works much better
-%         % with vertex colour data because it can interp vertex data - so
+%         % with vertex colour data because it can interpolate vertex data - so
 %         % cast this back to vertex colour data:
 %         tovert    = mv*0;
 %         tovert(f) = repmat(fcol,[1 3]);
@@ -1383,6 +1393,7 @@ switch method
 %         %set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
 %         %drawnow;shading interp
         
+        % Nope - just plot the face colour data with no interpolation 
         set(mesh.h,'FaceVertexCData',fcol(:));
         mesh.h.FaceColor = 'flat';
         s = max(abs(fcol(:))); caxis([-s s]);
