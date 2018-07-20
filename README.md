@@ -115,11 +115,11 @@ There are currently three different methods for projecting functional overlay da
 
 To select a method:
 
-'''
+```
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','euclidean') 
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','raycast') 
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','spheres') 
-'''
+```
 
 ![peaks gui](figs/ProjectionCompare2.png)
 
