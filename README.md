@@ -25,7 +25,7 @@ Export stationary (camera rotation) and temporal (function over time) videos.
 Perform spatial PCA and find local maxima.
 
 
-![figure](V1_RenderRight.png)
+![figure](figs/V1_RenderRight.png)
 
 # Supported filetypes
 
@@ -96,9 +96,9 @@ Takes paired 'Property','Name' values. Examples below. Also see scripts in Examp
 %  atemplate('sourcemodel',sormod,'overlay',overlayvector,'template','aal90','peaks')
 ```
 
-![peaks gui](peaks_1.png)
+![peaks gui](figs/peaks_1.png)
 
-![alt text](NodePowOnSurface.gif)
+![alt text](figs/NodePowOnSurface.gif)
 
 # VIDEO OVERLAY:
 ```
@@ -113,7 +113,7 @@ Takes paired 'Property','Name' values. Examples below. Also see scripts in Examp
 %  - times  = vector of titles (time values?)
 ```
 
-![alt text](VideoExample.gif)
+![alt text](figs/VideoExample.gif)
 
 # NETWORKS:
 ```
@@ -179,7 +179,7 @@ See scripts in 'Examples' folder for more help.
 atemplate_gui
 ```
 
-![gui1](gui_1.png)
+![gui1](figs/gui_1.png)
 
 
 # AN EXAMPLE NETWORK (1): 
