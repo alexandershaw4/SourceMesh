@@ -205,7 +205,6 @@ in.template  = 0;
 in.orthog    = 0;
 in.inflate   = 0;
 in.peaks     = 0;
-in.partialvol = 0;
 in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
@@ -220,7 +219,6 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
-    if strcmp(varargin{i},'partialvol');  in.partialvol = 1;      end
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
     if strcmp(varargin{i},'network');     in.A   = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');      in.T   = varargin{i+1}; in.H = varargin{i+2}; end
@@ -310,7 +308,6 @@ inputs = i;
 if isfield(inputs,'L')
     % copy over overlay options
     data.peaks      = i.peaks;
-    data.partialvol = i.partialvol;
     data.components = i.components;
     data.pca        = i.pca;
     data.method     = i.method;
@@ -1171,17 +1168,34 @@ if ismember(data.method,{'euclidean','spheres','precomputed (AAL)','raycast'})
 else,method = 'euclidean';  
 end
 
+% move options into overlay substructure
+%-------------------------------------------------------------
+data.overlay.method = data.method;
+data = rmfield(data,'method');
+
+data.overlay.pca = data.pca;
+data = rmfield(data,'pca');
+
+data.overlay.components = data.components;
+data = rmfield(data,'components');
+
+data.overlay.tf_interactive = data.tf_interactive;
+data = rmfield(data,'tf_interactive');
+
+data.overlay.peaks = data.peaks;
+data = rmfield(data,'peaks');
+
 % If atlas data and peaks frequested, label them
 %-------------------------------------------------------------
 data.overlay.orig = L;
-if data.peaks
+if data.overlay.peaks
     n     = mean(L)+(2*std(L));
     [V,I] = find(abs(L) > n);
 
     if isfield(data,'atlas')
         Lab = data.atlas.AAL_Labels;
-        data.Peaks.Labels = Lab(I);
-        data.Peaks.Values = L(I);
+        data.overlay.Peaks.Labels = Lab(I);
+        data.overlay.Peaks.Values = L(I);
     end
     
 end
@@ -1302,22 +1316,24 @@ fprintf('Determining closest points between sourcemodel & template vertices\n');
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
 RND = 1; % decimation/rounding value
+
+% Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
+UseFaceVertex = 'face'; 
+
 switch method
     
     case 'raycast'
         
         
-        % Increase resoluition of volume?
-        nmesh.vertices = data.mesh.vertices * 5;
-        dv             = v * 5;
-        
-        % make new mesh and overlay points, decimated / rounded to integers
-        % (mm)
+        % Grid resolution
+        nmesh.vertices = data.mesh.vertices * .5;
+        dv             = v * .5;
+                
+        % make new mesh and overlay points, decimated / rounded to integers (mm)
         nmesh.vertices = round(nmesh.vertices*RND)/RND;
         nmesh.faces    = data.mesh.faces;
         dv             = round(dv*RND)/RND;
-        
-        
+           
         % volume the data so vertices are (offset) indices
         fprintf('Gridding data for ray cast\n');
         vol = zeros( (max(dv) - min(dv))+1 );
@@ -1332,63 +1348,70 @@ switch method
             end
         end
                 
-        %Smooth
-        fprintf('Volume Smoothing\n');tic
-        
-        % Alex 3D smoothing function
-        %-------------------------------------
-        %c    = round( size(vol)*0.05 );
-        %vol  = NewMeanFilt3D(vol,c(1),c(2),c(3));
-        
-        % Matlab 3D smoothing function
-        %-------------------------------------
-        vol  = smooth3(vol,'box',5);
-        
-        fprintf('Done (%d seconds)\n',toc);
-        
-        %Rescale after smoothing
-        fprintf('Rescaling smoothed volume\n');
+        % Smooth volume
+        fprintf('Volume Smoothing & Rescaling  ');tic        
+        vol  = smooth3(vol,'box',3);        
         V   = spm_vec(vol);
         V   = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
         vol = spm_unvec(V, vol); 
+        fprintf('-- done (%d seconds)\n',round(toc)); 
         
-        
-        % Compute FACE normals 
-        fprintf('Computing FACE normals & centroids\n');
-        tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
-                            nmesh.vertices(:,2),nmesh.vertices(:,3));
-        FaceNorm = tr.faceNormal;
-        
-                                
-        % Compute triangle centroids
-        f        = nmesh.faces;
-        for If   = 1:length(f)
-            pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
-                            nmesh.vertices(f(If,3),:)];
+        switch UseFaceVertex
             
-            % Triangle centroid
-            FaceCent(If,:) = mean(pnts,1);
+            case 'face'
+                
+                % Compute FACE normals 
+                fprintf('Computing FACE Normals & Centroids  '); tic;
+                tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
+                                    nmesh.vertices(:,2),nmesh.vertices(:,3));
+                FaceNorm = tr.faceNormal;
+
+
+                % Compute triangle centroids
+                f        = nmesh.faces;
+                for If   = 1:length(f)
+                    pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
+                                    nmesh.vertices(f(If,3),:)];
+
+                    % Triangle centroid
+                    FaceCent(If,:) = mean(pnts,1);
+                end
+                
+                %step   = -40:2:25;
+                %step   = -4:2:4;
+                step   = -1.5:0.05:1.5;
+                fcol   = zeros(length(step),length(f));
+                fprintf('-- done (%d seconds)\n',round(toc));
+                
+            case 'vertex'
+                
+                % Compute VERTEX normals
+                fprintf('Computing VERTEX normals\n');
+                FaceNorm = spm_mesh_normals(nmesh,1);
+                
+                % In this case, centroids are the vertices themselves
+                FaceCent = nmesh.vertices;
+                
+                step    = -40:2:25;
+                fcol    = zeros(length(step),length(mv));
         end
-        
-        % Decimate to the same scale as the vertices
-        %FaceCent = round(FaceCent*RND)/RND;
     
         % Now search outwards along normal line
-        %step   = -4:.05:2;
-        step = -50:2:25;
-        found  = zeros(length(f),1); 
-        nhits  = 0;
-        fcol   = zeros(length(step),length(f));
-        tic    ;
-         
-        perc = round(linspace(1,length(step),10));
+        %---------------------------------------
+
+        nhits  = 0; tic    ;
+        perc   = round(linspace(1,length(step),10));
         for i  = 1:length(step)
+            
+            % keep count of num hits
             hits{i} = 0;
             
+            % print progress
             if ismember(i,perc)
                 fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
             end
             
+            % the new points
             these = FaceCent + (step(i)*FaceNorm);
             
             % convert these points to indices of the volume
@@ -1397,6 +1420,7 @@ switch method
             these(:,3) = these(:,3) - ndv(3);
             these      = round(these*RND)/RND;
             
+            % values at volume indices
             for j = 1:length(these)
                 try
                     fcol(i,j) = vol(these(j,1),these(j,2),these(j,3));
@@ -1404,8 +1428,9 @@ switch method
                 end
             end
         end
+            
         
-        fprintf('Finished in %d sec\n',toc);
+        fprintf('Finished in %d sec\n',round(toc));
         
         % Retain largest absolute value for each face
         [~,I] = max(abs(fcol));
@@ -1414,9 +1439,21 @@ switch method
         end
         fcol = nfcol;
         
-        % Set face colour data on mesh, requires setting FaceColor= 'flat'
-        set(mesh.h,'FaceVertexCData',fcol(:));
-        mesh.h.FaceColor = 'flat';
+        % add the values - either 1 per face or 1 per vertex - to the mesh
+        switch UseFaceVertex
+            case 'face'
+                % Set face colour data on mesh, requires setting FaceColor= 'flat'
+                set(mesh.h,'FaceVertexCData',fcol(:));
+                mesh.h.FaceColor = 'flat';
+            case 'vertex'
+                % Set vertex color, using interpolated face colours
+                fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
+                fcol(isnan(fcol)) = 0;
+                fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
+        end
+        
+        % Use symmetric colourbar and jet
         s = max(abs(fcol(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
@@ -1425,6 +1462,7 @@ switch method
         data.overlay.data  = fcol(:);
         data.overlay.steps = step;
         data.overlay.hits  = hits;
+        data.overlay.cast  = UseFaceVertex;
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -1638,8 +1676,8 @@ drawnow;
 
 % if a timefreqanal structure was passed: allow click-for-plot (see Mylcmv)
 %--------------------------------------------------------------------------
-if isfield(data,'tf_interactive') && isstruct(data.tf_interactive)
-    tf   = data.tf_interactive;
+if isfield(data.overlay,'tf_interactive') && isstruct(data.overlay.tf_interactive)
+    tf   = data.overlay.tf_interactive;
     f0   = get(gca,'parent');
     f    = figure('position',[1531         560         560         420]);
     %waitfor(f) % while the box is open
@@ -1669,8 +1707,8 @@ end
 
 % if a spatial PCA was requested
 %--------------------------------------------------------------------------
-if isfield(data,'pca')
-    if data.pca
+if isfield(data.overlay,'pca')
+    if data.overlay.pca
         f = mesh.faces;
         A = spm_mesh_adjacency(f);
         sy = y'*speye(length(y));
@@ -1746,8 +1784,8 @@ end
 
 % if search of local maxima was requested
 %--------------------------------------------------------------------------
-if isfield(data,'components')
-    if data.components
+if isfield(data.overlay,'components')
+    if data.overlay.components
                 
         fprintf('Computing local maxima on surface\n');
         if length(data.overlay.orig) ~= length(mesh.vertices);
@@ -1833,14 +1871,14 @@ end
 
 % If 'Peaks' was requested while using an AAL atlas
 %--------------------------------------------------------------------------
-if isfield(data,'Peaks')
-    if isfield(data.Peaks,'Labels')
+if isfield(data.overlay,'Peaks')
+    if isfield(data.overlay.Peaks,'Labels')
         f0 = get(gca,'parent');
         f = figure('position',[1531         560         560         420]);
         t = uitable(f);
-        for i = 1:length(data.Peaks.Labels)
-            d{i,1} = data.Peaks.Labels{i};
-            d{i,2} = data.Peaks.Values(i);
+        for i = 1:length(data.overlay.Peaks.Labels)
+            d{i,1} = data.overlay.Peaks.Labels{i};
+            d{i,2} = data.overlay.Peaks.Values(i);
             d{i,3} = false;
         end
         d{i+1,1} = 'All';
