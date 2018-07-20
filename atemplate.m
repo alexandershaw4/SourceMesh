@@ -1347,29 +1347,42 @@ switch method
             
             case 'face'
                 
-                % Compute FACE normals 
-                fprintf('Computing FACE Normals & Centroids  '); tic;
-                tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
-                                    nmesh.vertices(:,2),nmesh.vertices(:,3));
-                FaceNorm = tr.faceNormal;
+                % Load or compute FACE normals and centroids
+                %----------------------------------------------------------
+                if length(mv) == 81924
+                    % use precomputed for deault mesh
+                    load('DefaultMeshCentroidsNormals','FaceCent','FaceNorm')
+                    fprintf('Using precomputed centroids & normals for default mesh\n');
+                    f = nmesh.faces;
+                else
+                    
+                    % Compute face normals
+                    %------------------------------------------------------
+                    fprintf('Computing FACE Normals & Centroids  '); tic;
+                    tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
+                                        nmesh.vertices(:,2),nmesh.vertices(:,3));
+                    FaceNorm = tr.faceNormal;
 
-
-                % Compute triangle centroids
-                f        = nmesh.faces;
-                for If   = 1:length(f)
-                    pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
-                                    nmesh.vertices(f(If,3),:)];
-
-                    % Triangle centroid
-                    FaceCent(If,:) = mean(pnts,1);
+                    % Compute triangle centroids
+                    %------------------------------------------------------
+                    f        = nmesh.faces;
+                    for If   = 1:length(f)
+                        pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
+                                        nmesh.vertices(f(If,3),:)];
+                        % Triangle centroid
+                        FaceCent(If,:) = mean(pnts,1);
+                    end
+                    
+                    fprintf('-- done (%d seconds)\n',round(toc));
                 end
                 
-                fprintf('-- done (%d seconds)\n',round(toc));
+                % If a depth vector was specified use that, otherwise
+                % deault
                 if isfield(data.overlay,'depth') && ~isempty(data.overlay.depth)
                       step = data.overlay.depth;
                 else; step   = -1.5:0.05:1.5;
                 end
-                fprintf('Using depths: %d to %d in increments %d\n',...
+                fprintf('Using depths: %d to %d mm in increments %d\n',...
                     step(1), step(end), round((step(2)-step(1))*1000)/1000 );
                 fcol   = zeros(length(step),length(f));
                 
