@@ -77,6 +77,9 @@ Takes paired 'Property','Name' values. Examples below. Also see scripts in Examp
 %  % Sormod is n-by-3, L is n-by-1.
 %  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L)  
 
+%  % Plot as above but using a ray casting approach
+%  atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','raycast') 
+
 %  %  - Plot as above but write out TWO gifti files:
 %  %  1. MYGifti.gii is the gifti mesh 
 %  %  2. MYGiftiOverlay.gii is the corresponding overlay data
@@ -99,6 +102,27 @@ Takes paired 'Property','Name' values. Examples below. Also see scripts in Examp
 ![peaks gui](figs/peaks_1.png)
 
 ![alt text](figs/NodePowOnSurface.gif)
+
+
+# OVERLAY OPTIONS
+There are currently three different methods for projecting functional overlay data onto meshes.
+
+1) Euclidean ICP: calculates the closest mesh points to each source point and performs a linear (weighted) iterpolation of the data onto the mesh surface
+
+2) Ray casting: this method grids the source functional data, computes the mesh face normals at each centroid and performs ray casting from each mesh triangle to determine which functional values appear at which mesh face.
+
+3) Trap radius: this method inflates a sphere of radius r around each source point. Any mesh vertices falling inside this sphere are coloured with this functional value.
+
+To select a method:
+
+'''
+atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','euclidean') 
+atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','raycast') 
+atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','spheres') 
+'''
+
+![peaks gui](figs/ProjectionCompare2.png)
+
 
 # VIDEO OVERLAY:
 ```
