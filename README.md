@@ -213,7 +213,7 @@ Dependencies: fieldtrip & spm
 
 ![alt text](Examples/Ex_OverlayWithNetworkAndLabels.gif)
 
-![alt text](ExampleTracksNodesLabels.gif)
+![alt text](figs/ExampleTracksNodesLabels.gif)
 
 
 
