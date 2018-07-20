@@ -39,11 +39,14 @@ function data = atemplate(varargin)
 %  atemplate('overlay',L);   
 %
 %  % Plot overlay aligned to mesh using a Euclidean ICP search:
-%  atemplate('overlay',L,'method','euclidean');  
+%  atemplate('overlay',L,'sourcemodel',pos,'method','euclidean');  
 %
 %  % Plot overlay aligned to mesh using a sphere-based trap radius method (def):
-%  atemplate('overlay',L,'method','spheres');  
+%  atemplate('overlay',L,'sourcemodel',pos,'method','spheres');  
 %
+%  % Plot overlay aligned to mesh using ray casting
+%  atemplate('overlay',L,'sourcemodel',pos,'method','raycast');  
+%  atemplate('overlay',L,'sourcemodel',pos,'method','raycast','depth',-1.5:.05:1.5);  
 %
 %  % Plot template with overlay values L at sourcemodel values sormod, interpolated on surface.
 %  % Sormod is n-by-3, L is n-by-1.
