@@ -1308,22 +1308,29 @@ S  = [min(L(:)),max(L(:))];     % min max values
 cnt = spherefit(mv);
 Lft = mv(:,1) < cnt(1);
 Rht = mv(:,1) > cnt(1);
-
 Lft = find(Lft);
 Rht = find(Rht);
 
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
-RND = 1; % decimation/rounding value
 
-% Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
-UseFaceVertex = 'face'; 
-
+% Switch which projection method to use:
+%--------------------------------------------------------------------------
 switch method
     
     case 'raycast'
+        % This is an attempt at employing the ray casting method
+        % implemented in mri3dX. It grids the functional data and searches
+        % along each face's normal from -1.5 to 1.5 in 0.05 mm steps.
+        %
+        % The functional overlay vector returned in the overlay substructure 
+        % has one value per FACE of the mesh
         
+        
+        % Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
+        UseFaceVertex = 'face'; 
+        RND = 1;
         
         % Grid resolution
         nmesh.vertices = data.mesh.vertices * .5;
@@ -1351,9 +1358,9 @@ switch method
         % Smooth volume
         fprintf('Volume Smoothing & Rescaling  ');tic        
         vol  = smooth3(vol,'box',3);        
-        V   = spm_vec(vol);
-        V   = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-        vol = spm_unvec(V, vol); 
+        V    = spm_vec(vol);
+        V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+        vol  = spm_unvec(V, vol); 
         fprintf('-- done (%d seconds)\n',round(toc)); 
         
         switch UseFaceVertex
@@ -1377,8 +1384,6 @@ switch method
                     FaceCent(If,:) = mean(pnts,1);
                 end
                 
-                %step   = -40:2:25;
-                %step   = -4:2:4;
                 step   = -1.5:0.05:1.5;
                 fcol   = zeros(length(step),length(f));
                 fprintf('-- done (%d seconds)\n',round(toc));
@@ -1392,13 +1397,12 @@ switch method
                 % In this case, centroids are the vertices themselves
                 FaceCent = nmesh.vertices;
                 
-                step    = -40:2:25;
+                step    = -1.5:0.05:1.5;
                 fcol    = zeros(length(step),length(mv));
         end
     
         % Now search outwards along normal line
-        %---------------------------------------
-
+        %-----------------------------------------------------------------
         nhits  = 0; tic    ;
         perc   = round(linspace(1,length(step),10));
         for i  = 1:length(step)
@@ -1424,15 +1428,14 @@ switch method
             for j = 1:length(these)
                 try
                     fcol(i,j) = vol(these(j,1),these(j,2),these(j,3));
-                    hits{i} = hits{i} + 1;
+                    hits{i}   = hits{i} + 1;
                 end
             end
         end
-            
-        
+
         fprintf('Finished in %d sec\n',round(toc));
         
-        % Retain largest absolute value for each face
+        % Retain largest absolute value for each face (from each depth)
         [~,I] = max(abs(fcol));
         for i = 1:length(I)
             nfcol(i) = fcol(I(i),i);
@@ -1440,6 +1443,7 @@ switch method
         fcol = nfcol;
         
         % add the values - either 1 per face or 1 per vertex - to the mesh
+        %------------------------------------------------------------------
         switch UseFaceVertex
             case 'face'
                 % Set face colour data on mesh, requires setting FaceColor= 'flat'
@@ -1453,25 +1457,30 @@ switch method
                 set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
         end
         
-        % Use symmetric colourbar and jet
+        % Use symmetric colourbar and jet as defaults
         s = max(abs(fcol(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
         
         % Return the face colours
-        data.overlay.data  = fcol(:);
-        data.overlay.steps = step;
-        data.overlay.hits  = hits;
-        data.overlay.cast  = UseFaceVertex;
+        data.overlay.data  = fcol(:);       % the functional vector
+        data.overlay.steps = step;          % the depths at which searched
+        data.overlay.hits  = hits;          % num hits / intersects at each depth
+        data.overlay.cast  = UseFaceVertex; % whether computed for faces or vertices
     
     
     case 'spheres' % this would be better called 'box' in its current form
         
-        
-        % Places a box (boundaries) around a sphere inflated around each
+        % This method places a box (boundaries) around a sphere inflated around each
         % vertex point (a 'trap window') by a fixed radius. Mesh points
         % within these bounds are assigned to this vertex
-        %------------------------------------------------------------------
+        %
+        % The functional overlay vector returned in the overlay
+        % substructure contains 1 value per VERTEX and faces colours are
+        % interpolated
+        %
+        
+        debugplot = 0;
 
         fprintf('Using inside-spheres search algorithm\n');
         tic
@@ -1500,27 +1509,29 @@ switch method
                     newv  = [newv; [xunit' yunit' zunit']];
                 end
 
-                 % plot for debugging..................................
-%                  hold on;
-%                  s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
-%                  s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
-%                  s2.MarkerEdgeAlpha = 0.1;
-%                  drawnow;
+                if debugplot
+                    hold on;
+                    s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
+                    s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
+                    s2.MarkerEdgeAlpha = 0.1;
+                    drawnow;
+                end
 
-                 % determine whether this point if left or right hemisphere
-                 LR     = v(i,1);
-                 IsLeft = (LR-cnt(1)) < 0;
-                 
-                 if IsLeft; lri = Lft;
-                 else;      lri = Rht;
-                 end
-
-                bx = [min(newv); max(newv)]; % bounding box
+                % Determine whether this point if left or right hemisphere
+                LR     = v(i,1);
+                IsLeft = (LR-cnt(1)) < 0;
+                
+                if IsLeft; lri = Lft;
+                else;      lri = Rht;
+                end
+                
+                % Bounding box
+                bx = [min(newv); max(newv)];
                 inside = ...
                     [mv(lri,1) > bx(1,1) & mv(lri,1) < bx(2,1) &...
                      mv(lri,2) > bx(1,2) & mv(lri,2) < bx(2,2) &...
                      mv(lri,3) > bx(1,3) & mv(lri,3) < bx(2,3) ];
-
+                
                 ind = lri(find(inside));
                 OL(i,ind) = L(i);
                 M (i,ind) = 1;
@@ -1536,16 +1547,24 @@ switch method
         % Computes (vectorised) euclidean distance from each vertex to
         % every mesh point. Selects closest n to represent vertex values and 
         % weights by distabnce. n is defined by nmeshpoints / nvertex *1.3
-        %------------------------------------------------------------------
-
+        %
+        % The functional overlay vector returned in the overlay
+        % substructure contains 1 value per VERTEX and face colours are
+        % interpolated
+        %
+        
+        debugplot = 0;
+        
         fprintf('Using euclidean search algorithm\n');
         tic
         for i = 1:length(x)
+            
+            % Print progress
             if i > 1; fprintf(repmat('\b',[size(str)])); end
             str = sprintf('%d/%d',i,(length(x)));
             fprintf(str);
 
-            % restrict search to this hemisphere
+            % Restrict search to this hemisphere
             LR     = v(i,1);
             IsLeft = (LR-cnt(1)) < 0;
             
@@ -1553,6 +1572,7 @@ switch method
             else;      lri = Rht;
             end
 
+            % Compute euclidean distances
             dist       = cdist(mv(lri,:),v(i,:));
             [junk,ind] = maxpoints(dist,max(r,1),'min');
             ind        = lri(ind);
@@ -1560,27 +1580,25 @@ switch method
             M (i,ind)  = w;
             indz(i,:)  = ind;
 
-            % plot point and projection
-            %hold on;
-            %s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
-            %s2 = scatter3(mv(ind,1),mv(ind,2),mv(ind,3),150,'b','filled');
-            %drawnow;
+            if debugplot
+                hold on;
+                s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
+                s2 = scatter3(mv(ind,1),mv(ind,2),mv(ind,3),150,'b','filled');
+                drawnow;
+            end
 
         end
         stime = toc;
         fprintf('Routine took %d seconds\n',stime);
 end
 
+
 switch method
     case 'raycast' 
-        % Don't do anything
-        
-        
+        % Don't do anything        
     otherwise
         
-        fprintf('\n');
-        clear L
-
+        fprintf('\n'); clear L;
         if ~interpl
              % mean value of a given vertex
             OL = mean((OL),1);
@@ -1592,7 +1610,6 @@ switch method
             end
             OL = L;
         end
-
 
         % normalise and rescale
         OL = double(full(OL));
@@ -1632,6 +1649,7 @@ if colbar
 end
     
 % switches for writing out other file formats
+%-------------------------------------------------------------------------
 if write == 1;
     fprintf('Writing overlay gifti file: %s\n',[fname 'Overlay.gii']);
     g       = gifti;

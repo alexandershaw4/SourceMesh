@@ -205,7 +205,6 @@ in.template  = 0;
 in.orthog    = 0;
 in.inflate   = 0;
 in.peaks     = 0;
-in.partialvol = 0;
 in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
@@ -220,7 +219,6 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
-    if strcmp(varargin{i},'partialvol');  in.partialvol = 1;      end
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
     if strcmp(varargin{i},'network');     in.A   = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');      in.T   = varargin{i+1}; in.H = varargin{i+2}; end
@@ -310,7 +308,6 @@ inputs = i;
 if isfield(inputs,'L')
     % copy over overlay options
     data.peaks      = i.peaks;
-    data.partialvol = i.partialvol;
     data.components = i.components;
     data.pca        = i.pca;
     data.method     = i.method;
@@ -1323,20 +1320,25 @@ RND = 1; % decimation/rounding value
 % Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
 UseFaceVertex = 'face'; 
 
+
+% Switch which projection method to use:
+%--------------------------------------------------------------------------
 switch method
     
     case 'raycast'
+        % This is an attempt at 
+        %
+        %
         
         
-        % Increase resoluition of volume?
-        nmesh.vertices = data.mesh.vertices * 1;% * 5;
-        dv             = v * 1; %* 5;
+        % Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
+        UseFaceVertex = 'face'; 
+
         
-        % Centre to determine L/R
-        cent   = spherefit(data.mesh.vertices);
-        data.mesh.vertices = data.mesh.vertices - repmat(cent,[size(data.mesh.vertices,1),1]);
-        IsLeft = data.mesh.vertices(:,1) < cent(1);
-        
+        % Grid resolution
+        nmesh.vertices = data.mesh.vertices * .5;
+        dv             = v * .5;
+                
         % make new mesh and overlay points, decimated / rounded to integers (mm)
         nmesh.vertices = round(nmesh.vertices*RND)/RND;
         nmesh.faces    = data.mesh.faces;
@@ -1357,31 +1359,19 @@ switch method
         end
                 
         % Smooth volume
-        fprintf('Volume Smoothing\n');tic
-        
-        % Alex 3D smoothing function
-        %-------------------------------------
-        %c    = round( size(vol)*0.05 );
-        %vol  = NewMeanFilt3D(vol,c(1),c(2),c(3));
-        
-        % Matlab 3D smoothing function
-        %-------------------------------------
-        vol  = smooth3(vol,'box',3);
-        
-        fprintf('Done (%d seconds)\n',round(toc));
-        
-        % Rescale after smoothing
-        fprintf('Rescaling smoothed volume\n');
+        fprintf('Volume Smoothing & Rescaling  ');tic        
+        vol  = smooth3(vol,'box',3);        
         V   = spm_vec(vol);
         V   = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
         vol = spm_unvec(V, vol); 
+        fprintf('-- done (%d seconds)\n',round(toc)); 
         
         switch UseFaceVertex
             
             case 'face'
                 
                 % Compute FACE normals 
-                fprintf('Computing FACE normals & centroids\n');
+                fprintf('Computing FACE Normals & Centroids  '); tic;
                 tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
                                     nmesh.vertices(:,2),nmesh.vertices(:,3));
                 FaceNorm = tr.faceNormal;
@@ -1399,8 +1389,9 @@ switch method
                 
                 %step   = -40:2:25;
                 %step   = -4:2:4;
-                step   = -1.5:0.005:1.5;
+                step   = -1.5:0.05:1.5;
                 fcol   = zeros(length(step),length(f));
+                fprintf('-- done (%d seconds)\n',round(toc));
                 
             case 'vertex'
                 
@@ -1417,54 +1408,37 @@ switch method
     
         % Now search outwards along normal line
         %---------------------------------------
-        
-        % Loop Left then Right
-        AllFaceCent = FaceCent;
-        AllFaceNorm = FaceNorm;
-        
-        for lr = 1:2
+
+        nhits  = 0; tic    ;
+        perc   = round(linspace(1,length(step),10));
+        for i  = 1:length(step)
             
-            if lr == 1; 
-                FaceNorm = AllFaceNorm;
-                FaceCent = AllFaceCent;
-                right = find(IsLeft~=1);
-                right = ismember(f,right);
-                FaceNorm(right)=nan;
-                FaceCent(right) =nan;
-                
+            % keep count of num hits
+            hits{i} = 0;
             
-            
-            nhits  = 0; tic    ;
-            perc   = round(linspace(1,length(step),10));
-            for i  = 1:length(step)
-
-                % keep count of num hits
-                hits{i} = 0;
-
-                % print progress
-                if ismember(i,perc)
-                    fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
-                end
-
-                % the new points
-                these = FaceCent + (step(i)*FaceNorm);
-
-                % convert these points to indices of the volume
-                these(:,1) = these(:,1) - ndv(1);
-                these(:,2) = these(:,2) - ndv(2);
-                these(:,3) = these(:,3) - ndv(3);
-                these      = round(these*RND)/RND;
-
-                % values at volume indices
-                for j = 1:length(these)
-                    try
-                        fcol(i,j) = vol(these(j,1),these(j,2),these(j,3));
-                        hits{i} = hits{i} + 1;
-                    end
-                end
+            % print progress
+            if ismember(i,perc)
+                fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
             end
             
+            % the new points
+            these = FaceCent + (step(i)*FaceNorm);
+            
+            % convert these points to indices of the volume
+            these(:,1) = these(:,1) - ndv(1);
+            these(:,2) = these(:,2) - ndv(2);
+            these(:,3) = these(:,3) - ndv(3);
+            these      = round(these*RND)/RND;
+            
+            % values at volume indices
+            for j = 1:length(these)
+                try
+                    fcol(i,j) = vol(these(j,1),these(j,2),these(j,3));
+                    hits{i} = hits{i} + 1;
+                end
+            end
         end
+            
         
         fprintf('Finished in %d sec\n',round(toc));
         
