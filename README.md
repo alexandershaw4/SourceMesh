@@ -8,6 +8,8 @@ Extract iso surfaces from nifti volumes or project statistical nifti volumes on 
 
 Plot Gifti surfaces and overlays.
 
+Selection of volume-to-surface projection algorithms including euclidean ICP search & ray casting.
+
 Plot whole brain or left / right hemisphere only.
 
 Read & write .edge and .node files.
@@ -32,19 +34,16 @@ Reads: .nii / .nii.gz / .edge / .node / .gii
 Writes: .nii / .gii / .node .edge / .stl / .vrml / videos (format dependent on system)
 
 
-# How it works
+# What it's for
 
-Essentially it fits the sourcemodel co-ordinates (or atlas source coords) to an MNI-space gifti surface (or template brain mesh) and allows plotting of functional overlays, nodes, labels, networks (opt. with labels) and overlay-videos on this mesh. 
-
-It can also add atlas labels to non-atlas sourcemodel data using ICP to align the cloud points. 
-Can export (after alignment / interpolation) both structural and functional gifti objects.
+Plotting functional overlays and networks on brain meshes. 
 
 Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. If these cause problems, delete them.
 
 *UPDATE: Can export meshes with overlays and networks as .stl and .wrl objects. See example interactive here: https://sketchfab.com/models/9c34500206f641c5a4445dd9d53b7b3e
 
 # USAGE:
-Takes paired 'Property','Name' values. Examples below. Also see scripts in Examples/.
+Takes paired 'Property','Name' values. Examples below. Also see scripts in Examples folder.
 
 
 # MESHES:
@@ -62,7 +61,7 @@ Takes paired 'Property','Name' values. Examples below. Also see scripts in Examp
 %  atemplate('mesh','mymri.nii')
 ```
 
-![alt text](ExampleMeshRotate.gif)
+![alt text](figs/ExampleMeshRotate.gif)
 
 # OVERLAYS:
 ```
