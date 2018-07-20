@@ -212,6 +212,7 @@ in.flip       = 0;
 in.method     = 'euclidean';
 in.affine     = 0;
 in.netcmap    = 0;
+in.depth      = [];
 in.tf_interactive = 0;
 in.hemi = 'both'; % hemisphere to plot
 
@@ -240,6 +241,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'fighnd');      in.fighnd = varargin{i+1}; end
     if strcmp(varargin{i},'nocolbar');    in.colbar = 0;             end
     if strcmp(varargin{i},'method');      in.method = varargin{i+1}; end
+    if strcmp(varargin{i},'depth');       in.depth  = varargin{i+1}; end
     if strcmp(varargin{i},'video');       in.V     = varargin{i+1}; 
                                           in.fpath = varargin{i+2}; 
                                           in.times = varargin{i+3}; end
@@ -307,12 +309,13 @@ inputs = i;
 % overlays
 if isfield(inputs,'L')
     % copy over overlay options
-    data.peaks      = i.peaks;
-    data.components = i.components;
-    data.pca        = i.pca;
-    data.method     = i.method;
-    data.tf_interactive = i.tf_interactive;
-    data            = overlay(data, (i.L),i.write,i.fname,i.colbar);
+    data.overlay.peaks      = i.peaks;
+    data.overlay.components = i.components;
+    data.overlay.pca        = i.pca;
+    data.overlay.method     = i.method;
+    data.overlay.depth      = i.depth;
+    data.overlay.tf_interactive = i.tf_interactive;
+    data = overlay(data, (i.L),i.write,i.fname,i.colbar);
 end 
 
 isover = exist('L','var') || exist('V','var');
@@ -1163,27 +1166,10 @@ end
 
 % method for searching between the 3D coordinate
 %-------------------------------------------------------------
-if ismember(data.method,{'euclidean','spheres','precomputed (AAL)','raycast'})
-     method = data.method;
+if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast'})
+     method = data.overlay.method;
 else,method = 'euclidean';  
 end
-
-% move options into overlay substructure
-%-------------------------------------------------------------
-data.overlay.method = data.method;
-data = rmfield(data,'method');
-
-data.overlay.pca = data.pca;
-data = rmfield(data,'pca');
-
-data.overlay.components = data.components;
-data = rmfield(data,'components');
-
-data.overlay.tf_interactive = data.tf_interactive;
-data = rmfield(data,'tf_interactive');
-
-data.overlay.peaks = data.peaks;
-data = rmfield(data,'peaks');
 
 % If atlas data and peaks frequested, label them
 %-------------------------------------------------------------
@@ -1295,12 +1281,6 @@ v  = pos;                       % sourcemodel vertices
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
-OL = sparse(length(L),nv);      % this will be overlay matrix we average
-r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
-r  = max(r,1);                  % catch when the overlay is over specified!
-w  = linspace(.1,1,r);          % weights for closest points
-w  = fliplr(w);                 % 
-M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 S  = [min(L(:)),max(L(:))];     % min max values
 
 
@@ -1384,9 +1364,15 @@ switch method
                     FaceCent(If,:) = mean(pnts,1);
                 end
                 
-                step   = -1.5:0.05:1.5;
-                fcol   = zeros(length(step),length(f));
                 fprintf('-- done (%d seconds)\n',round(toc));
+                if isfield(data.overlay,'depth') && ~isempty(data.overlay.depth)
+                      step = data.overlay.depth;
+                else; step   = -1.5:0.05:1.5;
+                end
+                fprintf('Using depths: %d to %d in increments %d\n',...
+                    step(1), step(end), round((step(2)-step(1))*1000)/1000 );
+                fcol   = zeros(length(step),length(f));
+                
                 
             case 'vertex'
                 
@@ -1481,7 +1467,12 @@ switch method
         %
         
         debugplot = 0;
-
+        
+        OL = sparse(length(L),nv);      % this will be overlay matrix we average
+        w  = linspace(.1,1,r);          % weights for closest points
+        w  = fliplr(w);                 % 
+        M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
+        
         fprintf('Using inside-spheres search algorithm\n');
         tic
         for i = 1:length(x)
@@ -1555,6 +1546,13 @@ switch method
         
         debugplot = 0;
         
+        OL = sparse(length(L),nv);      % this will be overlay matrix we average
+        r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
+        r  = max(r,1);                  % catch when the overlay is over specified!
+        w  = linspace(.1,1,r);          % weights for closest points
+        w  = fliplr(w);                 % 
+        M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
+
         fprintf('Using euclidean search algorithm\n');
         tic
         for i = 1:length(x)
