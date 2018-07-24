@@ -1121,7 +1121,9 @@ function data = overlay(data,L,write,fname,colbar)
 % Add this special case, where using default 81k mesh and 90-node AAL
 % overlay, we'll use pre-computed weights for speed
 %--------------------------------------------------------------------------
-if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924
+if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924 && ...
+        strcmp(data.overlay.method,'euclidean')
+    
      fprintf('Using default AAL90 weights for this mesh\n');
      load('AAL90DefaultWeights','M','NumComp','indz','w');
      
