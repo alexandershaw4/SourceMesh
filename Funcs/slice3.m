@@ -36,13 +36,15 @@ for k = 1:3
             stuff = handle2struct(children{i});    
             struct2handle(stuff,this);
             set(f,'currentaxes',this);
-            set(gca,'visible','off');        
+            set(gca,'visible','off');  
+            axis(gca,'image');
         end
     else
             stuff = handle2struct(children);    
             struct2handle(stuff,this);
             set(f,'currentaxes',this);
-            set(gca,'visible','off');        
+            set(gca,'visible','off');   
+            axis(gca,'image');
     end
     view(this,v{k});
     pbaspect(asp{k});

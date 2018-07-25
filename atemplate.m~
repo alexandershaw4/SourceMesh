@@ -1056,9 +1056,6 @@ if length(find(vol)) == prod(S)
     vol = vol - mode(vol(:));
 end
 
-% a little smoothing
-vol = smooth3(vol,'gaussian');
-
 % New --- 
 pixdim = data.volume.hdr.dime.pixdim(2:4);
 
@@ -1076,25 +1073,12 @@ v = [x(nix); y(niy); z(niz)]';
 v = double(v);
 v = v*diag(pixdim);
 
-% apply affine if req.
-if isfield(data.overlay,'affine')
-    affine = data.overlay.affine;
-    if length(affine) == 4
-        fprintf('Applying affine transform\n');
-        va = [v ones(length(v),1)]*affine;
-        v  = va(:,1:3);
-    end
-end
-
-% Fit this gridded-volume inside the extremes of the mesh
-B        = [min(data.mesh.vertices); max(data.mesh.vertices)];
-V        = v - repmat(spherefit(v),[size(v,1),1]);
-V(:,1)   = B(1,1) + ((B(2,1)-B(1,1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = B(1,2) + ((B(2,2)-B(1,2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = B(1,3) + ((B(2,3)-B(1,3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-v        = V;
+B = [min(data.mesh.vertices); max(data.mesh.vertices)];
 
 
+
+
+% 
 % % new grid
 % fprintf('Generating grid for volume data\n');
 % x = linspace(B(1,1),B(2,1),S(1));
@@ -1110,6 +1094,15 @@ v        = V;
 % v = [x(nix); y(niy); z(niz)]';
 % v = double(v);
 
+% apply affine if req.
+if isfield(data.overlay,'affine')
+    affine = data.overlay.affine;
+    if length(affine) == 4
+        fprintf('Applying affine transform\n');
+        va = [v ones(length(v),1)]*affine;
+        v  = va(:,1:3);
+    end
+end
 
 % reduce patch
 fprintf('Reducing patch density\n');
@@ -1119,12 +1112,7 @@ tri = delaunay(v(:,1),v(:,2),v(:,3));
 fv  = struct('faces',tri,'vertices',v);
 count  = 0;
 
-% smooth overlay at triangulated points first
-Cbound = [min(C) max(C)];
-C      = spm_mesh_smooth(fv,double(C),4);
-C      = Cbound(1) + (Cbound(2)-Cbound(1)).*(C - min(C))./(max(C) - min(C));
-
-while nv > 10000
+while nv > 8000
    fv  = reducepatch(fv, 0.5);
    nv  = length(fv.vertices);
    count = count + 1;
@@ -1382,8 +1370,8 @@ switch method
         dv             = v * .5;
                 
         % make new mesh and overlay points, decimated / rounded to integers (mm)
-        nmesh.vertices = double(round(nmesh.vertices*RND)/RND);
-        nmesh.faces    = double(data.mesh.faces);
+        nmesh.vertices = round(nmesh.vertices*RND)/RND;
+        nmesh.faces    = data.mesh.faces;
         dv             = round(dv*RND)/RND;
            
         % volume the data so vertices are (offset) indices

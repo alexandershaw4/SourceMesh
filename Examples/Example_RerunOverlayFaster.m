@@ -1,6 +1,6 @@
 
 % Example of how to re-compute an already registered sourcemodel projection
-% on the mesh:
+% on the mesh when using EUCLIDEAN option
 
 % Original run:
 %--------------------------------------------------------------------------
