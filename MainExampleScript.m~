@@ -268,25 +268,9 @@ net(randi([1 90],20,1),randi([1 90],20,1)) = randi([-12 16],20,20);
 atemplate('network', net, 'labels');
 
 
-% Example (4): Add labels to a custom source model at the centre of the
-% voxels belonging to that ROI:
+% Example (4): Add labels to a custom source model at
 %-----------------------------------------------------------------
-figure('position',[481         176        1204         987])
 
-load New_AALROI_6mm.mat               % load template sourcemodel
-
-positions = template_sourcemodel.pos; % get positions
-
-% a 1-by-num-vertices vector containing indices of the roi this vertex belongs to
-all_roi_tissue = zeros(length(positions),1);
-all_roi_tissue(1   :1000) = 1; % the first 300 points represent ROI 1
-all_roi_tissue(2000:3000) = 2; % the next 300 points represent  ROI 2
-all_roi_tissue(4000:5000) = 3; % the next 300 points represent  ROI 3
-
-% the labels for each roi
-labels         = {'ROI 1' 'ROI 2' 'ROI 3'}; 
-
-atemplate('sourcemodel',positions,'labels', all_roi_tissue, labels); 
 
 
 
