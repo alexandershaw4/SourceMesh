@@ -1511,8 +1511,24 @@ switch method
         switch UseFaceVertex
             case 'face'
                 % Set face colour data on mesh, requires setting FaceColor= 'flat'
-                set(mesh.h,'FaceVertexCData',fcol(:));
-                mesh.h.FaceColor = 'flat';
+                %set(mesh.h,'FaceVertexCData',fcol(:));
+                %mesh.h.FaceColor = 'flat';
+                
+                % Or calculate vertex maxima from faces and use interp'd
+                % vertex colouring
+                f  = nmesh.faces;
+                ev = mv*0;
+                
+                % these are the vals at the three corners of each triangle
+                ev(f(:,1),1) = fcol;
+                ev(f(:,2),2) = fcol;
+                ev(f(:,3),3) = fcol;
+                y            = max(ev')';
+                
+                % vertex interpolated colour
+                mesh.h.FaceVertexCData = y;
+                mesh.h.FaceColor = 'interp';
+                
             case 'vertex'
                 % Set vertex color, using interpolated face colours
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
@@ -1803,9 +1819,28 @@ end
 %--------------------------------------------------------------------------
 if isfield(data.overlay,'pca')
     if data.overlay.pca
+        
+        switch method
+            case 'raycast';
+                % convert face colours to vertex colours
+                f = nmesh.faces;
+                ev = mv*0;
+                
+                ev(f(:,1),1) = fcol;
+                ev(f(:,2),2) = fcol;
+                ev(f(:,3),3) = fcol;
+                y            = max(ev')';
+                
+                % vertex interpolated colour
+                mesh.h.FaceVertexCData = y;mesh.h.FaceColor = 'interp';
+                
+                % face flat colour
+                mesh.h.FaceVertexCData = fcol(:);mesh.h.FaceColor = 'flat';
+        end
+        
         f = mesh.faces;
         A = spm_mesh_adjacency(f);
-        sy = y'*speye(length(y));
+        sy = double(y)'*speye(length(y));
         ya = sy.*A;
         
         pks = findpeaks(y);
