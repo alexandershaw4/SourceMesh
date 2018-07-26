@@ -1488,6 +1488,9 @@ switch method
             these(:,3) = these(:,3) - ndv(3);
             these      = round(these*RND)/RND;
             
+            % retain these
+            FaceNormLine(i,:,:) = these;
+            
             % values at volume indices
             for j = 1:length(these)
                 try
@@ -1511,8 +1514,27 @@ switch method
         switch UseFaceVertex
             case 'face'
                 % Set face colour data on mesh, requires setting FaceColor= 'flat'
-                set(mesh.h,'FaceVertexCData',fcol(:));
-                mesh.h.FaceColor = 'flat';
+                
+                %set(mesh.h,'FaceVertexCData',fcol(:));
+                %mesh.h.FaceColor = 'flat';
+                
+                % Or calculate vertex maxima from faces and use interp'd
+                % vertex colouring
+                f  = nmesh.faces;
+                ev = mv*0;
+                
+                % these are the vals at the three corners of each triangle
+                ev(f(:,1),1) = fcol;
+                ev(f(:,2),2) = fcol;
+                ev(f(:,3),3) = fcol;
+                y            = max(ev')';
+                
+                % vertex interpolated colour
+                mesh.h.FaceVertexCData = y;
+                mesh.h.FaceColor = 'interp';
+                
+                data.overlay.vertexcdata = y;
+                
             case 'vertex'
                 % Set vertex color, using interpolated face colours
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
@@ -1531,6 +1553,10 @@ switch method
         data.overlay.steps = step;          % the depths at which searched
         data.overlay.hits  = hits;          % num hits / intersects at each depth
         data.overlay.cast  = UseFaceVertex; % whether computed for faces or vertices
+        
+        data.overlay.FaceNormals   = FaceNorm;
+        data.overlay.FaceCentroids = FaceCent;
+        data.overlay.
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -1803,22 +1829,10 @@ end
 %--------------------------------------------------------------------------
 if isfield(data.overlay,'pca')
     if data.overlay.pca
-        
-        switch method
-            case 'raycast';
-                % convert face colours to vertex colours
-                f = nmesh.faces;
-                ev = mv*0;
-                
-                ev(f(:,1),1) = fcol;
-                ev(f(:,2),2) = fcol;
-                ev(f(:,3),3) = fcol;
-                y            = max(ev')';
-        end
-        
         f = mesh.faces;
         A = spm_mesh_adjacency(f);
         sy = double(y)'*speye(length(y));
+        sy = sy - mean(abs(sy(:))); 
         ya = sy.*A;
         
         pks = findpeaks(y);

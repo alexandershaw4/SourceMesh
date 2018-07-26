@@ -165,6 +165,7 @@ classdef InteractiveColorbar < hgsetget
             delete(obj.ColorBarListeners);
             delete(obj.ResizeListener);
             delete(obj.DeleteListener);
+            delete(obj);
         end
                 
         %Setters and getters        

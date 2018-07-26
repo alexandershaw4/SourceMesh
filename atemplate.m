@@ -1488,6 +1488,9 @@ switch method
             these(:,3) = these(:,3) - ndv(3);
             these      = round(these*RND)/RND;
             
+            % retain these
+            FaceNormLine(i,:,:) = these;
+            
             % values at volume indices
             for j = 1:length(these)
                 try
@@ -1530,6 +1533,8 @@ switch method
                 mesh.h.FaceVertexCData = y;
                 mesh.h.FaceColor = 'interp';
                 
+                data.overlay.vertexcdata = y;
+                
             case 'vertex'
                 % Set vertex color, using interpolated face colours
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
@@ -1548,6 +1553,10 @@ switch method
         data.overlay.steps = step;          % the depths at which searched
         data.overlay.hits  = hits;          % num hits / intersects at each depth
         data.overlay.cast  = UseFaceVertex; % whether computed for faces or vertices
+        
+        data.overlay.FaceNormals   = FaceNorm;
+        data.overlay.FaceCentroids = FaceCent;
+        data.overlay.FaceNormLines = FaceNormLine;
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -1823,6 +1832,7 @@ if isfield(data.overlay,'pca')
         f = mesh.faces;
         A = spm_mesh_adjacency(f);
         sy = double(y)'*speye(length(y));
+        sy = sy - mean(abs(sy(:))); 
         ya = sy.*A;
         
         pks = findpeaks(y);
@@ -2179,6 +2189,12 @@ switch hemisphere
         
     otherwise
         pg = g;
+end
+
+% sanity check
+if any( min(pg.faces(:)) == 0)
+    bad = find(pg.faces == 0);
+    pg.faces(bad) = nan;
 end
 
 
