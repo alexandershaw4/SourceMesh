@@ -43,7 +43,21 @@ Includes some compiled cpp code as (linux) mex for speed up for Mac and Linux. I
 *UPDATE: Can export meshes with overlays and networks as .stl and .wrl objects. See example interactive here: https://sketchfab.com/models/9c34500206f641c5a4445dd9d53b7b3e
 
 # USAGE:
+
+Either use the (simple) GUI, preferably, use simple matlab commands.
+
 Takes paired 'Property','Name' values. Examples below. Also see scripts in Examples folder.
+
+# GUI:
+
+A basic interface with limited functionality over command line version.
+
+```
+SourceMeshGUI
+```
+
+![gui1](gui/gui1.png)
+![gui2](gui/gui2.png)
 
 
 # MESHES:
@@ -198,12 +212,6 @@ atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','spheres')
 Any combination of the inputs should be possible.
 See scripts in 'Examples' folder for more help.
 
-# A basic interface (limited functionality over command line version).
-```
-atemplate_gui
-```
-
-![gui1](figs/gui_1.png)
 
 
 # AN EXAMPLE NETWORK (1): 
