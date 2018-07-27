@@ -1,26 +1,13 @@
 function varargout = SourceMeshGUI(varargin)
-% SOURCEMESHGUI MATLAB code for SourceMeshGUI.fig
-%      SOURCEMESHGUI, by itself, creates a new SOURCEMESHGUI or raises the existing
-%      singleton*.
+% Haven't written this help yet, but the gui should be pretty intuitive...
 %
-%      H = SOURCEMESHGUI returns the handle to a new SOURCEMESHGUI or the handle to
-%      the existing singleton*.
 %
-%      SOURCEMESHGUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in SOURCEMESHGUI.M with the given input arguments.
 %
-%      SOURCEMESHGUI('Property','Value',...) creates a new SOURCEMESHGUI or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before SourceMeshGUI_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to SourceMeshGUI_OpeningFcn via varargin.
 %
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
 %
-% See also: GUIDE, GUIDATA, GUIHANDLES
+%
+% AS
 
-% Edit the above text to modify the response to help SourceMeshGUI
 
 % Last Modified by GUIDE v2.5 27-Jul-2018 08:45:26
 
