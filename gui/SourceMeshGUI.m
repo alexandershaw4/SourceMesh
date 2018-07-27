@@ -55,6 +55,14 @@ function SourceMeshGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for SourceMeshGUI
 handles.output = hObject;
 
+% make sure we have local subpaths added - this is mainly for accessing mat
+% files within the package as well as ensuring we use my @gifti objects,
+% not the fieldtrip ones
+[fp,fn,fe] = fileparts(mfilename('fullpath'));
+fp = fileparts(fp);
+fprintf('Adding subpaths to ensure local function calls:\n(%s)\n',fp);
+addpath(genpath(fp));
+
 % Update handles structure
 guidata(hObject, handles);
 
