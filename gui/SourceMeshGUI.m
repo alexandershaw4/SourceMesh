@@ -1480,8 +1480,13 @@ function pushbutton22_Callback(hObject, eventdata, handles)
 % Save Image
 [FileName,PathName,FilterIndex] = uiputfile({'*.png'},'Filename');
 
-print(handles.axes1,[PathName FileName],'-dpng','-r600');
+%print(handles.axes1,[PathName FileName],'-dpng','-r600');
 
+ax_old = handles.axes1;
+f_new  = figure;
+ax_new = copyobj(ax_old,f_new);
+set(ax_new,'Position','default');
+print(f_new,[PathName FileName],'-dpng','-r600');
 
 % Update handles structure
 guidata(hObject, handles);
