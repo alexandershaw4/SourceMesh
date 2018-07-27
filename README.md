@@ -56,8 +56,8 @@ A basic interface with limited functionality over command line version.
 SourceMeshGUI
 ```
 
-![gui1](gui/gui1.png)
-![gui2](gui/gui2.png)
+![gui11](gui/gui11.png)
+![gui22](gui/gui22.png)
 
 
 # MESHES:
