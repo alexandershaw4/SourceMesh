@@ -22,7 +22,7 @@ function varargout = SourceMeshGUI(varargin)
 
 % Edit the above text to modify the response to help SourceMeshGUI
 
-% Last Modified by GUIDE v2.5 26-Jul-2018 14:49:21
+% Last Modified by GUIDE v2.5 27-Jul-2018 08:45:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1355,7 +1355,7 @@ if hasmesh && hasnet
             else;       colormap(jet);
             end
 
-            colorbar('peer',a1,'South');
+            handles.network.cb = colorbar('peer',a1,'South');
     end
     if LimC 
         axes(a1);
@@ -1450,10 +1450,14 @@ function pushbutton21_Callback(hObject, eventdata, handles)
 
 % Clear NEtwork
 try
-    handles.network.lines;
+    delete(handles.network.lines);
 end
 
-try; handles = rmfield(handles,'net'); end
+try
+    delete(handles.network.cb);
+end
+
+try; handles = rmfield(handles,'network'); end
 
 
 % Update handles structure
@@ -1470,7 +1474,7 @@ function pushbutton22_Callback(hObject, eventdata, handles)
 % Save Image
 [FileName,PathName,FilterIndex] = uiputfile({'*.png'},'Filename');
 
-print(gcf,[PathName FileName],'-dpng','-r600');
+print(handles.axes1,[PathName FileName],'-dpng','-r600');
 
 
 % Update handles structure
@@ -1513,5 +1517,41 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in pushbutton23.
+function pushbutton23_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+% Quick load: AAL90 overlay
+
+list = evalin('base','whos');
+opt  = menu('Select variable (nx1)',{list.name});
+list = {list.name};
+var  = list{opt};
+handles.overlay.data = evalin('base',var);
+
+load('AAL_SOURCEMOD');
+handles.oversay.sourcemodel = template_sourcemodel.pos;
+
+if isfield(handles,'mesh')
+    
+    handles = overlay(handles);
+else
+    
+end
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in pushbutton24.
+function pushbutton24_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% AAL90 Network
 

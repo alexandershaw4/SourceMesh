@@ -22,7 +22,7 @@ function varargout = SourceMeshGUI(varargin)
 
 % Edit the above text to modify the response to help SourceMeshGUI
 
-% Last Modified by GUIDE v2.5 26-Jul-2018 14:49:21
+% Last Modified by GUIDE v2.5 27-Jul-2018 08:45:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -524,6 +524,12 @@ write  = 0;
 % fname is filename is write = 1;
 %
 
+% method for searching between the 3D coordinate
+%-------------------------------------------------------------
+if ismember(data.overlay.method,{'Euclidean','Inflated spheres','precomputed (AAL)','Raycast'})
+     method = data.overlay.method;
+else,method = 'Raycast';  
+end
 
 % Add this special case, where using default 81k mesh and 90-node AAL
 % overlay, we'll use pre-computed weights for speed
@@ -553,12 +559,7 @@ if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(handles.mesh.g.vertice
 end
 
 
-% method for searching between the 3D coordinate
-%-------------------------------------------------------------
-if ismember(data.overlay.method,{'Euclidean','Inflated spheres','precomputed (AAL)','Raycast'})
-     method = data.overlay.method;
-else,method = 'Raycast';  
-end
+
 
 data.overlay.orig = L;
 
@@ -1474,7 +1475,7 @@ function pushbutton22_Callback(hObject, eventdata, handles)
 % Save Image
 [FileName,PathName,FilterIndex] = uiputfile({'*.png'},'Filename');
 
-print(gcf,[PathName FileName],'-dpng','-r600');
+print(handles.axes1,[PathName FileName],'-dpng','-r600');
 
 
 % Update handles structure
@@ -1517,5 +1518,66 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in pushbutton23.
+function pushbutton23_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+% Quick load: AAL90 overlay
+
+list = evalin('base','whos');
+opt  = menu('Select variable (90x1)',{list.name});
+list = {list.name};
+var  = list{opt};
+handles.overlay.data = evalin('base',var);
+
+load('AAL_SOURCEMOD');
+handles.overlay.sourcemodel = template_sourcemodel.pos;
+
+if ~isfield(handles.overlay,'method')
+    handles.overlay.method = 'Euclidean';
+end
+    
+if isfield(handles,'mesh')
+    handles = overlay(handles);
+else
+    handles.mesh.g = read_nv;
+    handles.mesh.h = meshmesh(handles,handles.mesh.g);
+    handles        = overlay(handles);
+end
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in pushbutton24.
+function pushbutton24_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% AAL90 Network
+
+list = evalin('base','whos');
+opt  = menu('Select variable (90x90)',{list.name});
+list = {list.name};
+var  = list{opt};
+handles.network.net = evalin('base',var);
+
+load('AAL_SOURCEMOD');
+handles.network.sourcemodel = template_sourcemodel.pos;
+
+if isfield(handles,'mesh')
+    pushbutton19_Callback(hObject, eventdata, handles)
+else
+    handles.mesh.g = read_nv;
+    handles.mesh.h = meshmesh(handles,handles.mesh.g);
+    pushbutton19_Callback(hObject, eventdata, handles)
+end
+
+% Update handles structure
+guidata(hObject, handles);
 
