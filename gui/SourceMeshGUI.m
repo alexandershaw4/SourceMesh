@@ -260,7 +260,9 @@ alpha(.7); set(gca,'visible','off');
 set(gca,'visible','off')
 
 axis image
-view(3);rotate3d on;
+view(3);
+set(handles.axes1,'view',[0   84.9160]);
+rotate3d on;
 drawnow; 
 
 
