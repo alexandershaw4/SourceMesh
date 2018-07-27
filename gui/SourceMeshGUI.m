@@ -9,7 +9,7 @@ function varargout = SourceMeshGUI(varargin)
 % AS
 
 
-% Last Modified by GUIDE v2.5 27-Jul-2018 08:45:26
+% Last Modified by GUIDE v2.5 27-Jul-2018 15:22:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -50,6 +50,11 @@ fp = fileparts(fp);
 fprintf('Adding subpaths to ensure local function calls:\n(%s)\n',fp);
 addpath(genpath(fp));
 
+% set initial slider position
+set(handles.slider1, 'min',-2);
+set(handles.slider1, 'max', 8);
+set(handles.slider1,'Value',1);
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -81,7 +86,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 
 % Default Mesh Button
 handles.mesh.g = read_nv;
-handles.mesh.h = meshmesh(handles,handles.mesh.g);
+[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -100,7 +105,7 @@ opt  = menu('Select structure / patch / gifti:',{list.name});
 list = {list.name};
 var  = list{opt};
 handles.mesh.g = evalin('base',var);
-handles.mesh.h = meshmesh(handles,handles.mesh.g);
+[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -156,7 +161,7 @@ end
 
 % now plot the mesh
 handles.mesh.g = g;
-handles.mesh.h = meshmesh(handles,handles.mesh.g);
+[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
 
 
 % Update handles structure
@@ -164,7 +169,7 @@ guidata(hObject, handles);
 
 
 
-function h = meshmesh(handles,g)
+function [h,vnorm] = meshmesh(handles,g)
 
 axes(handles.axes1);
 
@@ -260,6 +265,9 @@ set(handles.axes1,'view',[0   84.9160]);
 rotate3d on;
 drawnow; 
 
+vnorm = spm_mesh_normals(struct('vertices',pg.vertices,'faces',pg.faces));
+
+
 
 
 % OVERLAY FUNCTIONS
@@ -338,7 +346,7 @@ switch e
     case '.nii'
         
         % load nifti volume file
-        fprintf('Reading Nifti volume\n');
+        fprintf('Reading Nifti volume: wait for ''finished''\n');
         ni    = load_nii(G);
         vol   = ni.img;
         
@@ -1578,3 +1586,45 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+
+% --- Executes on slider movement.
+function slider1_Callback(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+% inflate / vertex normals slider
+%B = [ get(hObject,'Min') get(hObject,'Max')];
+V = get(hObject,'Value');
+%V = V/(B(2)-B(1));
+
+vnorm = handles.mesh.vnorm; % precomputed vertex normals
+%dpth  = -1.5:0.5:8;
+dpth  = -2:.5:8;
+
+i     = dpth(findthenearest( V, dpth ));
+this  = handles.mesh.g.vertices + (i*vnorm);
+    
+set(handles.mesh.h,'Vertices',this);drawnow;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function slider1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
