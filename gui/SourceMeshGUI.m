@@ -265,7 +265,9 @@ set(handles.axes1,'view',[0   84.9160]);
 rotate3d on;
 drawnow; 
 
-vnorm = spm_mesh_normals(struct('vertices',pg.vertices,'faces',pg.faces));
+vnorm = spm_mesh_normals(struct('vertices',g.vertices,'faces',g.faces));
+
+%vnorm = spm_mesh_normals(struct('vertices',pg.vertices,'faces',pg.faces));
 
 
 
