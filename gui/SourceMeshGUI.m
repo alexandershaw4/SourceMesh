@@ -9,7 +9,7 @@ function varargout = SourceMeshGUI(varargin)
 % AS
 
 
-% Last Modified by GUIDE v2.5 14-Aug-2018 14:21:54
+% Last Modified by GUIDE v2.5 14-Aug-2018 15:35:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1775,3 +1775,22 @@ function slider5_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in pushbutton25.
+function pushbutton25_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton25 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% dump data to workspace!
+try Data.mesh    = handles.mesh;    end
+try Data.overlay = handles.overlay; end
+try Data.network = handles.network; end
+
+assignin('base','Data',Data);
+
+
+
+
+

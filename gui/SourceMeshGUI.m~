@@ -9,7 +9,7 @@ function varargout = SourceMeshGUI(varargin)
 % AS
 
 
-% Last Modified by GUIDE v2.5 14-Aug-2018 14:21:54
+% Last Modified by GUIDE v2.5 14-Aug-2018 15:35:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,6 +54,10 @@ addpath(genpath(fp));
 set(handles.slider1, 'min',-2);
 set(handles.slider1, 'max', 8);
 set(handles.slider1,'Value',1);
+
+set(handles.slider2,'Value',1);
+set(handles.slider3,'Value',1);
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -533,6 +537,9 @@ write  = 0;
 
 % method for searching between the 3D coordinate
 %-------------------------------------------------------------
+if ~isfield(data.overlay,'method')
+    data.overlay.method = 'Raycast';
+end
 if ismember(data.overlay.method,{'Euclidean','Inflated spheres','precomputed (AAL)','Raycast'})
      method = data.overlay.method;
 else,method = 'Raycast';  
@@ -612,6 +619,7 @@ if length(L) == length(mesh.vertices)
         %colorbar('peer',a1,'South');
         handles.overlay.cb = InteractiveColorbar;
     end
+    handles.overlay.limits = s;
     
 else
 
@@ -835,7 +843,7 @@ switch method
         handles.overlay.steps = step;          % the depths at which searched
         handles.overlay.hits  = hits;          % num hits / intersects at each depth
         handles.overlay.cast  = UseFaceVertex; % whether computed for faces or vertices
-        
+        handles.overlay.limits = s;
     
     
     case 'Inflated spheres' % this would be better called 'box' in its current form
@@ -1018,6 +1026,7 @@ switch method
         alpha 1;
 end
 
+handles.overlay.limits = s;
 
 if colbar
     handles.overlay.cb = InteractiveColorbar;
@@ -1306,7 +1315,8 @@ if hasmesh && hasnet
     % place both signed absmax value in overlay so that colorbar is symmetrical
     strng2 = [strng; -max(abs(strng)); max(abs(strng))];
     RGB    = makecolbar(strng2,netcmap);
-
+    handles.network.limits = max(abs(strng));
+    
     % LineWidth (scaled) for strength
     if any(strng)
         R = [-max(abs(strng)),max(abs(strng))];
@@ -1584,10 +1594,12 @@ handles.network.sourcemodel = template_sourcemodel.pos;
 
 if isfield(handles,'mesh')
     pushbutton19_Callback(hObject, eventdata, handles)
+    handles = guidata(hObject);
 else
     handles.mesh.g = read_nv;
     handles.mesh.h = meshmesh(handles,handles.mesh.g);
     pushbutton19_Callback(hObject, eventdata, handles)
+    handles = guidata(hObject);
 end
 
 % Update handles structure
@@ -1647,7 +1659,14 @@ function slider2_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 % OVERLAY: NEG CBAR
-V0 = get(hObject,'Value');
+V0   = get(hObject,'Value');
+
+curr = get(handles.overlay.cb,'CLim');
+
+vals = [ -handles.overlay.limits * V0, curr(2)];
+
+set(handles.overlay.cb,'CLim',vals);
+
 
 
 
@@ -1673,6 +1692,14 @@ function slider3_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 % OVERLAY: POS CBAR
+V0 = get(hObject,'Value');
+
+curr = get(handles.overlay.cb,'CLim');
+
+vals = [ curr(1), handles.overlay.limits * V0];
+
+set(handles.overlay.cb,'CLim',vals);
+
 
 % --- Executes during object creation, after setting all properties.
 function slider3_CreateFcn(hObject, eventdata, handles)
@@ -1696,6 +1723,16 @@ function slider4_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 % NETWORK: NEG BAR
+V0   = get(hObject,'Value');
+
+curr = get(handles.network.cb,'Limits');
+
+vals = [ -handles.network.limits * V0, curr(2)];
+
+set(handles.network.cb,'Limits',vals);
+
+
+
 
 % --- Executes during object creation, after setting all properties.
 function slider4_CreateFcn(hObject, eventdata, handles)
@@ -1719,7 +1756,13 @@ function slider5_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 % NETWORK: POS BAR
+V0   = get(hObject,'Value');
 
+curr = get(handles.network.cb,'Limits');
+
+vals = [ curr(1), handles.network.limits * V0];
+
+set(handles.network.cb,'Limits',vals);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1732,3 +1775,14 @@ function slider5_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in pushbutton25.
+function pushbutton25_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton25 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% dump data to workspace!
+
+
