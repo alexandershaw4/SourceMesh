@@ -505,6 +505,7 @@ if ischar(mesh)
             mesh.nifti      = [fn fe];
             mesh.faces      = fv.faces;
             mesh.vertices   = v;
+            mesh.vol        = vol;
             data.mesh       = mesh;
             
         case{'.gii'}
@@ -1432,8 +1433,10 @@ switch method
                     %------------------------------------------------------
                     f        = nmesh.faces;
                     for If   = 1:length(f)
-                        pnts = [nmesh.vertices(f(If,1),:); nmesh.vertices(f(If,2),:);...
-                                        nmesh.vertices(f(If,3),:)];
+                        pnts = [nmesh.vertices(f(If,1),:);... 
+                                nmesh.vertices(f(If,2),:);...
+                                nmesh.vertices(f(If,3),:)];
+                            
                         % Triangle centroid
                         FaceCent(If,:) = mean(pnts,1);
                     end
