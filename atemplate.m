@@ -2321,7 +2321,10 @@ for i = 1:length(AN)
             t(i) = text(v(AN(i),1),v(AN(i),2),v(AN(i),3),L);
     end
 end
-set(t,'Fontsize',14)
+try
+    % this fails if the network was empty!
+    set(t,'Fontsize',14)
+end
 
 end
 
