@@ -414,7 +414,12 @@ else
 end
 
 % Centre sourcemodel
-pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
+dpos = pos - repmat(spherefit(pos),[size(pos,1),1]);
+
+if ~any(isnan(dpos(:)))
+   pos = dpos;
+end
+
 data.sourcemodel.pos = pos;
 
 end
@@ -439,6 +444,9 @@ if     i.pmesh && ~isfield(i,'T')
 elseif i.pmesh
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
            .3,data.sourcemodel.pos,hemi,affine,flip,inflate);
+else
+    h = [];
+    p = [];
 end
 
 mesh.h = h;
@@ -755,18 +763,20 @@ A(isinf(A)) = 0;
 
 % rescale network positions inside boundaries of mesh
 % (i thought meshmesh had already done this?)
-bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
-offset = 0.99;
-for ip = 1:3
-    pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
-                (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
-    pos(:,ip) = pos(:,ip)*offset;
-end
+if ~isempty(data.mesh.h)
+    bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
+    offset = 0.99;
+    for ip = 1:3
+        pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
+                    (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
+        pos(:,ip) = pos(:,ip)*offset;
+    end
 
-% redirect to clseast mesh point (vertex?)
-for ip = 1:length(pos)
-    [~,this]=min(cdist(pos(ip,:),data.mesh.vertices));
-    pos(ip,:) = data.mesh.vertices(this,:);
+    % redirect to clseast mesh point (vertex?)
+    for ip = 1:length(pos)
+        [~,this]=min(cdist(pos(ip,:),data.mesh.vertices));
+        pos(ip,:) = data.mesh.vertices(this,:);
+    end
 end
 
 % Edges
@@ -2294,7 +2304,7 @@ data.labels.centres = v;
 
 % compile list of in-use node indices
 %--------------------------------------------------------------------------
-to = []; from = []; 
+to = []; from = []; V(isnan(V)) = 0;
 for i  = 1:size(V,1)
     ni = find(logical(V(i,:)));
     if any(ni)
@@ -2308,15 +2318,20 @@ AN  = AN(AN~=0);
 off = 1.5;
 data.labels.in_use = AN;
 
+if sum(v(:,3)) == 0
+     off3 = 0;
+else;off3 = off;
+end
+
 % add these to plot with offset
 %--------------------------------------------------------------------------
 for i = 1:length(AN)
     L = labels{AN(i)};
     switch L(end)
         case 'L';
-            t(i) = text(v(AN(i),1)-(off*5),v(AN(i),2)-(off*5),v(AN(i),3)+off,L);
+            t(i) = text(v(AN(i),1)-(off*5),v(AN(i),2)-(off*5),v(AN(i),3)+off3,L);
         case 'R';
-            t(i) = text(v(AN(i),1)+(off*2),+v(AN(i),2)+(off*2),v(AN(i),3)+off,L);
+            t(i) = text(v(AN(i),1)+(off*2),+v(AN(i),2)+(off*2),v(AN(i),3)+off3,L);
         otherwise
             t(i) = text(v(AN(i),1),v(AN(i),2),v(AN(i),3),L);
     end
