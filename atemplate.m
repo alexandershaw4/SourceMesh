@@ -473,6 +473,12 @@ if ischar(mesh)
             ni    = load_nii(mesh);
             vol   = ni.img;
             
+            if ndims(vol) ~= 3
+                fprintf('Volume has wrong number of dimensions!\nUsing default mesh\n');
+                mesh = read_nv;
+                return
+            end
+            
             % bounds:
             fprintf('Extracting ISO surface\n');
             B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
