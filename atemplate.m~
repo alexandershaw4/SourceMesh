@@ -1476,7 +1476,7 @@ switch method
                     f = nmesh.faces;
                 else
                     
-                    waitbar(.6,wb,'Ray casting: Computing face norms and centroids');
+                    waitbar(.6,wb,'Ray casting: Computing ');
                     
                     % Compute face normals
                     %------------------------------------------------------
@@ -1526,8 +1526,6 @@ switch method
     
         % Now search outwards along normal line
         %-----------------------------------------------------------------
-        waitbar(.8,wb,'Ray casting: casting');
-        
         nhits  = 0; tic    ;
         perc   = round(linspace(1,length(step),10));
         for i  = 1:length(step)
@@ -1572,7 +1570,6 @@ switch method
         
         % add the values - either 1 per face or 1 per vertex - to the mesh
         %------------------------------------------------------------------
-        waitbar(.9,wb,'Ray casting: sorting...');
         switch UseFaceVertex
             case 'face'
                 % Set face colour data on mesh, requires setting FaceColor= 'flat'
@@ -1620,9 +1617,6 @@ switch method
         data.overlay.FaceNormals   = FaceNorm;
         data.overlay.FaceCentroids = FaceCent;
         data.overlay.FaceNormLines = FaceNormLine;
-        
-        waitbar(1,wb,'Complete');
-        close(wb);
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -2260,11 +2254,9 @@ end
 % sanity check
 if any( min(pg.faces(:)) == 0)
     bad = find(pg.faces == 0);
-    pg.faces(bad) = NaN;
+    pg.faces(bad) = nan;
 end
 
-pg.faces = double(pg.faces);
-pg.faces(pg.faces==0) = NaN;
 
 % plot
 if ~isempty(fighnd)
