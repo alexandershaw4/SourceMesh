@@ -989,6 +989,15 @@ function [y,data] = parse_overlay(x,data)
 
 if ischar(x)
     [fp,fn,fe] = fileparts(x);
+    
+    
+    switch fn
+        case 'curvature'
+            % since we've precomputed curvature anyway, allow calling 
+            % ['overlay', 'curvature'] & return it as y
+            y = data.mesh.curvature;
+            return;
+    end
        
     switch fe
         
