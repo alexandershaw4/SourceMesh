@@ -217,6 +217,7 @@ in.affine     = 0;
 in.netcmap    = 0;
 in.depth      = [];
 in.tf_interactive = 0;
+in.checkori       = 0;
 in.hemi = 'both'; % hemisphere to plot
 
 for i  = 1:length(varargin)
@@ -237,6 +238,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'components');  in.components = 1;        end
     if strcmp(varargin{i},'pca');         in.pca = 1;               end    
     if strcmp(varargin{i},'flip');        in.flip = 1;              end
+    if strcmp(varargin{i},'checkori');    in.checkori = 1;          end
     if strcmp(varargin{i},'netcmap');     in.netcmap= varargin{i+1};end
     if strcmp(varargin{i},'write');       in.write  = 1; in.fname = varargin{i+1}; end
     if strcmp(varargin{i},'writestl');    in.write  = 2; in.fname = varargin{i+1}; end
@@ -438,12 +440,15 @@ flip   = i.flip;
 % if inflate, pass flag
 inflate = i.inflate;
 
+% check orientation?
+checkori = i.checkori;
+
 if     i.pmesh && ~isfield(i,'T')
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori);
 elseif i.pmesh
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori);
 else
     h = [];
     p = [];
@@ -467,11 +472,24 @@ if ischar(mesh)
             [mesh, data] = convert_mesh(mesh,data);
             return;
             
-        case{'.nii'}
-            % load nifti volume file
-            fprintf('Reading Nifti volume\n');
-            ni    = load_nii(mesh);
-            vol   = ni.img;
+        case{'.nii','.mri'}
+            wb = waitbar(0,'Reading nifti volume...');
+            
+            % mini switch for load type
+            switch fe
+                case '.nii'
+                    % load nifti volume file
+                    fprintf('Reading Nifti volume\n');
+                    ni    = load_nii(mesh);
+                    vol   = ni.img;
+                case '.mri'
+                    % load ctf mri file
+                    fprintf('Reading CTF_MRI4 volume\n');
+                    ni  = ft_read_mri(mesh,'dataformat','ctf_mri4');
+                    vol = ni.anatomy;
+                    vol = vol - mean(vol(:));                    
+            end
+            
             
             if ndims(vol) ~= 3
                 fprintf('Volume has wrong number of dimensions!\nUsing default mesh\n');
@@ -480,6 +498,7 @@ if ischar(mesh)
             end
             
             % bounds:
+            waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
             fprintf('Extracting ISO surface\n');
             B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
             fv  = isosurface(vol,0.5);
@@ -490,6 +509,7 @@ if ischar(mesh)
             fv.vertices = v;
              
             % reduce vertex density
+            waitbar(0.6,wb,'Reading nifti volume: Reducing density');
             fprintf('Reducing patch density\n');
             nv  = length(fv.vertices);
             count  = 0;
@@ -506,6 +526,7 @@ if ischar(mesh)
             %end
 
             % print
+            waitbar(0.9,wb,'Reading nifti volume: Rescaling');
             fprintf('Patch reduction finished\n');
             fprintf('Rescaling mesh to sourcemodel\n');
             
@@ -522,6 +543,8 @@ if ischar(mesh)
             mesh.vol        = vol;
             data.mesh       = mesh;
             
+            close(wb);
+            
         case{'.gii'}
             % load the gifti
             gi   = gifti(mesh);
@@ -529,11 +552,16 @@ if ischar(mesh)
             mesh.faces    = gi.faces;
             mesh.vertices = gi.vertices;
             data.mesh     = mesh;
+
+            
     end
     
 elseif isnumeric(mesh) && ndims(mesh)==3
            
             % bounds:
+            wb = waitbar(0,'Reading nifti volume...');
+            waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
+            
             fprintf('Extracting ISO surface\n');
             B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
             fv  = isosurface(mesh,0.5);
@@ -548,6 +576,7 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             nv  = length(fv.vertices);
             count  = 0;
             
+            waitbar(0.6,wb,'Reading nifti volume: Reducing density');
             while nv > 60000
                 fv    = reducepatch(fv, 0.5);
                 nv    = length(fv.vertices);
@@ -558,6 +587,7 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             fprintf('Patch reduction finished\n');
             fprintf('Rescaling mesh to sourcemodel\n');
             
+            waitbar(0.9,wb,'Reading nifti volume: Rescaling');
             v = fv.vertices;
             for i = 1:3
                 v(:,i) = rescale(v(:,i),B(:,i));
@@ -568,7 +598,8 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             mesh.faces      = fv.faces;
             mesh.vertices   = v;
             data.mesh       = mesh;    
-        
+            
+            close(wb);        
 end
 
 end
@@ -2170,7 +2201,7 @@ end
 
 end
 
-function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate)
+function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori)
 
 if isempty(a);
     a = .6;
@@ -2192,6 +2223,7 @@ if flip
     v = v(:,[2 1 3]);
     g.vertices = v;
 end
+
 
 % check rotation
 yl = max(v(:,2)) - min(v(:,2));
@@ -2224,6 +2256,14 @@ if inflate
     fprintf('Inflating mesh\n');
     g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),400);
 end
+
+
+if checkori
+    b = CheckOrientationMesh(g);
+    waitfor(b)
+    g = b;
+end
+
 
 % only one hemisphere?
 v = g.vertices;
