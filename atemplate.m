@@ -212,7 +212,7 @@ in.components = 0;
 in.thelabels  = [];
 in.pca        = 0;
 in.flip       = 0;
-in.method     = 'euclidean';
+in.method     = 'raycast';
 in.affine     = 0;
 in.netcmap    = 0;
 in.depth      = [];
@@ -552,7 +552,32 @@ if ischar(mesh)
             mesh.faces    = gi.faces;
             mesh.vertices = gi.vertices;
             data.mesh     = mesh;
-
+        
+        otherwise
+            
+            % allow shorthands call for default meshes
+            %-----------------------------------------
+            if strcmp(lower(mesh),'def') || strcmp(lower(mesh),'def1')
+                % ICBM152 - smoothed
+                nmesh         = read_nv;
+                mesh          = [];
+                mesh.vertices = nmesh.vertices;
+                mesh.faces    = nmesh.faces;
+            end
+            if strcmp(lower(mesh),'def2')
+                % Ch2
+                nmesh         = gifti('BrainMesh_Ch2.gii');
+                mesh          = [];
+                mesh.vertices = nmesh.vertices;
+                mesh.faces    = nmesh.faces;
+            end
+            if strcmp(lower(mesh),'def3')
+                % mni152_2009
+                nmesh         = load('mni152_2009','faces','vertices');
+                mesh          = [];
+                mesh.vertices = nmesh.vertices;
+                mesh.faces    = nmesh.faces;
+            end
             
     end
     
