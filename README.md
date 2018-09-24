@@ -77,6 +77,14 @@ SourceMeshGUI
 
 ![alt text](figs/ExampleMeshRotate.gif)
 
+```
+% % Plot 1 hemeisphere (of default mesh 3), with/without hole-filling:
+% atemplate('mesh','def3','hemi','l') ; alpha 1;
+% atemplate('mesh','def3','hemi','l','fillholes'); alpha 1;
+```
+
+![holesexamp](figs/FillHolesExample.png)
+
 # OVERLAYS:
 ```
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
