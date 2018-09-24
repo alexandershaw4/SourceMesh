@@ -2352,7 +2352,7 @@ end
 
 
 switch hemisphere
-    case {'left','L','l'}
+    case{'left','L','l'}
         pg.vertices = g.vleft;
         pg.faces    = g.fleft;
         
