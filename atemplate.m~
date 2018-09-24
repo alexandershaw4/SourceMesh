@@ -2318,13 +2318,13 @@ g.fright(rfaces,:) = f(rfaces,:);
 g.curvature        = curv;
 
 
-
-% fill holes stemming from hemisphere separation - if requested
+% fill holes stemming from hemisphere separation
 %---------------------------------------------------------------
 if dofillholes
     fprintf('Filling holes resulting from hemisphere separation..\n');
     
     % left side
+    %---------------------------------------------------
     x = [];
     holecellarray = findTriMeshHoles(g.fleft,g.vleft);
     for i = 1:length(holecellarray)
@@ -2346,7 +2346,7 @@ if dofillholes
     end
     
     % update faces
-    g.fright = [g.fright; x];
+    g.fleft = [g.fleft; x];
     
 end
 
@@ -2362,13 +2362,10 @@ switch hemisphere
         %pg.faces(lfaces,:) = f(lfaces,:);
   
     case{'right','R','r'}
-        pg.vertices = g.vright;
-        pg.faces    = g.fright;
-        
-        %pg.vertices          = v*NaN;
-        %pg.vertices(right,:) = v(right,:);
-        %pg.faces           = f*NaN;
-        %pg.faces(rfaces,:) = f(rfaces,:);        
+        pg.vertices          = v*NaN;
+        pg.vertices(right,:) = v(right,:);
+        pg.faces           = f*NaN;
+        pg.faces(rfaces,:) = f(rfaces,:);        
         
     otherwise
         pg = g;
