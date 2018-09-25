@@ -2210,7 +2210,7 @@ end
 
 
 function x = killinterhems(x);
-% kill interhemispherics, assuming a square adjacency matrix
+% kill interhemispherics, assuming a  adjacency matrix
 %
 %
 
@@ -2249,14 +2249,6 @@ end
 end
 
 function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes)
-% Main brain-mesh plot. 
-%
-% Separates hemispheres, computes curvature, check orientation, inflate, 
-% centre & fill holes. Plots the patch as a semi-transparent glass brain 
-% for other plot functiopns to add to. 
-%
-% Returns everything in data.mesh
-%
 
 if isempty(a);
     a = .6;
@@ -2447,9 +2439,6 @@ end
 end
 
 function C = docurvature(M)
-% Computes the curvature of a mesh
-%
-%
 
 A = spm_mesh_adjacency(M);
 A = sparse(1:size(M.vertices,1),1:size(M.vertices,1),1./sum(A,2)) * A;
