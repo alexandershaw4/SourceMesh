@@ -28,6 +28,9 @@ function data = atemplate(varargin)
 %  atemplate('hemi','right');atemplate('hemi','R'); atemplate('hemi','r');
 %  atemplate('gifti',mesh,'hemi','left') 
 %
+%  % Fill holes that appear from hemisphere separation
+%  atemplate('gifti',mesh,'hemi','left','fillholes') 
+%
 %  Plot volume and supply affine transformation matrix:
 %  atemplate('mesh','mymri.nii','affine',affinematrix)
 %
