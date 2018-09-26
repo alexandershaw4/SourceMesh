@@ -130,9 +130,9 @@ SourceMeshGUI
 # OVERLAY OPTIONS
 There are currently three different methods for projecting functional overlay data onto meshes.
 
-1) Euclidean ICP: calculates the closest mesh points to each source point and performs a linear (weighted) iterpolation of the data onto the mesh surface
+1) Ray casting: (default) this method grids the source functional data, computes the mesh face normals at each centroid and performs ray casting from each mesh triangle to determine which functional values appear at which mesh face.
 
-2) Ray casting: this method grids the source functional data, computes the mesh face normals at each centroid and performs ray casting from each mesh triangle to determine which functional values appear at which mesh face.
+2) Euclidean ICP: calculates the closest mesh points to each source point and performs a linear (weighted) iterpolation of the data onto the mesh surface
 
 3) Trap radius: this method inflates a sphere of radius r around each source point. Any mesh vertices falling inside this sphere are coloured with this functional value.
 
@@ -144,7 +144,8 @@ atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','euclidean')
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','spheres') 
 ```
 
-![peaks gui](figs/ProjectionCompare2.png)
+![comparison1](figs/ProjectionCompare2.png)
+![comparison2](figs/ProjectionCompare4.png)
 
 
 # VIDEO OVERLAY:
