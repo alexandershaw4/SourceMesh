@@ -1719,6 +1719,8 @@ switch method
         
         debugplot = 0;
         
+        r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
+        r  = max(r,1);                  % catch when the overlay is over specified!
         OL = sparse(length(L),nv);      % this will be overlay matrix we average
         w  = linspace(.1,1,r);          % weights for closest points
         w  = fliplr(w);                 % 
