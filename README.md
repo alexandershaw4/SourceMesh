@@ -26,6 +26,7 @@ Perform spatial PCA and find local maxima.
 
 
 ![figure](figs/V1_RenderRight.png)
+![figure2](figs/Example_HemiNetOverlayNodes.png)
 
 # Supported filetypes
 
