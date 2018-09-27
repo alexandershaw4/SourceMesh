@@ -1984,19 +1984,17 @@ if isfield(data.overlay,'pca')
         sy = sy - mean(abs(sy(:))); 
         ya = sy.*A;
         
-        % hardwire an assumption that you wouldnt look for more than 4
         pks = findpeaks(y);
-        pks = min(length(pks),4); 
-        
+        pks = min(length(pks),12);
         %[U,S,V] = svds(ya,pks);
+        
         %for pc = 1:length(S)
         %    comp(pc,:) = sparse(U(:,pc)*S(pc,pc)*mean(V(:,pc))');
         %end
         
-        [comp,D] = eigs(ya,pks); % use eigs instead
+        [comp,D] = eigs(ya,pks);
         pc   = size(comp,2);
         comp = comp';
-        comp = D*comp;
         
         ncomp = pc;
         fprintf('Found %d principal components\n',pc);
