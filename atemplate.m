@@ -1978,9 +1978,9 @@ end
 %--------------------------------------------------------------------------
 if isfield(data.overlay,'pca')
     if data.overlay.pca
-        f = mesh.faces;
-        A = spm_mesh_adjacency(f);
-        sy = double(y)'*speye(length(y));        
+        f  = mesh.faces;
+        A  = spm_mesh_adjacency(f);
+        sy = double(y(:));
         sy = sy - mean(abs(sy(:))); 
         ya = sy.*A;
         
