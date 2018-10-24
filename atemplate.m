@@ -1163,8 +1163,10 @@ waitbar(.15,wb,'Reading volume: Smoothing volume');
 % a little smoothing
 vol = smooth3(vol,'gaussian');
 
-% New --- 
-pixdim = data.volume.hdr.dime.pixdim(2:4);
+% New --- only exists is vol was loaded by atemplate
+try
+    pixdim = data.volume.hdr.dime.pixdim(2:4);
+end
 
 x = 1:size(vol,1);
 y = 1:size(vol,2);
@@ -1184,7 +1186,9 @@ waitbar(.45,wb,'Reading volume: Compiling new vertex list');
 fprintf('Compiling new vertex list (%d verts)\n',length(nix));
 v = [x(nix); y(niy); z(niz)]';
 v = double(v);
-v = v*diag(pixdim);
+try
+    v = v*diag(pixdim);
+end
 
 % apply affine if req.
 if isfield(data.overlay,'affine')
@@ -1731,7 +1735,7 @@ switch method
         for i = 1:length(x)
             if any(L(i))      
                 newv = [];
-                r   = 7;
+                r   = 17;
                 res = 20;
                 th  = 0:pi/res:2*pi;
                 r0  = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
