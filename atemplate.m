@@ -1735,7 +1735,7 @@ switch method
         for i = 1:length(x)
             if any(L(i))      
                 newv = [];
-                r   = 17;
+                r   = 7;
                 res = 20;
                 th  = 0:pi/res:2*pi;
                 r0  = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
