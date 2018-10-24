@@ -1880,6 +1880,15 @@ switch method
         % Don't do anything        
     otherwise
         
+        % kill interhems!
+        VL = find(v(:,1) < 0);
+        VR = find(v(:,1) > 0);
+        ML = find(mv(:,1) < 0);
+        MR = find(mv(:,1) > 0);
+        OL(VL,MR) = 0;
+        OL(VR,ML) = 0;
+        
+        
         fprintf('\n'); clear L;
         if ~interpl
              % mean value of a given vertex

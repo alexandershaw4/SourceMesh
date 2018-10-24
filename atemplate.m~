@@ -1310,7 +1310,7 @@ function data = overlay(data,L,write,fname,colbar)
 % overlay, we'll use pre-computed weights for speed
 %--------------------------------------------------------------------------
 if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924 && ...
-        strcmp(data.overlay.method,'euclidean')
+        ischar(data.overlay.method) && strcmp(data.overlay.method,'euclidean')
     
      fprintf('Using default AAL90 weights for this mesh\n');
      load('AAL90DefaultWeights','M','NumComp','indz','w');
@@ -1359,9 +1359,13 @@ end
 
 % method for searching between the 3D coordinate systems
 %-------------------------------------------------------------
-if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal'})
-     method = data.overlay.method;
-else,method = 'euclidean';  
+if ischar(data.overlay.method)
+    if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal'})
+         method = data.overlay.method;
+    else,method = 'euclidean';  
+    end
+else
+    method = 'aal';
 end
 
 % If atlas data and peaks frequested, label them
@@ -1857,7 +1861,14 @@ switch method
             these = find(vi==i);
             ol(these) = L(i);
         end
-
+        
+        % update sourcemodel
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
         
         
         
@@ -1865,9 +1876,20 @@ end
 
 
 switch method
-    case 'raycast' 
+    case {'raycast','aal'}
         % Don't do anything        
     otherwise
+        
+        % kill interhems!
+        VL = find(v(:,1) < 0);
+        VR = find(v(:,1) > 0);
+        
+        ML = find(mv(:,1) < 0);
+        MR = find(mv(:,1) > 0);
+        
+        OL(VL,MR) = 0;
+        OL(VR,ML) = 0;
+        
         
         fprintf('\n'); clear L;
         if ~interpl
