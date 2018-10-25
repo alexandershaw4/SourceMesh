@@ -39,7 +39,7 @@ function data = atemplate(varargin)
 %--------------------------------------------------------------------------
 %
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
-%  atemplate('overlay',L);   
+%  atemplate('overlay',L,'method,{'aal','spheres'});   
 %
 %  % Plot overlay aligned to mesh using a Euclidean ICP search:
 %  atemplate('overlay',L,'sourcemodel',pos,'method','euclidean');  
@@ -1783,6 +1783,12 @@ switch method
                     [mv(lri,1) > bx(1,1) & mv(lri,1) < bx(2,1) &...
                      mv(lri,2) > bx(1,2) & mv(lri,2) < bx(2,2) &...
                      mv(lri,3) > bx(1,3) & mv(lri,3) < bx(2,3) ];
+                 
+                % interior sphere
+                inbox = find(inside);
+                for ib = 1:length(inbox)
+                    
+                end
                 
                 ind = lri(find(inside));
                 OL(i,ind) = L(i);
@@ -1883,10 +1889,8 @@ switch method
         % kill interhems!
         VL = find(v(:,1) < 0);
         VR = find(v(:,1) > 0);
-        
         ML = find(mv(:,1) < 0);
         MR = find(mv(:,1) > 0);
-        
         OL(VL,MR) = 0;
         OL(VR,ML) = 0;
         

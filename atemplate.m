@@ -1360,12 +1360,12 @@ end
 % method for searching between the 3D coordinate systems
 %-------------------------------------------------------------
 if ischar(data.overlay.method)
-    if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal'})
+    if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
          method = data.overlay.method;
     else,method = 'euclidean';  
     end
 else
-    method = 'aal';
+    method = data.overlay.method{1};
 end
 
 % If atlas data and peaks frequested, label them
@@ -1783,7 +1783,7 @@ switch method
                     [mv(lri,1) > bx(1,1) & mv(lri,1) < bx(2,1) &...
                      mv(lri,2) > bx(1,2) & mv(lri,2) < bx(2,2) &...
                      mv(lri,3) > bx(1,3) & mv(lri,3) < bx(2,3) ];
-                
+                 
                 ind = lri(find(inside));
                 OL(i,ind) = L(i);
                 M (i,ind) = 1;
@@ -1870,7 +1870,24 @@ switch method
         data = overlay(data,ol,write,fname,colbar);
         return;
         
+    case 'aal_light'
         
+        % new method for AAL90: wrapper on ray casting routine
+        load LightAAL.mat
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
         
 end
 
