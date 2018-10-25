@@ -39,7 +39,7 @@ function data = atemplate(varargin)
 %--------------------------------------------------------------------------
 %
 %  % Plot template mesh with overlay from AAL90. L is [90x1]
-%  atemplate('overlay',L);   
+%  atemplate('overlay',L,'method,{'aal','spheres'});   
 %
 %  % Plot overlay aligned to mesh using a Euclidean ICP search:
 %  atemplate('overlay',L,'sourcemodel',pos,'method','euclidean');  
