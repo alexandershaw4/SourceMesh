@@ -1885,7 +1885,7 @@ switch method
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
-        
+        data.overlay.atlasvalues = L;
         data = overlay(data,ol,write,fname,colbar);
         return;
         
@@ -2374,7 +2374,7 @@ curv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
 % inflate
 if inflate
     fprintf('Inflating mesh\n');
-    g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),400);
+    g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),100);
 end
 
 
