@@ -514,7 +514,7 @@ if ischar(mesh)
                     
                     [nx,ny,nz] = size(vol);
                     
-                    % compute edges and linearly interp grid coordinates
+                    % compute edges and line
                     E1 = R*[1 ;1 ;1 ]+t;
                     E2 = R*[nx;ny;nz]+t;
                     
@@ -648,15 +648,9 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             wb = waitbar(0,'Reading nifti volume...');
             waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
             
-            % NEW: subsample volume by 2. This speeds up subsequent patch
-            % reduction enormously with at relatively little cost to
-            % resolution
-            fprintf('Subsampling structural volume\n');
-            [NX, NY, NZ, mesh] = reducevolume(mesh,2);
-
             fprintf('Extracting ISO surface\n');
             B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
-            fv  = isosurface(mesh,0.5);            
+            fv  = isosurface(mesh,0.5);
             
             % swap x y
             v  = fv.vertices;
@@ -1223,11 +1217,6 @@ if isnumeric(x) && ndims(x)==3
     
     % add waitbar
     wb = waitbar(0,'Preloaded volume: Please wait...');
-    
-    % NEW: subsample volume by 2 to speed up patch reduction
-    fprintf('Subsampling structural volume\n');
-    [NX, NY, NZ, x] = reducevolume(x,2);
-
     [y,data] = vol2surf(x,data,wb);
     
 end
