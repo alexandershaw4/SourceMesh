@@ -25,7 +25,7 @@ Export stationary (camera rotation) and temporal (function over time) videos.
 Perform spatial PCA and find local maxima.
 
 
-![figure](figs/V1_RenderRight.png)
+![fig3](figs/VisGammaExample.png)
 ![figure2](figs/Example_HemiNetOverlayNodes.png)
 
 # Supported filetypes
@@ -34,6 +34,7 @@ Reads: .nii / .nii.gz / .edge / .node / .gii
 
 Writes: .nii / .gii / .node .edge / .stl / .vrml / videos (format dependent on system)
 
+![figure](figs/V1_RenderRight.png)
 
 # What it's for
 
