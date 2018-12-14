@@ -137,6 +137,12 @@ To select a method:
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','raycast') 
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','euclidean') 
 atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','spheres') 
+
+% For AAL90 overlay data, use an additional method flag, as:
+atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method',{'aal_light','spheres'}) 
+
+% This flag invokes a fixed mapping from AAL centroids into a parcellated volume. The second method (spheres in this example) is then used to detmine which values from this new volume appear at which faces of the mesh.
+
 ```
 
 ![comparison1](figs/ProjectionCompare2.png)
