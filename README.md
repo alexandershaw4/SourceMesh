@@ -50,16 +50,7 @@ Either use the (simple) GUI, preferably, use simple matlab commands.
 
 Takes paired 'Property','Name' values. Examples below. Also see scripts in Examples folder.
 
-# GUI:
 
-A basic interface with limited functionality over command line version.
-
-```
-SourceMeshGUI
-```
-
-![gui11](gui/gui11.png)
-![gui22](gui/gui22.png)
 
 
 # MESHES:
@@ -89,8 +80,11 @@ SourceMeshGUI
 
 # OVERLAYS:
 ```
-%  % Plot template mesh with overlay from AAL90. L is [90x1]
-%  atemplate('overlay',L);   
+%  % When plotting AAL90 data, you don't need to supply source locations.
+%  % Just provide the ovelray values: L [90x1], and whatever options you need - or use a default mesh.
+%  atemplate('overlay',L,'method',{'aal_light','spheres'});   
+%  % or:
+%  atemplate('mesh','def4','overlay',L,'method',{'aal_light','spheres'});   
 
 %  % Plot template with overlay values L at sourcemodel values sormod, interpolated on surface.
 %  % Sormod is n-by-3, L is n-by-1.
@@ -223,6 +217,16 @@ atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method','spheres')
 Any combination of the inputs should be possible.
 See scripts in 'Examples' folder for more help.
 
+# GUI:
+
+A basic interface with limited functionality over command line version.
+
+```
+SourceMeshGUI
+```
+
+![gui11](gui/gui11.png)
+![gui22](gui/gui22.png)
 
 
 # AN EXAMPLE NETWORK (1): 
