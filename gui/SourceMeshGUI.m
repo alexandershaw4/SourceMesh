@@ -58,6 +58,8 @@ set(handles.slider1,'Value',1);
 set(handles.slider2,'Value',1);
 set(handles.slider3,'Value',1);
 
+[handles.data,handles.i] = aplot.defaults();
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -89,8 +91,33 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Default Mesh Button
-handles.mesh.g = read_nv;
-[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
+%handles.mesh.g = read_nv;
+G = read_nv;
+
+data = handles.data;
+i    = handles.i;
+
+i.g = G;
+data = aplot.sort_sourcemodel(data,i);
+[mesh,data] = aplot.get_mesh(i,data);        % Get Surface
+
+switch class(mesh)
+    case 'gifti'
+        new = struct;
+        new.vertices = mesh.vertices;
+        new.faces = mesh.faces;
+        mesh = new;
+end
+    
+handles.mesh = mesh;
+handles.data = data;
+
+% now plot the mesh
+[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh);
+
+
+
+%[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -108,8 +135,33 @@ list = evalin('base','whos');
 opt  = menu('Select structure / patch / gifti:',{list.name});
 list = {list.name};
 var  = list{opt};
-handles.mesh.g = evalin('base',var);
-[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
+%handles.mesh.g = evalin('base',var);
+G = evalin('base',var);
+
+data = handles.data;
+i    = handles.i;
+
+i.g  = G;
+data = aplot.sort_sourcemodel(data,i);
+[mesh,data] = aplot.get_mesh(i,data);        % Get Surface
+
+switch class(mesh)
+    case 'gifti'
+        new = struct;
+        new.vertices = mesh.vertices;
+        new.faces = mesh.faces;
+        mesh = new;
+end
+    
+
+handles.mesh = mesh;
+handles.data = data;
+
+% now plot the mesh
+[h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh);
+
+handles.mesh.h = h;
+%[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -127,45 +179,26 @@ function pushbutton4_Callback(hObject, eventdata, handles)
 G = [PathName FileName];
 [pn,fn,e] = fileparts(G);
 
-switch e
-    case '.gii'; g = gifti(G);
-    case '.nii'; 
-           
-            % load nifti volume file
-            fprintf('Reading Nifti volume\n');
-            ni    = load_nii(G);
-            vol   = ni.img;
-            
-            % bounds:
-            fprintf('Extracting ISO surface\n');
-            fv  = isosurface(vol,0.5);
-            
-            % swap x y
-            v  = fv.vertices;
-            v  = [v(:,2) v(:,1) v(:,3)];
-            fv.vertices = v;
-             
-            % reduce vertex density
-            fprintf('Reducing patch density\n');
-            nv  = length(fv.vertices);
-            count  = 0;
-                        
-            while nv > 60000
-               fv    = reducepatch(fv, 0.5);
-               nv    = length(fv.vertices);
-               count = count + 1;
-            end
+data = handles.data;
+i    = handles.i;
 
-            % print
-            fprintf('Patch reduction finished\n');
-            
-            g.vertices = fv.vertices;
-            g.faces    = fv.faces;
+i.g  = G;
+data = aplot.sort_sourcemodel(data,i);
+[mesh,data] = aplot.get_mesh(i,data);        % Get Surface
+
+switch class(mesh)
+    case 'gifti'
+        new = struct;
+        new.vertices = mesh.vertices;
+        new.faces = mesh.faces;
+        mesh = new;
 end
+    
+handles.mesh = mesh;
+handles.data = data;
 
 % now plot the mesh
-handles.mesh.g = g;
-[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh.g);
+[handles.mesh.h,handles.mesh.vnorm] = meshmesh(handles,handles.mesh);
 
 
 % Update handles structure
@@ -336,112 +369,120 @@ function pushbutton8_Callback(hObject, eventdata, handles)
 G = [PathName FileName];
 [pn,fn,e] = fileparts(G);
 
-switch e
-    case '.gii'
-        olay = gifti(G);
-        y    = double(olay.cdata);
-        
-        % check it's the same length as the structural mesh
-        if length(y) ~= length(handles.mesh.g.vertices);
-            error('This should be the same length as the structural mesh vertices!');
-        else
-            handles.overlay.data = y;
-            handles.overlay.sourcemodel = handles.mesh.g.vertices;
-        end
+handles.data.overlay = [];
+handles.data.mesh    = handles.mesh;
+[y,data] = aplot.parse_overlay(G,handles.data);
 
-    case '.nii'
-        
-        % load nifti volume file
-        fprintf('Reading Nifti volume: wait for ''finished''\n');
-        ni    = load_nii(G);
-        vol   = ni.img;
-        
-        % retain header info?
-        handles.volume.fname     = G;
-        handles.volume.hdr       = ni.hdr;
-        
-        % bounds:
-        S = size(vol);
+handles.overlay.data = y;
+handles.data = data;
 
-        % check if it's a 'full' volume!
-        if length(find(vol)) == prod(S)
-            vol = vol - mode(vol(:));
-        end
 
-        % a little smoothing
-        vol = smooth3(vol,'gaussian');
-
-        % New --- 
-        pixdim = ni.hdr.dime.pixdim(2:4);
-
-        x = 1:size(vol,1);
-        y = 1:size(vol,2);
-        z = 1:size(vol,3);
-
-        % find indiced of tissue in old grid
-        [nix,niy,niz] = ind2sub(size(vol),find(vol));
-        [~,~,C]       = find(vol);
-
-        % compile a new vertex list
-        fprintf('Compiling new vertex list (%d verts)\n',length(nix));
-        v = [x(nix); y(niy); z(niz)]';
-        v = double(v);
-        v = v*diag(pixdim);
-
-%         % apply affine if req.
-%         if isfield(handles.overlay,'affine')
-%             affine = data.overlay.affine;
-%             if length(affine) == 4
-%                 fprintf('Applying affine transform\n');
-%                 va = [v ones(length(v),1)]*affine;
-%                 v  = va(:,1:3);
-%             end
+% switch e
+%     case '.gii'
+%         olay = gifti(G);
+%         y    = double(olay.cdata);
+%         
+%         % check it's the same length as the structural mesh
+%         if length(y) ~= length(handles.mesh.g.vertices);
+%             error('This should be the same length as the structural mesh vertices!');
+%         else
+%             handles.overlay.data = y;
+%             handles.overlay.sourcemodel = handles.mesh.g.vertices;
 %         end
-
-        % Fit this gridded-volume inside the extremes of the mesh
-        B        = [min(handles.mesh.g.vertices); max(handles.mesh.g.vertices)];
-        V        = v - repmat(spherefit(v),[size(v,1),1]);
-        V(:,1)   = B(1,1) + ((B(2,1)-B(1,1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-        V(:,2)   = B(1,2) + ((B(2,2)-B(1,2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-        V(:,3)   = B(1,3) + ((B(2,3)-B(1,3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-        v        = V;
-
-        % reduce patch
-        fprintf('Reducing patch density\n');
-
-        nv  = length(v);
-        tri = delaunay(v(:,1),v(:,2),v(:,3));
-        fv  = struct('faces',tri,'vertices',v);
-        count  = 0;
-
-        % smooth overlay at triangulated points first
-        Cbound = [min(C) max(C)];
-        C      = spm_mesh_smooth(fv,double(C),4);
-        C      = Cbound(1) + (Cbound(2)-Cbound(1)).*(C - min(C))./(max(C) - min(C));
-
-        while nv > 10000
-           fv  = reducepatch(fv, 0.5);
-           nv  = length(fv.vertices);
-           count = count + 1;
-        end
-
-        % print
-        fprintf('Patch reduction finished\n');
-        fprintf('Using nifti volume as sourcemodel and overlay!\n');
-        fprintf('New sourcemodel has %d vertices\n',nv);
-
-        % find the indices of the retained vertexes only
-        fprintf('Retrieving vertex colours\n');
-        Ci = compute_reduced_indices(v, fv.vertices);
-
-        fprintf('Finished\n');
-        
-        % Store sourcemodel and ovelray data
-        v                           = fv.vertices;
-        handles.overlay.sourcemodel = v;
-        handles.overlay.data        = C(Ci);
-   
-end
+% 
+%     case '.nii'
+%         
+%         % load nifti volume file
+%         fprintf('Reading Nifti volume: wait for ''finished''\n');
+%         ni    = load_nii(G);
+%         vol   = ni.img;
+%         
+%         % retain header info?
+%         handles.volume.fname     = G;
+%         handles.volume.hdr       = ni.hdr;
+%         
+%         % bounds:
+%         S = size(vol);
+% 
+%         % check if it's a 'full' volume!
+%         if length(find(vol)) == prod(S)
+%             vol = vol - mode(vol(:));
+%         end
+% 
+%         % a little smoothing
+%         vol = smooth3(vol,'gaussian');
+% 
+%         % New --- 
+%         pixdim = ni.hdr.dime.pixdim(2:4);
+% 
+%         x = 1:size(vol,1);
+%         y = 1:size(vol,2);
+%         z = 1:size(vol,3);
+% 
+%         % find indiced of tissue in old grid
+%         [nix,niy,niz] = ind2sub(size(vol),find(vol));
+%         [~,~,C]       = find(vol);
+% 
+%         % compile a new vertex list
+%         fprintf('Compiling new vertex list (%d verts)\n',length(nix));
+%         v = [x(nix); y(niy); z(niz)]';
+%         v = double(v);
+%         v = v*diag(pixdim);
+% 
+% %         % apply affine if req.
+% %         if isfield(handles.overlay,'affine')
+% %             affine = data.overlay.affine;
+% %             if length(affine) == 4
+% %                 fprintf('Applying affine transform\n');
+% %                 va = [v ones(length(v),1)]*affine;
+% %                 v  = va(:,1:3);
+% %             end
+% %         end
+% 
+%         % Fit this gridded-volume inside the extremes of the mesh
+%         B        = [min(handles.mesh.g.vertices); max(handles.mesh.g.vertices)];
+%         V        = v - repmat(spherefit(v),[size(v,1),1]);
+%         V(:,1)   = B(1,1) + ((B(2,1)-B(1,1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+%         V(:,2)   = B(1,2) + ((B(2,2)-B(1,2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+%         V(:,3)   = B(1,3) + ((B(2,3)-B(1,3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+%         v        = V;
+% 
+%         % reduce patch
+%         fprintf('Reducing patch density\n');
+% 
+%         nv  = length(v);
+%         tri = delaunay(v(:,1),v(:,2),v(:,3));
+%         fv  = struct('faces',tri,'vertices',v);
+%         count  = 0;
+% 
+%         % smooth overlay at triangulated points first
+%         Cbound = [min(C) max(C)];
+%         C      = spm_mesh_smooth(fv,double(C),4);
+%         C      = Cbound(1) + (Cbound(2)-Cbound(1)).*(C - min(C))./(max(C) - min(C));
+% 
+%         while nv > 10000
+%            fv  = reducepatch(fv, 0.5);
+%            nv  = length(fv.vertices);
+%            count = count + 1;
+%         end
+% 
+%         % print
+%         fprintf('Patch reduction finished\n');
+%         fprintf('Using nifti volume as sourcemodel and overlay!\n');
+%         fprintf('New sourcemodel has %d vertices\n',nv);
+% 
+%         % find the indices of the retained vertexes only
+%         fprintf('Retrieving vertex colours\n');
+%         Ci = compute_reduced_indices(v, fv.vertices);
+% 
+%         fprintf('Finished\n');
+%         
+%         % Store sourcemodel and ovelray data
+%         v                           = fv.vertices;
+%         handles.overlay.sourcemodel = v;
+%         handles.overlay.data        = C(Ci);
+%    
+% end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -503,11 +544,25 @@ function pushbutton12_Callback(hObject, eventdata, handles)
 
 % Initial checks
 hasmesh   = isfield(handles,'mesh');
-hassource = isfield(handles,'overlay');
+hasoverlay = isfield(handles,'overlay');
+hassource = isfield(handles.data,'sourcemodel');
 
-if hasmesh && hassource
+handles.data.overlay.method = handles.overlay.method;
+
+if hasmesh && hassource && hasoverlay
    
-    handles = overlay(handles);
+    %handles = overlay(handles);
+    handles.data.overlay.method = handles.overlay.method;
+    handles.data.overlay.peaks   = 0;
+    
+    data = aplot.overlay(handles.data,handles.overlay.data,handles.i.write,handles.i.write,handles.i.colbar);
+    % Functional overlay plotter
+    %
+    % mesh is the gifti / patch
+    % L is the overlay (90,1)
+    % write is boolean flag
+    % fname is filename is write = 1;
+    %
     
 end
 

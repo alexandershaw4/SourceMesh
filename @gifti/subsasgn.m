@@ -9,7 +9,7 @@ function this = subsasgn(this, subs, A)
 switch subs(1).type
     case '.'
         if ~ismember(subs(1).subs, {'vertices' 'faces' 'normals' 'cdata','mat','indices','private'})
-            error('Reference to non-existent field ''%s''.',subs(1).subs);
+            %error('Reference to non-existent field ''%s''.',subs(1).subs);
         else
             % TODO % handle cases when length(subs) > 1
             [i,n] = isintent(this,subs(1).subs);

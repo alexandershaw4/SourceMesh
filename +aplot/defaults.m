@@ -1,0 +1,26 @@
+function [data,in] = defaults()
+
+data         = struct;     % main output structure
+in.pmesh     = 1;          % flag to display the mesh or not
+in.labels    = 0;          % flag to display labels on rois
+in.write     = 0;          % flag to write mesh & overlay
+in.fname     = [];         % filename for saves (e.g. for sae gifti)
+in.fighnd    = [];         % put the plot into an existing figure handle
+in.colbar    = 1;          % display colourbar
+in.template  = 0;          % register source model to a template using ICP
+in.orthog    = 0;          % orthogonalise [ignore]
+in.inflate   = 0;          % inflate the mesh [just calls spm_mesh_inflate]
+in.peaks     = 0;          % compute peaks on surface functional overlay
+in.components = 0;         % compute local maxima on functional overlay
+in.pca        = 0;         % compute pca on surface functional overlay
+in.flip       = 0;         % ignore
+in.affine     = 0;         % supply affine transformation matrix
+in.netcmap    = 0;         % colormap for network
+in.method     = 'raycast'; % volume to surface algorithm
+in.depth      = [];        % depth for raycasting
+in.all_roi_tissueindex = []; % indices of roi each voxel belongs to
+in.thelabels  = [];        % supply cell array of labels for rois
+in.tf_interactive = 0;     % ignore
+in.checkori       = 0;     % interactively check/adjust orientation of mesh
+in.fillholes      = 0;     % fill holes in mesh 
+in.hemi = 'both';          % hemisphere to plot
