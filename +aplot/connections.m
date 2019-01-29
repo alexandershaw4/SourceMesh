@@ -8,7 +8,7 @@ pos = data.sourcemodel.pos;
 %--------------------------------------------------------------------------
 if ischar(A)
     [fp,fn,fe]  = fileparts(A);
-    [edge,node] = rw_edgenode(fn);
+    [edge,node] = aplot.rw_edgenode(fn);
     A           = edge;
     
     if isfield(data,'template')
@@ -19,7 +19,7 @@ if ischar(A)
            i.labels   = data.template.labels;
            i.A        = A;
            data.sourcemodel.pos = node(:,1:3);
-           [data,i]   = sort_template(data,i);
+           [data,i]   = aplot.sort_template(data,i);
            A          = i.A;
         end
     end
@@ -48,11 +48,11 @@ end
 
 % Edges
 %--------------------------------------------------------------------------
-[node1,node2,strng] = matrix2nodes(A,pos);
+[node1,node2,strng] = aplot.matrix2nodes(A,pos);
 
 % place both signed absmax value in overlay so that colorbar is symmetrical
 strng2 = [strng; -max(abs(strng)); max(abs(strng))];
-RGB    = makecolbar(strng2,netcmap);
+RGB    = aplot.makecolbar(strng2,netcmap);
 
 % LineWidth (scaled) for strength
 if any(strng)

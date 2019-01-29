@@ -1,23 +1,30 @@
 
-% Plot functional overlay on structural image
+% Plot a network on structural image
 %==========================================================================
 
-% from nifti's:
+% from nifti T1 and network .node/.edge files:
 struct = 'GreyMRI.nii';
-funct  = 'nTEST_Gamma,60-90,60-90Hz_pairedt.nii';
+net    = 'network.edge';
 
-% or from gifti's:
+% or from a gifti MR surface & matrices representing network (n x n) and
+% source locations (n x 3)
 struct = 'TestMesh.gii';
-funct  = 'TestMeshOverlay.gii';
+net    = randi([0 1],90,90);
+funct  = (net.*net') .* randi([-7 7],90,90);
+locs   = randi([-70 70],90,3);
 
+% parse source model locations
+%--------------------------------------------------------------------------
+i.A  = net;
+data = aplot.sort_sourcemodel([],i);
 
 % make struct surface
 %--------------------------------------------------------------------------
 i.g  = struct;
-data = aplot.sort_sourcemodel([],i);
 [mesh,data] = aplot.get_mesh(i,data);       
 
-% structural options
+
+% plot structural part
 %--------------------------------------------------------------------------
 i.hemi      = 'both'; % if only one hemisphere plot
 i.affine    = [];     % if affine supplied or flip flag
@@ -35,15 +42,10 @@ figure('position',[1091         235        1310        1026])
 [mesh,data] = aplot.parse_mesh(mesh,i,data);
 data.mesh   = mesh;
 
-% functional overlay options
+% network  options
 %--------------------------------------------------------------------------
-data.overlay = [];
-[y,data]     = aplot.parse_overlay(funct,data); % get functional vals & sourcemodel vertices
+netcmap = cmocean('balance'); % net color map
+colbar  = 0;
 
-data.overlay.method  = 'raycast'; % 'raycast', 'euclidean' or 'spheres'
-data.overlay.peaks   = 0;
-    
-colbar = 0;
-data   = aplot.overlay(data,y,i.write,i.fname,colbar);
-
-
+[e,n] = aplot.rw_edgenode(net);
+data  = aplot.connections(data,e,colbar,i.write,i.fname,netcmap);
