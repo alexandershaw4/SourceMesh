@@ -40,7 +40,7 @@ end
 %-------------------------------------------------------------
 if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
     % is this is filename of a nifti or gifti file
-   [L,data] = parse_overlay(L,data);
+   [L,data] = aplot.parse_overlay(L,data);
    
    if isempty(L)
         fprintf('Overlay does not match sourcemodel!\n');
@@ -53,7 +53,7 @@ if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
            i.model    = data.template.model;
            i.labels   = data.template.labels;
            i.L        = L;
-           [data,i]   = sort_template(data,i);
+           [data,i]   = aplot.sort_template(data,i);
            L          = i.L;
        end
    end

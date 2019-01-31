@@ -26,7 +26,7 @@ i.g  = struct;
 
 % plot structural part
 %--------------------------------------------------------------------------
-i.hemi      = 'both'; % if only one hemisphere plot
+i.hemi      = 'both'; % if only one hemisphere plot: 'both' ,'left', 'right'
 i.affine    = [];     % if affine supplied or flip flag
 i.flip      = 0;
 i.inflate   = 0;      % if inflate, pass flag

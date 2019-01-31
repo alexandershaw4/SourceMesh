@@ -17,7 +17,7 @@ if isfield(inputs,'L')
         data.overlay.affine = i.funcaffine;
     end
     
-    data = overlay(data, (i.L),i.write,i.fname,i.colbar);
+    data = aplot.overlay(data, (i.L),i.write,i.fname,i.colbar);
 end 
 
 isover = exist('L','var') || exist('V','var');
@@ -28,27 +28,27 @@ end
 
 % networks
 if isfield(inputs,'A')
-    data = connections(data,i.A,i.colbar,i.write,i.fname,i.netcmap); 
+    data = aplot.connections(data,i.A,i.colbar,i.write,i.fname,i.netcmap); 
 end 
 
 % tracts
 if isfield(inputs,'T')
-    data = drawtracks(data,i.T,i.H);                  
+    data = aplot.drawtracks(data,i.T,i.H);                  
 end 
 
 % nodes
 if isfield(inputs,'N')
-    data = drawnodes(data, i.N);                 
+    data = aplot.drawnodes(data, i.N);                 
 end 
 
 % labels
-data = parse_labels(i,data);
+data = aplot.parse_labels(i,data);
 
 % video
 if isfield(inputs,'V')
     tv = 1:size(i.V,2);
     try tv = i.times; end
-    data = video(data,i.V,1,i.fpath,tv); 
+    data = aplot.video(data,i.V,1,i.fpath,tv); 
 end
 
 

@@ -10,13 +10,13 @@ try
     data.template.labels = i.labels;
 end
 if i.template
-    atlas = dotemplate(i.model);
-    rois  = get_roi_centres(atlas.template_sourcemodel.pos,atlas.all_roi_tissueindex);
+    atlas = aplot.dotemplate(i.model);
+    rois  = aplot.get_roi_centres(atlas.template_sourcemodel.pos,atlas.all_roi_tissueindex);
     
     atlas.template_sourcemodel.pos = rois;
     atlas = rmfield(atlas,'all_roi_tissueindex');
     
-    reg = interp_template(data.sourcemodel,rois);
+    reg = aplot.interp_template(data.sourcemodel,rois);
     atlas.M    = reg.M;
     data.atlas = atlas;
     NM         = atlas.M;
@@ -61,7 +61,7 @@ if i.template
         V(isnan(V))=0;
         if orthog
             % dont use this
-            V = symm_orthog(V);
+            V = aplot.symm_orthog(V);
         end
         V(isnan(V))=0;
         i.V = V;

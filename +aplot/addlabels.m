@@ -16,7 +16,7 @@ if ( ~isempty(thelabels) && ~isempty(all_roi_tissueindex) ) &&...
    ( length(thelabels) == length(unique(all_roi_tissueindex(all_roi_tissueindex~=0))) )
     
     labels = strrep(thelabels,'_',' ');
-    v      = get_roi_centres(pos,all_roi_tissueindex);
+    v      = aplot.get_roi_centres(pos,all_roi_tissueindex);
     roi    = all_roi_tissueindex;
     
 elseif length(V) == 90

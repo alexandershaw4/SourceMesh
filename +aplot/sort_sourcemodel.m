@@ -8,7 +8,7 @@ if      isfield(i,'pos')
 elseif  isfield(i,'A') && ischar(i.A)
         fprintf('Using coords in node-file as sourcemodel\n');
         
-        [~,pos] = rw_edgenode(i.A); 
+        [~,pos] = aplot.rw_edgenode(i.A); 
         pos = pos(:,1:3);
         
 %  elseif  isfield(i,'L') && ischar(i.L)
