@@ -726,7 +726,6 @@ if i.template
     NM = NM/m; 
     
     % generate & apply a ROI mask if requested
-    %----------------------------------------------------
     if isfield(i,'roi')
         
         % should be cell array of labels
@@ -737,17 +736,9 @@ if i.template
         % check rois exist
         labs     = atlas.AAL_Labels;
         for iroi = 1:length(i.roi)
-            ROI_ind(iroi) = find(strcmp(i.roi{iroi},labs));
             
-            if isempty( ROI_ind(iroi) )
-                fprintf('Requested ROI (%s) not found\n');
-            end
         end
         
-        % apply mask!
-        newM = NM*0;
-        newM(:,ROI_ind) = NM(:,ROI_ind);
-        NM   = newM;
     end
     
     % update sourcemodel and labels

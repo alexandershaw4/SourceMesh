@@ -569,7 +569,7 @@ switch lower(method)
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        data = overlay(data,ol,write,fname,colbar);
+        data = aplot.overlay(data,ol,write,fname,colbar);
         return;
         
     case 'aal_light'
@@ -588,7 +588,7 @@ switch lower(method)
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         data.overlay.atlasvalues = L;
-        data = overlay(data,ol,write,fname,colbar);
+        data = aplot.overlay(data,ol,write,fname,colbar);
         return;
         
 end

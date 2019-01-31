@@ -138,41 +138,6 @@ atlas   = 'aal90';              % atlas to use: choose aal90 / aal78 / aal58
 atemplate('overlay',overlay,'sourcemodel',positions,'template','aal90');
 
 
-% Example (5b): Transform an overlay into AAL atlas space (roughly) AND
-%               then use an existing mapping from 90 regions to template
-%               [MNI] surface parcelation:
-%-----------------------------------------------------------------
-figure('position',[481         176        1204         987])
-
-load New_AALROI_6mm.mat        % load template sourcemodel
-
-positions = template_sourcemodel.pos; % get positions
-
-overlay = randi([0 6],5061,1);  % the functional values of length positions
-
-atlas   = 'aal90';              % atlas to use: choose aal90 / aal78 / aal58
-
-atemplate('overlay',overlay,'sourcemodel',positions,'template','aal90',...
-        'method',{'aal_light','spheres'});
-
-    
-% Example (5c): as above, but with a specific ROI specified
-%-----------------------------------------------------------------
-figure('position',[481         176        1204         987])
-
-load New_AALROI_6mm.mat        % load template sourcemodel
-
-positions = template_sourcemodel.pos; % get positions
-
-overlay = randi([0 6],5061,1);  % the functional values of length positions
-
-atlas   = 'aal90';              % atlas to use: choose aal90 / aal78 / aal58
-
-roi     = {'Frontal_Sup_Orb_L' 'Supp_Motor_Area_L' 'Heschl_R'};
-
-atemplate('mesh','def4','overlay',overlay,'sourcemodel',positions,'template','aal90',...
-        'method',{'aal_light','spheres'},'roi',roi);
-
 
 % Example (6): Perform a spatial pca or find local maxima 
 %-----------------------------------------------------------------
