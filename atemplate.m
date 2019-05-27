@@ -1106,7 +1106,7 @@ if size(N,1) > 1 && size(N,2) > 1
 else
     ForPlot = v(find(N),:);
     %s       = find(N);
-    s = ones(length(find(N)),1)*40;
+    s = ones(length(find(N)),1)*150;
     for i   = 1:length(ForPlot)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
@@ -1604,12 +1604,16 @@ else
 % otherwise find closest points (assume both in mm)
 %--------------------------------------------------------------------------
 
+% first-pass attempt at ensuring alignment of sourcemodel and outer mesh
+%pos = fixmesh(mesh,pos);
+
 % Overlay
 v  = pos;                       % sourcemodel vertices
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
 S  = [min(L(:)),max(L(:))];     % min max values
+S0 = max(abs(L(:)));
 
 switch method
     case{'raycast'}
@@ -1633,6 +1637,7 @@ Rht = mv(:,1) > cnt(1);
 Lft = find(Lft);
 Rht = find(Rht);
 
+
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
@@ -1653,7 +1658,7 @@ switch method
         wb = waitbar(0,'Ray casting: Please wait...');
         
         % Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
-        UseFaceVertex = 'face'; 
+        UseFaceVertex = 'vertex'; 
         RND = 1;
         
         % Grid resolution
@@ -1677,7 +1682,8 @@ switch method
                 a(1)  = L(i);
                 a(2)  = vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3));
                 [~,I] = max(abs(a));
-                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = a(I);                
+                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = ...
+                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) + a(I);                
             end
         end
                 
@@ -1830,7 +1836,9 @@ switch method
                 % Set vertex color, using interpolated face colours
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
                 fcol(isnan(fcol)) = 0;
+                fcol = [fcol; S(1); S(2)];
                 fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                fcol = fcol(1:end-2);
                 set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
         end
         
@@ -2075,11 +2083,11 @@ switch method
         y(isnan(y)) = 0;
 
         % return these in data structre
-        data.overlay.data           = y;
-        data.overlay.smooth_weights = M;
-        data.overlay.NumComp        = NumComp;
-        data.overlay.indz           = indz;
-        data.overlay.w              = w;
+        try data.overlay.data           = y; end
+        try data.overlay.smooth_weights = M; end
+        try data.overlay.NumComp        = NumComp; end
+        try data.overlay.indz           = indz;    end
+        try data.overlay.w              = w;       end
 
         set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
         drawnow;
@@ -2433,7 +2441,7 @@ end
 
 
 function newpos = fixmesh(g,pos)
-% plot as transparent grey gifti surface
+% redirect sourcemodel points onto closest mesh vertex
 %
 % AS
 
@@ -2444,10 +2452,11 @@ g.vertices=v;
 % Centre on ~0
 pos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
+newpos = pos;
 for i = 1:length(pos)
     this  = pos(i,:);
     [t,I] = maxpoints(cdist(v,this),1,'max');
-    newpos(i,:) = v(I,:);
+    newpos(i,:) = v(I,:);    
 end
 
 end
@@ -2771,7 +2780,7 @@ fprintf('  ... done! \n');
 
 end
 
-function Centre = spherefit(X)
+function [Centre,A,B] = spherefit(X)
 % Fit sphere to centre of vertices, return centre points
 %
 %
