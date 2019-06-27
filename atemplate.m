@@ -2287,12 +2287,15 @@ if isfield(data,'post_parcel')
         fprintf('Computing parcel means\n');
         n = unique(iv);
         n(n==0) = [];
+        ParVal  = iv*0; 
         for i = 1:length(n)
             these = find(iv==n(i));
             ParcelMean(i) = mean( newL(these) );
             MeanLoc(i,:)  = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
+            ParVal(these) = ParcelMean(i);
         end
         ParcelMean = S(1) + ((S(2)-S(1))).*(ParcelMean - min(ParcelMean))./(max(ParcelMean) - min(ParcelMean));
+        ParVal     = S(1) + ((S(2)-S(1))).*(ParVal - min(ParVal))./(max(ParVal) - min(ParVal));
     end
     
     % box bound new set
@@ -2307,6 +2310,7 @@ if isfield(data,'post_parcel')
         % return atlas data as means
         data.post_parcel.ParcelMean = ParcelMean;
         data.post_parcel.ParcelCent = MeanLoc;
+        data.post_parcel.ParVal     = ParVal;
     end 
 end
 

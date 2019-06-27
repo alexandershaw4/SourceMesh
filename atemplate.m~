@@ -2259,8 +2259,10 @@ switch method
         s = max(abs(y(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
+        
 end
 
+S = [-s s];
 
 % post-hoc template reduction here?
 %--------------------------------------------------------------------------
@@ -2275,6 +2277,7 @@ if isfield(data,'post_parcel')
         [~,ind] = min(D0(:,i));
         newL(i) = data.overlay.orig(ind);
     end
+    newL = S(1) + ((S(2)-S(1))).*(newL - min(newL))./(max(newL) - min(newL));
       
     
     % if the second input was supplied, compute average atlas value as mean
@@ -2287,11 +2290,14 @@ if isfield(data,'post_parcel')
         for i = 1:length(n)
             these = find(iv==n(i));
             ParcelMean(i) = mean( newL(these) );
-            
-            MeanLoc(i,:) = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
-            
+            MeanLoc(i,:)  = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
         end
+        ParcelMean = S(1) + ((S(2)-S(1))).*(ParcelMean - min(ParcelMean))./(max(ParcelMean) - min(ParcelMean));
+        
     end
+    
+    % box bound new set
+    %MeanLoc = fit_check_source2mesh(MeanLoc,data.mesh);
     
     % return the new v and data
     data.post_parcel      = [];
@@ -2301,6 +2307,7 @@ if isfield(data,'post_parcel')
     try 
         % return atlas data as means
         data.post_parcel.ParcelMean = ParcelMean;
+        data.post_parcel.ParcelCent = MeanLoc;
     end 
 end
 

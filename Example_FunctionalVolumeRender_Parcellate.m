@@ -26,6 +26,11 @@ afigure; D = atemplate('mesh',Surf,'overlay',FunVol,'post_parcel',{v vi});
 afigure; atemplate('mesh',Surf,'overlay',D.post_parcel.data, ...
     'sourcemodel', D.post_parcel.pos , 'method', 'spheres' );
 
+% We can also render the low-resolution (1-point-per-atlas) 'blocked' into
+% parcel space - so the whole parcel has that value:
+afigure; atemplate('mesh',Surf,'overlay',D.post_parcel.ParVal, ...
+    'sourcemodel', D.post_parcel.pos , 'method', 'spheres' );
+
 
 % We can also render the single atlas point means - i.e. for AAL90 we give
 % it only 90 data points (D.post_parcel.ParcelMean). You can use the
