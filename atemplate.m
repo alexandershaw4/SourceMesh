@@ -2277,8 +2277,9 @@ if isfield(data,'post_parcel')
         [~,ind] = min(D0(:,i));
         newL(i) = data.overlay.orig(ind);
     end
+    newL = [newL S(1) S(2)];
     newL = S(1) + ((S(2)-S(1))).*(newL - min(newL))./(max(newL) - min(newL));
-      
+    newL = newL(1:end-2);
     
     % if the second input was supplied, compute average atlas value as mean
     % of parcel vertices
