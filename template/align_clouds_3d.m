@@ -53,6 +53,7 @@ end
 % OPTIMISATION
 %-------------------------------------------------------------------------
 [X, F, i] = PR_minimize(Rx(:), @fitter, 128);
+%[X,F]  = fminsearch(@fitter,Rx(:) );
 fprintf('Posterior (squared) fit error = %d\n',F(end));
 
 % compute posterior positions

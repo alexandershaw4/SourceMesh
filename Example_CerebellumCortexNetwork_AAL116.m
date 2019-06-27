@@ -1,7 +1,6 @@
 
 % Functional Overlay - AAL116 (with cerebellum)
 %-------------------------------------------------------
-
 % use atlas-reduced code: aal116
 fun_data = zeros(116,1);
 fun_data(91:108)=-8:9;   % activations in cerebellum only
@@ -24,16 +23,13 @@ atemplate('mesh','def3','overlay',fun_data,...
     'sourcemodel',{v vi}, 'method',{'user','spheres'},'optimise',1);
 
 
-% Network
+% Network - AAL116 (with cerebellum)
 %-------------------------------------------------------
-
 load AAL116 % load the AAL116 'source' positions 
-
 N = zeros(116,116); % make an empty 116x116 network
 
 % 49  = L Sup Occ
 % 105 = L Cerebellum 9
-
 N(49,105) = 2;
 N(105,49) = 2;
 

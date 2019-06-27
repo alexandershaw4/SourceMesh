@@ -225,6 +225,7 @@ in.fillholes      = 0;     % fill holes in mesh
 in.hemi = 'both';          % hemisphere to plot
 in.roi  = [];
 in.optimise = 0;
+in.post_parcel = [];
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
@@ -241,6 +242,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'gifti');       in.g = varargin{i+1};     end
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
     if strcmp(varargin{i},'optimise');    in.optimise = varargin{i+1};end
+    if strcmp(varargin{i},'post_parcel'); in.post_parcel = varargin{i+1};end
     if strcmp(varargin{i},'fillholes');   in.fillholes = 1;         end
     if strcmp(varargin{i},'affine');      in.affine = varargin{i+1};end
     if strcmp(varargin{i},'funcaffine');  in.funcaffine = varargin{i+1}; end
@@ -432,6 +434,14 @@ if ~any(isnan(dpos(:)))
 end
 
 data.sourcemodel.pos = pos;
+
+
+% not hugely revelant here, but use this func to also store data for the
+% post-hoc atlas-registration function if required
+if iscell(i.post_parcel)
+    data.post_parcel = i.post_parcel;
+end
+
 
 end
 
@@ -736,6 +746,8 @@ if i.template
     m  = max(NM(:));
     NM = NM/m; 
     
+    data.atlas.M = NM;
+    
     % generate & apply a ROI mask if requested
     %----------------------------------------------------
     if isfield(i,'roi')
@@ -843,13 +855,19 @@ function atlas = dotemplate(model)
 %
 %
 
-switch model
-    case lower({'aal','aal90'});   load New_AALROI_6mm.mat
-    case lower('aal58');           load New_58cortical_AALROI_6mm
-    case lower('aal78');           load New_AALROI_Cortical78_6mm
-    otherwise
-        fprintf('Model not found.\n');
-        return;
+if ischar(model)
+    switch model
+        case lower({'aal','aal90'});   load New_AALROI_6mm.mat
+        case lower('aal58');           load New_58cortical_AALROI_6mm
+        case lower('aal78');           load New_AALROI_Cortical78_6mm
+        otherwise
+            fprintf('Model not found.\n');
+            return;
+    end
+elseif iscell(model)
+    template_sourcemodel.pos = model{1};
+    all_roi_tissueindex      = model{2};
+    AAL_Labels = [];
 end
 
 atlas.AAL_Labels = AAL_Labels;
@@ -2174,7 +2192,7 @@ switch method
         end
         
         % update sourcemodel
-        v = fit_check_source2mesh(v,data.mesh); 
+        %v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2220,7 +2238,7 @@ switch method
         y  = double(y);
 
         % spm mesh smoothing
-        %--------------------------------------------------------------------------
+        %------------------------------------------------------------------
         fprintf('Smoothing overlay...\n');
         y  = spm_mesh_smooth(mesh, y(:), 4);
         y(isnan(y)) = 0;
@@ -2242,6 +2260,53 @@ switch method
         colormap('jet');
         alpha 1;
 end
+
+
+% post-hoc template reduction here?
+%--------------------------------------------------------------------------
+if isfield(data,'post_parcel')
+    fprintf('Also computing requested (parcellated) atlas transform\n');
+    newv = data.post_parcel{1};
+    newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
+    D0   = cdist(data.sourcemodel.pos,newv);
+    
+    % assume the vertex value of the closest mesh point
+    for i = 1:size(D0,2)
+        [~,ind] = min(D0(:,i));
+        newL(i) = data.overlay.orig(ind);
+    end
+      
+    
+    % if the second input was supplied, compute average atlas value as mean
+    % of parcel vertices
+    try 
+        iv = data.post_parcel{2};
+        fprintf('Computing parcel means\n');
+        n = unique(iv);
+        n(n==0) = [];
+        for i = 1:length(n)
+            these = find(iv==n(i));
+            ParcelMean(i) = mean( newL(these) );
+            MeanLoc(i,:)  = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
+        end
+        ParcelMean = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+    end
+    
+    % box bound new set
+    %MeanLoc = fit_check_source2mesh(MeanLoc,data.mesh);
+    
+    % return the new v and data
+    data.post_parcel      = [];
+    data.post_parcel.pos  = newv;
+    data.post_parcel.data = newL;  
+
+    try 
+        % return atlas data as means
+        data.post_parcel.ParcelMean = ParcelMean;
+        data.post_parcel.ParcelCent = MeanLoc;
+    end 
+end
+
 
 
 if colbar

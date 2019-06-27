@@ -224,6 +224,8 @@ in.checkori       = 0;     % interactively check/adjust orientation of mesh
 in.fillholes      = 0;     % fill holes in mesh 
 in.hemi = 'both';          % hemisphere to plot
 in.roi  = [];
+in.optimise = 0;
+in.post_parcel = [];
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
@@ -239,6 +241,8 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');       in.g = varargin{i+1};     end
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
+    if strcmp(varargin{i},'optimise');    in.optimise = varargin{i+1};end
+    if strcmp(varargin{i},'post_parcel'); in.post_parcel = varargin{i+1};end
     if strcmp(varargin{i},'fillholes');   in.fillholes = 1;         end
     if strcmp(varargin{i},'affine');      in.affine = varargin{i+1};end
     if strcmp(varargin{i},'funcaffine');  in.funcaffine = varargin{i+1}; end
@@ -394,43 +398,6 @@ if      isfield(i,'pos')
             fprintf('Using supplied sourcemodel vertices\n');
             pos = i.pos;
         
-%     if isnumeric(i.pos)
-%         % passed an nx3 matrix of vertex points
-%         fprintf('Using supplied sourcemodel vertices\n');
-%         pos = i.pos;
-%         
-%     elseif ischar(i.pos)
-%         % passed the name of an atlas
-%         
-%         switch lower(i.pos)
-%             case {'aal90','aal'}
-%                 load AAL_SOURCEMOD.mat
-%                 pos = template_sourcemodel.pos;
-%             case {'harvox','harvardoxford','ha','hao'};
-%                 % we have to work backward from the parcellation to a
-%                 % single point
-%                 load HarvOx.mat
-%                 n = unique(vi);
-%                 for in = 1:length(n)
-%                     these = find(vi==n(in));
-%                     pos(in,:) = spherefit(v(these,:));
-%                 end
-%                 
-%             case {'aal116'}
-%                 % we have to work backward from the parcellation to a
-%                 % single point
-%                 load AAL116.mat
-%                 n = unique(vi);
-%                 for in = 1:length(n)
-%                     these = find(vi==n(in));
-%                     pos(in,:) = spherefit(v(these,:));
-%                 end
-%                 
-%             
-%         end
-%                 
-%     end
-        
 elseif  isfield(i,'A') && ischar(i.A)
         fprintf('Using coords in node-file as sourcemodel\n');
         
@@ -453,8 +420,7 @@ else
 end
 
 if iscell(pos)
-    % store 2nd input - vector descrbinig which vertices belong to which
-    % rois
+    % store 2nd input - vector descrbinig which vertices belong to which rois
     data.sourcemodel.vi = pos{2};
     pos                 = pos{1};
 end
@@ -466,11 +432,16 @@ dpos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 if ~any(isnan(dpos(:)))
     pos = dpos;
 end
-    
-    
-    
 
 data.sourcemodel.pos = pos;
+
+
+% not hugely revelant here, but use this func to also store data for the
+% post-hoc atlas-registration function if required
+if iscell(i.post_parcel)
+    data.post_parcel = i.post_parcel;
+end
+
 
 end
 
@@ -494,12 +465,15 @@ checkori = i.checkori;
 % fill holes during hemisphere separation?
 dofillholes = i.fillholes;
 
+% explicitly optimise the alignment of the cloud points?
+optimise = i.optimise;
+
 if     i.pmesh && ~isfield(i,'T')
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
 elseif i.pmesh
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
 else
     h = [];
     p = [];
@@ -772,6 +746,8 @@ if i.template
     m  = max(NM(:));
     NM = NM/m; 
     
+    data.atlas.M = NM;
+    
     % generate & apply a ROI mask if requested
     %----------------------------------------------------
     if isfield(i,'roi')
@@ -879,13 +855,19 @@ function atlas = dotemplate(model)
 %
 %
 
-switch model
-    case lower({'aal','aal90'});   load New_AALROI_6mm.mat
-    case lower('aal58');           load New_58cortical_AALROI_6mm
-    case lower('aal78');           load New_AALROI_Cortical78_6mm
-    otherwise
-        fprintf('Model not found.\n');
-        return;
+if ischar(model)
+    switch model
+        case lower({'aal','aal90'});   load New_AALROI_6mm.mat
+        case lower('aal58');           load New_58cortical_AALROI_6mm
+        case lower('aal78');           load New_AALROI_Cortical78_6mm
+        otherwise
+            fprintf('Model not found.\n');
+            return;
+    end
+elseif iscell(model)
+    template_sourcemodel.pos = model{1};
+    all_roi_tissueindex      = model{2};
+    AAL_Labels = [];
 end
 
 atlas.AAL_Labels = AAL_Labels;
@@ -2195,7 +2177,28 @@ switch method
         
         data = overlay(data,ol,write,fname,colbar);
         return;
+        
+    case {'user'}
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
+        
+        v  = data.sourcemodel.pos;
+        vi = data.sourcemodel.vi; 
 
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        %v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
 end
 
 
@@ -2235,7 +2238,7 @@ switch method
         y  = double(y);
 
         % spm mesh smoothing
-        %--------------------------------------------------------------------------
+        %------------------------------------------------------------------
         fprintf('Smoothing overlay...\n');
         y  = spm_mesh_smooth(mesh, y(:), 4);
         y(isnan(y)) = 0;
@@ -2257,6 +2260,50 @@ switch method
         colormap('jet');
         alpha 1;
 end
+
+
+% post-hoc template reduction here?
+%--------------------------------------------------------------------------
+if isfield(data,'post_parcel')
+    fprintf('Also computing requested (parcellated) atlas transform\n');
+    newv = data.post_parcel{1};
+    newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
+    D0   = cdist(data.sourcemodel.pos,newv);
+    
+    % assume the vertex value of the closest mesh point
+    for i = 1:size(D0,2)
+        [~,ind] = min(D0(:,i));
+        newL(i) = data.overlay.orig(ind);
+    end
+      
+    
+    % if the second input was supplied, compute average atlas value as mean
+    % of parcel vertices
+    try 
+        iv = data.post_parcel{2};
+        fprintf('Computing parcel means\n');
+        n = unique(iv);
+        n(n==0) = [];
+        for i = 1:length(n)
+            these = find(iv==n(i));
+            ParcelMean(i) = mean( newL(these) );
+            
+            MeanLoc(i,:) = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
+            
+        end
+    end
+    
+    % return the new v and data
+    data.post_parcel      = [];
+    data.post_parcel.pos  = newv;
+    data.post_parcel.data = newL;  
+
+    try 
+        % return atlas data as means
+        data.post_parcel.ParcelMean = ParcelMean;
+    end 
+end
+
 
 
 if colbar
@@ -2638,7 +2685,7 @@ end
 
 end
 
-function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes)
+function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise)
 % Main brain-mesh plot. 
 %
 % Separates hemispheres, computes curvature, check orientation, inflate, 
@@ -2689,7 +2736,14 @@ g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
 
 % ensure sourcemodel (pos) is around same scale as mesh boundaries
-pos = fit_check_source2mesh(pos,g)
+pos = fit_check_source2mesh(pos,g);
+
+% explicitly optimise the alignment of the cloud points?
+% (source model vertices and mesh vertices)
+if optimise
+    pos = align_clouds_3d(g.vertices,pos);
+    clf; drawnow;
+end
 
 % m = min(g.vertices);% *1.1;
 % M = max(g.vertices);% *1.1;
