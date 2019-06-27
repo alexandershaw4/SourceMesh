@@ -224,6 +224,7 @@ in.checkori       = 0;     % interactively check/adjust orientation of mesh
 in.fillholes      = 0;     % fill holes in mesh 
 in.hemi = 'both';          % hemisphere to plot
 in.roi  = [];
+in.optimise = 0;
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
@@ -239,6 +240,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');       in.g = varargin{i+1};     end
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
+    if strcmp(varargin{i},'optimise');    in.optimise = varargin{i+1};end
     if strcmp(varargin{i},'fillholes');   in.fillholes = 1;         end
     if strcmp(varargin{i},'affine');      in.affine = varargin{i+1};end
     if strcmp(varargin{i},'funcaffine');  in.funcaffine = varargin{i+1}; end
@@ -391,8 +393,8 @@ function data = sort_sourcemodel(data,i)
 % Sort out what source model vertices we're going to use
 
 if      isfield(i,'pos')
-        fprintf('Using supplied sourcemodel vertices\n');
-        pos = i.pos;
+            fprintf('Using supplied sourcemodel vertices\n');
+            pos = i.pos;
         
 elseif  isfield(i,'A') && ischar(i.A)
         fprintf('Using coords in node-file as sourcemodel\n');
@@ -415,12 +417,18 @@ else
         pos  = template_sourcemodel.pos;
 end
 
+if iscell(pos)
+    % store 2nd input - vector descrbinig which vertices belong to which rois
+    data.sourcemodel.vi = pos{2};
+    pos                 = pos{1};
+end
+
 % Centre sourcemodel
 dpos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
 % Ensure stability if approaching centre (very tiny values)
 if ~any(isnan(dpos(:)))
-   pos = dpos;
+    pos = dpos;
 end
 
 data.sourcemodel.pos = pos;
@@ -447,12 +455,15 @@ checkori = i.checkori;
 % fill holes during hemisphere separation?
 dofillholes = i.fillholes;
 
+% explicitly optimise the alignment of the cloud points?
+optimise = i.optimise;
+
 if     i.pmesh && ~isfield(i,'T')
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
 elseif i.pmesh
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
 else
     h = [];
     p = [];
@@ -895,6 +906,24 @@ function data = connections(data,A,colbar,write,fname,netcmap)
 %
 pos = data.sourcemodel.pos;
 
+if isfield(data.sourcemodel,'vi')
+    % if pos is cell, it's because we've passed both a vertex set and a
+    % vector that describes which vertex belongs to which roi
+    v  = pos;
+    vi = data.sourcemodel.vi;
+    n  = unique(vi);
+    for i = 1:length(n)
+        these = find(vi==n(i));
+        roi(i,:) = spherefit(v(these,:));
+    end
+    pos = roi;
+    for ip = 1:length(pos)
+        [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+        pos(ip,:) = data.mesh.vertices(this,:);
+    end
+end
+
+
 % Read edge/node files if string
 %--------------------------------------------------------------------------
 if ischar(A)
@@ -1071,6 +1100,24 @@ hold on;
 pos = data.sourcemodel.pos;
 %v   = pos*0.9;
 
+if isfield(data.sourcemodel,'vi')
+    % if pos is cell, it's because we've passed both a vertex set and a
+    % vector that describes which vertex belongs to which roi
+    v  = pos;
+    vi = data.sourcemodel.vi;
+    n  = unique(vi);
+    for i = 1:length(n)
+        these = find(vi==n(i));
+        roi(i,:) = spherefit(v(these,:));
+    end
+    pos = roi;
+    for ip = 1:length(pos)
+        [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+        pos(ip,:) = data.mesh.vertices(this,:);
+    end
+end
+
+
 bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
 offset = 0.99;
 for ip = 1:3
@@ -1120,7 +1167,7 @@ else
     ForPlot = v(find(N),:);
     %s       = find(N);
     s = ones(length(find(N)),1)*150;
-    for i   = 1:length(ForPlot)
+    for i   = 1:size(ForPlot,1)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
     end
@@ -2014,7 +2061,7 @@ switch method
         fprintf('Routine took %d seconds\n',stime);
         
         
-    case 'aal'
+    case {'aal','aal90','AAL90'}
         % project into pre-computed AAL parcellation - 1 value per region
         %
         
@@ -2079,13 +2126,13 @@ switch method
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        % compute roi centres for labelling if req
-        data.overlay.atlas_flag = 1;
-        %v_roi = get_roi_centres0(v,vi);
-        data.overlay.atlas.labels = labels(:,2);
-        %data.overlay.rois = v_roi;
-        data.overlay.atlas.v  = v;
-        data.overlay.atlas.vi = vi;
+%         % compute roi centres for labelling if req
+%         data.overlay.atlas_flag = 1;
+%         %v_roi = get_roi_centres0(v,vi);
+%         data.overlay.atlas.labels = labels(:,2);
+%         %data.overlay.rois = v_roi;
+%         data.overlay.atlas.v  = v;
+%         data.overlay.atlas.vi = vi;
         
         %v_roi(isnan(v_roi)) = 0;
         
@@ -2112,7 +2159,28 @@ switch method
         
         data = overlay(data,ol,write,fname,colbar);
         return;
+        
+    case {'user'}
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
+        
+        v  = data.sourcemodel.pos;
+        vi = data.sourcemodel.vi; 
 
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
 end
 
 
@@ -2555,7 +2623,7 @@ end
 
 end
 
-function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes)
+function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise)
 % Main brain-mesh plot. 
 %
 % Separates hemispheres, computes curvature, check orientation, inflate, 
@@ -2564,6 +2632,11 @@ function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,fli
 %
 % Returns everything in data.mesh
 %
+
+if iscell(pos)
+   orig_pos = pos;
+   pos      = pos{1};
+end
 
 if isempty(a);
     a = .6;
@@ -2601,14 +2674,23 @@ g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
 
 % ensure sourcemodel (pos) is around same scale as mesh boundaries
-m = min(g.vertices);% *1.1;
-M = max(g.vertices);% *1.1;
+pos = fit_check_source2mesh(pos,g);
 
-V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
-V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-pos      = V;
+% explicitly optimise the alignment of the cloud points?
+% (source model vertices and mesh vertices)
+if optimise
+    pos = align_clouds_3d(g.vertices,pos);
+    clf; drawnow;
+end
+
+% m = min(g.vertices);% *1.1;
+% M = max(g.vertices);% *1.1;
+% 
+% V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+% pos      = V;
 
 % % calculate curvature for shading
 curv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
@@ -2753,6 +2835,13 @@ if write == 1
     save(gout,fname);
 end
 
+
+
+if exist('orig_pos')
+    % is pos was a cell, re-instate 
+    orig_pos{1} = pos;
+    pos         = orig_pos;
+end
 
 end
 

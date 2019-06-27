@@ -391,8 +391,45 @@ function data = sort_sourcemodel(data,i)
 % Sort out what source model vertices we're going to use
 
 if      isfield(i,'pos')
-        fprintf('Using supplied sourcemodel vertices\n');
-        pos = i.pos;
+            fprintf('Using supplied sourcemodel vertices\n');
+            pos = i.pos;
+        
+%     if isnumeric(i.pos)
+%         % passed an nx3 matrix of vertex points
+%         fprintf('Using supplied sourcemodel vertices\n');
+%         pos = i.pos;
+%         
+%     elseif ischar(i.pos)
+%         % passed the name of an atlas
+%         
+%         switch lower(i.pos)
+%             case {'aal90','aal'}
+%                 load AAL_SOURCEMOD.mat
+%                 pos = template_sourcemodel.pos;
+%             case {'harvox','harvardoxford','ha','hao'};
+%                 % we have to work backward from the parcellation to a
+%                 % single point
+%                 load HarvOx.mat
+%                 n = unique(vi);
+%                 for in = 1:length(n)
+%                     these = find(vi==n(in));
+%                     pos(in,:) = spherefit(v(these,:));
+%                 end
+%                 
+%             case {'aal116'}
+%                 % we have to work backward from the parcellation to a
+%                 % single point
+%                 load AAL116.mat
+%                 n = unique(vi);
+%                 for in = 1:length(n)
+%                     these = find(vi==n(in));
+%                     pos(in,:) = spherefit(v(these,:));
+%                 end
+%                 
+%             
+%         end
+%                 
+%     end
         
 elseif  isfield(i,'A') && ischar(i.A)
         fprintf('Using coords in node-file as sourcemodel\n');
@@ -415,13 +452,23 @@ else
         pos  = template_sourcemodel.pos;
 end
 
+if iscell(pos)
+    % store 2nd input - vector descrbinig which vertices belong to which
+    % rois
+    data.sourcemodel.vi = pos{2};
+    pos                 = pos{1};
+end
+
 % Centre sourcemodel
 dpos = pos - repmat(spherefit(pos),[size(pos,1),1]);
 
 % Ensure stability if approaching centre (very tiny values)
 if ~any(isnan(dpos(:)))
-   pos = dpos;
+    pos = dpos;
 end
+    
+    
+    
 
 data.sourcemodel.pos = pos;
 
@@ -895,6 +942,24 @@ function data = connections(data,A,colbar,write,fname,netcmap)
 %
 pos = data.sourcemodel.pos;
 
+if isfield(data.sourcemodel,'vi')
+    % if pos is cell, it's because we've passed both a vertex set and a
+    % vector that describes which vertex belongs to which roi
+    v  = pos;
+    vi = data.sourcemodel.vi;
+    n  = unique(vi);
+    for i = 1:length(n)
+        these = find(vi==n(i));
+        roi(i,:) = spherefit(v(these,:));
+    end
+    pos = roi;
+    for ip = 1:length(pos)
+        [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+        pos(ip,:) = data.mesh.vertices(this,:);
+    end
+end
+
+
 % Read edge/node files if string
 %--------------------------------------------------------------------------
 if ischar(A)
@@ -1071,6 +1136,24 @@ hold on;
 pos = data.sourcemodel.pos;
 %v   = pos*0.9;
 
+if isfield(data.sourcemodel,'vi')
+    % if pos is cell, it's because we've passed both a vertex set and a
+    % vector that describes which vertex belongs to which roi
+    v  = pos;
+    vi = data.sourcemodel.vi;
+    n  = unique(vi);
+    for i = 1:length(n)
+        these = find(vi==n(i));
+        roi(i,:) = spherefit(v(these,:));
+    end
+    pos = roi;
+    for ip = 1:length(pos)
+        [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+        pos(ip,:) = data.mesh.vertices(this,:);
+    end
+end
+
+
 bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
 offset = 0.99;
 for ip = 1:3
@@ -1120,7 +1203,7 @@ else
     ForPlot = v(find(N),:);
     %s       = find(N);
     s = ones(length(find(N)),1)*150;
-    for i   = 1:length(ForPlot)
+    for i   = 1:size(ForPlot,1)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
     end
@@ -2014,7 +2097,7 @@ switch method
         fprintf('Routine took %d seconds\n',stime);
         
         
-    case 'aal'
+    case {'aal','aal90','AAL90'}
         % project into pre-computed AAL parcellation - 1 value per region
         %
         
@@ -2028,6 +2111,7 @@ switch method
         end
         
         % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2035,7 +2119,7 @@ switch method
         data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case {'aal_light','aal_reduced'};
+    case {'aal_light','aal_reduced','AAL_light'};
         % project into pre-computed AAL parcellation - 1 value per region
         % - reduce dversion
         
@@ -2049,6 +2133,7 @@ switch method
         end
         
         % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2060,9 +2145,9 @@ switch method
     case {'HarvOx','HO','HarvardOxford','HOA'}
         % project into pre-computed Harvard-Oxford Atlas
         % parcellation - 1 value per region
-        %
+        % then use interp/project method above to render on user mesh
         
-        % new method for AAL90: wrapper on ray casting routine
+        % new method for AAL90: wrapper on above routine
         load HarvOx.mat
 
         ol    = zeros(length(v),1);
@@ -2072,24 +2157,45 @@ switch method
         end
         
         % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        % compute roi centres for labelling if req
-        data.overlay.atlas_flag = 1;
-        %v_roi = get_roi_centres0(v,vi);
-        data.overlay.atlas.labels = labels(:,2);
-        %data.overlay.rois = v_roi;
-        data.overlay.atlas.v  = v;
-        data.overlay.atlas.vi = vi;
+%         % compute roi centres for labelling if req
+%         data.overlay.atlas_flag = 1;
+%         %v_roi = get_roi_centres0(v,vi);
+%         data.overlay.atlas.labels = labels(:,2);
+%         %data.overlay.rois = v_roi;
+%         data.overlay.atlas.v  = v;
+%         data.overlay.atlas.vi = vi;
         
         %v_roi(isnan(v_roi)) = 0;
         
         data = overlay(data,ol,write,fname,colbar);
         return;
         
+    case {'aal116','AAL116'};
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
         
+        load AAL116.mat
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
+
 end
 
 
@@ -2464,6 +2570,23 @@ end
 
 end
 
+function pos = fit_check_source2mesh(pos,g)
+% check box bounds of sourcemodel and mesh are matched
+%
+% pos = nx3 source model, g = mesh gifti/struct
+
+% ensure sourcemodel (pos) is around same scale as mesh boundaries
+m = min(g.vertices);% *1.1;
+M = max(g.vertices);% *1.1;
+
+% refit box boundaries
+V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+pos      = V;
+
+end
 
 function y = makeodd(x)
 % nearest odd number
@@ -2525,6 +2648,11 @@ function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,fli
 % Returns everything in data.mesh
 %
 
+if iscell(pos)
+   orig_pos = pos;
+   pos      = pos{1};
+end
+
 if isempty(a);
     a = .6;
 end
@@ -2561,14 +2689,16 @@ g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
 
 % ensure sourcemodel (pos) is around same scale as mesh boundaries
-m = min(g.vertices);% *1.1;
-M = max(g.vertices);% *1.1;
+pos = fit_check_source2mesh(pos,g)
 
-V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
-V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-pos      = V;
+% m = min(g.vertices);% *1.1;
+% M = max(g.vertices);% *1.1;
+% 
+% V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+% pos      = V;
 
 % % calculate curvature for shading
 curv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
@@ -2714,6 +2844,13 @@ if write == 1
 end
 
 
+
+if exist('orig_pos')
+    % is pos was a cell, re-instate 
+    orig_pos{1} = pos;
+    pos         = orig_pos;
+end
+
 end
 
 function C = docurvature(M)
@@ -2764,32 +2901,32 @@ elseif (length(V) == length(thelabels)) &&...
     v = pos*0.95;
     roi = 1:length(V);
 
-elseif isfield(data,'overlay') && isfield(data.overlay,'atlas_flag') 
-    % user is calling one of the built-in atlas parcellations, for which we
-    % already know the labels and label locations... (AAL or HOA)
-    
-    v  = data.overlay.atlas.v;
-    vi = data.overlay.atlas.vi;
-    labels = data.overlay.atlas.labels;
-    
-    fprintf('Translating label positions to centres of parcellated ROIs\n');
-    fprintf('(this can take a minute)\n');
-    label_rois = diag(vi)*data.overlay.smooth_weights;
-    
-    for i = 1:length(vi)
-        roin = find(vi==i);
-        [x,y]=find(label_rois(roin,:));
-        these(unique(y)) = i;
-    end
-    
-    
-    
-%     v = data.overlay.rois;
-%     labels = data.overlay.labels;
+% elseif isfield(data,'overlay') && isfield(data.overlay,'atlas_flag') 
+%     % user is calling one of the built-in atlas parcellations, for which we
+%     % already know the labels and label locations... (AAL or HOA)
+%     
+%     v  = data.overlay.atlas.v;
+%     vi = data.overlay.atlas.vi;
+%     labels = data.overlay.atlas.labels;
+%     
+%     fprintf('Translating label positions to centres of parcellated ROIs\n');
+%     fprintf('(this can take a minute)\n');
+%     label_rois = diag(vi)*data.overlay.smooth_weights;
+%     
+%     for i = 1:length(vi)
+%         roin = find(vi==i);
+%         [x,y]=find(label_rois(roin,:));
+%         these(unique(y)) = i;
+%     end
+%     
+%     % now compute parcel centres for each roi
+%     rois = get_roi_centres(data.mesh.vertices,these);
+%     v = rois;
 %     roi = 1:length(v);
 %     n = length(v);
 %     V = ones(n,n);
-    
+%     v = double(v);
+        
 else
     fprintf('Labels info not right!\n');
     return
