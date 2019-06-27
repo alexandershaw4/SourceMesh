@@ -2275,6 +2275,7 @@ if isfield(data,'post_parcel')
         [~,ind] = min(D0(:,i));
         newL(i) = data.overlay.orig(ind);
     end
+    newL = S(1) + ((S(2)-S(1))).*(newL - min(newL))./(max(newL) - min(newL));
       
     
     % if the second input was supplied, compute average atlas value as mean
@@ -2289,7 +2290,7 @@ if isfield(data,'post_parcel')
             ParcelMean(i) = mean( newL(these) );
             MeanLoc(i,:)  = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
         end
-        ParcelMean = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+        ParcelMean = S(1) + ((S(2)-S(1))).*(ParcelMean - min(ParcelMean))./(max(ParcelMean) - min(ParcelMean));
     end
     
     % box bound new set
