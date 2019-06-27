@@ -2060,9 +2060,9 @@ switch method
     case {'HarvOx','HO','HarvardOxford','HOA'}
         % project into pre-computed Harvard-Oxford Atlas
         % parcellation - 1 value per region
-        % then use interp/project method above to render on user mesh
+        %
         
-        % new method for AAL90: wrapper on above routine
+        % new method for AAL90: wrapper on ray casting routine
         load HarvOx.mat
 
         ol    = zeros(length(v),1);
@@ -2764,32 +2764,32 @@ elseif (length(V) == length(thelabels)) &&...
     v = pos*0.95;
     roi = 1:length(V);
 
-% elseif isfield(data,'overlay') && isfield(data.overlay,'atlas_flag') 
-%     % user is calling one of the built-in atlas parcellations, for which we
-%     % already know the labels and label locations... (AAL or HOA)
-%     
-%     v  = data.overlay.atlas.v;
-%     vi = data.overlay.atlas.vi;
-%     labels = data.overlay.atlas.labels;
-%     
-%     fprintf('Translating label positions to centres of parcellated ROIs\n');
-%     fprintf('(this can take a minute)\n');
-%     label_rois = diag(vi)*data.overlay.smooth_weights;
-%     
-%     for i = 1:length(vi)
-%         roin = find(vi==i);
-%         [x,y]=find(label_rois(roin,:));
-%         these(unique(y)) = i;
-%     end
-%     
-%     % now compute parcel centres for each roi
-%     rois = get_roi_centres(data.mesh.vertices,these);
-%     v = rois;
+elseif isfield(data,'overlay') && isfield(data.overlay,'atlas_flag') 
+    % user is calling one of the built-in atlas parcellations, for which we
+    % already know the labels and label locations... (AAL or HOA)
+    
+    v  = data.overlay.atlas.v;
+    vi = data.overlay.atlas.vi;
+    labels = data.overlay.atlas.labels;
+    
+    fprintf('Translating label positions to centres of parcellated ROIs\n');
+    fprintf('(this can take a minute)\n');
+    label_rois = diag(vi)*data.overlay.smooth_weights;
+    
+    for i = 1:length(vi)
+        roin = find(vi==i);
+        [x,y]=find(label_rois(roin,:));
+        these(unique(y)) = i;
+    end
+    
+    
+    
+%     v = data.overlay.rois;
+%     labels = data.overlay.labels;
 %     roi = 1:length(v);
 %     n = length(v);
 %     V = ones(n,n);
-%     v = double(v);
-        
+    
 else
     fprintf('Labels info not right!\n');
     return

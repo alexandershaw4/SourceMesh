@@ -50,7 +50,8 @@ for num = 1:360
             writeVideo(vidObj,currFrame);
         case 'background'
             
-            print(gcf,[pathname,'/temp.png'],'-dpng','-r600');
+            %print(gcf,[pathname,'/temp.png'],'-dpng','-r600');
+            export_fig([pathname,'/temp.png'],'-transparent','-m2');
             tempimg   = imread([pathname,'/temp.png']);
 
             currFrame = im2frame(tempimg);
