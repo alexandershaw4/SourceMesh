@@ -2262,7 +2262,7 @@ switch method
         
 end
 
-S = s;
+S = [-s s];
 
 % post-hoc template reduction here?
 %--------------------------------------------------------------------------
