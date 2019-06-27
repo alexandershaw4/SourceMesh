@@ -28,17 +28,18 @@ atemplate('mesh','def3','overlay',fun_data,...
 load AAL116 % load the AAL116 'source' positions 
 N = zeros(116,116); % make an empty 116x116 network
 
-% A cerebellar network (see 'labels' - nodes 91:108):
-N = zeros(116,116);
-N(91:108,91:108) = [ randi([0 1],18,18) .* randi([-6 6],18,18) ];
+% 49  = L Sup Occ
+% 105 = L Cerebellum 9
+N(49,105) = 2;
+N(105,49) = 2;
 
+N = zeros(116,116);
+N(
 
 % just edges:
 figure('position',[1000 249 885 729]);
 atemplate('mesh','def3','network',N,'sourcemodel',{v vi})
-view([0   17.5791])
 
 % with nodes as well as edges:
 figure('position',[1000 249 885 729]);
 atemplate('mesh','def3','network',N,'sourcemodel',{v vi},'nodes',sum(N))
-view([0   17.5791])
