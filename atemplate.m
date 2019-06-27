@@ -2259,8 +2259,10 @@ switch method
         s = max(abs(y(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
+        
 end
 
+S = s;
 
 % post-hoc template reduction here?
 %--------------------------------------------------------------------------
