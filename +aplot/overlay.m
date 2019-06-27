@@ -554,6 +554,8 @@ switch lower(method)
         
         
     case 'aal'
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
         
         % new method for AAL90: wrapper on ray casting routine
         load DenseAAL.mat
@@ -565,14 +567,17 @@ switch lower(method)
         end
         
         % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        data = aplot.overlay(data,ol,write,fname,colbar);
+        data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case 'aal_light'
+    case {'aal_light','aal_reduced','AAL_light'};
+        % project into pre-computed AAL parcellation - 1 value per region
+        % - reduce dversion
         
         % new method for AAL90: wrapper on ray casting routine
         load LightAAL.mat
@@ -584,13 +589,68 @@ switch lower(method)
         end
         
         % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         data.overlay.atlasvalues = L;
-        data = aplot.overlay(data,ol,write,fname,colbar);
+        data = overlay(data,ol,write,fname,colbar);
         return;
         
+        
+    case {'HarvOx','HO','HarvardOxford','HOA'}
+        % project into pre-computed Harvard-Oxford Atlas
+        % parcellation - 1 value per region
+        % then use interp/project method above to render on user mesh
+        
+        % new method for AAL90: wrapper on above routine
+        load HarvOx.mat
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        % compute roi centres for labelling if req
+        data.overlay.atlas_flag = 1;
+        %v_roi = get_roi_centres0(v,vi);
+        data.overlay.atlas.labels = labels(:,2);
+        %data.overlay.rois = v_roi;
+        data.overlay.atlas.v  = v;
+        data.overlay.atlas.vi = vi;
+        
+        %v_roi(isnan(v_roi)) = 0;
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
+        
+    case {'aal116','AAL116'};
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
+        
+        load AAL116.mat
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;        
 end
 
 
