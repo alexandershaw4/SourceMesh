@@ -567,12 +567,12 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = aplot.fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        data = overlay(data,ol,write,fname,colbar);
+        data = aplot.overlay(data,ol,write,fname,colbar);
         return;
         
     case {'aal_light','aal_reduced','AAL_light'};
@@ -589,12 +589,12 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = aplot.fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         data.overlay.atlasvalues = L;
-        data = overlay(data,ol,write,fname,colbar);
+        data = aplot.overlay(data,ol,write,fname,colbar);
         return;
         
         
@@ -613,7 +613,7 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = aplot.fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -628,7 +628,7 @@ switch lower(method)
         
         %v_roi(isnan(v_roi)) = 0;
         
-        data = overlay(data,ol,write,fname,colbar);
+        data = aplot.overlay(data,ol,write,fname,colbar);
         return;
         
     case {'aal116','AAL116'};
@@ -644,12 +644,12 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = aplot.fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        data = overlay(data,ol,write,fname,colbar);
+        data = aplot.overlay(data,ol,write,fname,colbar);
         return;        
 end
 

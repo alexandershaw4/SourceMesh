@@ -102,6 +102,11 @@ if ischar(x)
                     data.sourcemodel.pos = data.mesh.vertices;
                 end     
             end
+            
+        otherwise
+            % probably calling atlas data
+            y = x;
+            data = data;
     end
 end
 
@@ -118,6 +123,9 @@ if isnumeric(x) && ndims(x)==3
 
     [y,data] = aplot.vol2surf(x,data,wb);
     
+elseif isnumeric(x) && ndims(x)==2
+    y = x;
+    fprintf('Assuming atlas data\n');
 end
 
 end
