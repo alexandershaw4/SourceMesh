@@ -1,18 +1,10 @@
-function [dcloud1] = align_clouds_3d(cloud0,cloud1)
+function [dcloud1] = align_clouds_3d_xyz(cloud0,cloud1)
 
 global points0 points0_sub points1 doplot
 
-% - align 2 sets of 3d cloud points by finding the optimal affine (rotation)
-% matrix on cloud1 that fit cloud0. optimisation by gradient routine
-% (see PR_minimise.m)
-% 
-% - returns cloud1 fitted to cloud0
-% - num points in cloud0 must be >= cloud1
+% same as align_clouds_3d.m but uses parametised rotation matrices to fit
+% pitch, roll & yaw, along with 3 scale factors
 %
-% usage:
-%       [dcloud1] = align_clouds_3d(cloud0,cloud1)
-%
-% cloud0,cloud1 both nx3
 %
 % AS
 
@@ -30,9 +22,9 @@ points1 = cloud1;
 
 % build rotation model (parameter set)
 %-------------------------------------------------------------------------
-Rx = eye(3);
-Rx(4,:) = 1;
-Rx(:,4) = 1;
+
+%     x y z Mx My Mz mx my mz
+Rx = [0 0 0 1  1  1  1  1  1];
 
 % approximate same box boundaries
 %-------------------------------------------------------------------------
@@ -72,17 +64,35 @@ fprintf('Posterior (squared) fit error = %d\n',F(end));
 
 % compute posterior positions
 %---------------------------------------------------------
-Rx       = reshape(X,[4 4]);  % rotation (affine-like)
-pnts     = points1*Rx(1:3,1:3);
-%scale0   = Rx(1:3,4);     % scaling
-%scale1   = Rx(4,1:3);
-%bounds   = [min(points1);max(points1)];
+x = X(1);
+y = X(2);
+z = X(3);
+M = points1;
 
-%for i = 1:3
-%    LB = bounds(1,i)*scale0(i);
-%    UB = bounds(2,i)*scale1(i);
-%    pnts(:,i) = LB + (UB - LB) .* ( pnts(:,i) - min(pnts(:,i)) ) / (max(pnts(:,i))-min(pnts(:,i)));  
-%end
+    Rxx= [ 1       0       0      ;
+           0       cos(x) -sin(x) ;
+           0       sin(x)  cos(x) ];
+    Ryy= [ cos(y)  0      sin(y)  ;
+           0       1      0       ;
+          -sin(y)  0      cos(y)  ];
+    Rzz= [ cos(z) -sin(z) 0       ;
+           sin(z)  cos(z) 0       ;
+           0       0      1       ];
+   
+M = (Rxx*(M'))';
+M = (Ryy*(M'))';
+M = (Rzz*(M'))';
+
+scale0 = Rx(4:9);
+scale1 = Rx(4:9);
+bounds = [min(points1);max(points1)];
+
+for i = 1:3
+    LB = bounds(1,i)*scale0(i);
+    UB = bounds(2,i)*scale1(i);
+    pnts(:,i) = LB + (UB - LB) .* ( M(:,i) - min(M(:,i)) ) / (max(M(:,i))-min(M(:,i)));
+end
+
 
 dcloud1 = pnts;
 
@@ -103,17 +113,34 @@ global points0 points0_sub points1 doplot
 
 % compute location given roation and scale
 %--------------------------------------------------------------------
-Rx = reshape(Rx,[4 4]);
-M  = points1*Rx(1:3,1:3);
-% scale0 = Rx(1:3,4);
-% scale1 = Rx(4,1:3);
-% bounds = [min(points1);max(points1)];
-% 
-% for i = 1:3
-%     LB = bounds(1,i)*scale0(i);
-%     UB = bounds(2,i)*scale1(i);
-%     M(:,i) = LB + (UB - LB) .* ( M(:,i) - min(M(:,i)) ) / (max(M(:,i))-min(M(:,i)));  
-% end
+x = Rx(1);
+y = Rx(2);
+z = Rx(3);
+M = points1;
+
+    Rxx= [ 1       0       0      ;
+           0       cos(x) -sin(x) ;
+           0       sin(x)  cos(x) ];
+    Ryy= [ cos(y)  0      sin(y)  ;
+           0       1      0       ;
+          -sin(y)  0      cos(y)  ];
+    Rzz= [ cos(z) -sin(z) 0       ;
+           sin(z)  cos(z) 0       ;
+           0       0      1       ];
+   
+M = (Rxx*(M'))';
+M = (Ryy*(M'))';
+M = (Rzz*(M'))';
+
+scale0 = Rx(4:9);
+scale1 = Rx(4:9);
+bounds = [min(points1);max(points1)];
+
+for i = 1:3
+    LB = bounds(1,i)*scale0(i);
+    UB = bounds(2,i)*scale1(i);
+    M(:,i) = LB + (UB - LB) .* ( M(:,i) - min(M(:,i)) ) / (max(M(:,i))-min(M(:,i)));
+end
 
 % error to minimise
 e = sum( sum(points0_sub - M) ).^2;

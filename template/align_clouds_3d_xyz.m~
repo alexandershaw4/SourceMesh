@@ -1,18 +1,10 @@
-function [dcloud1] = align_clouds_3d(cloud0,cloud1)
+function [dcloud1] = align_clouds_3d_xyz(cloud0,cloud1)
 
 global points0 points0_sub points1 doplot
 
-% - align 2 sets of 3d cloud points by finding the optimal affine (rotation)
-% matrix on cloud1 that fit cloud0. optimisation by gradient routine
-% (see PR_minimise.m)
-% 
-% - returns cloud1 fitted to cloud0
-% - num points in cloud0 must be >= cloud1
+% same as align_clouds_3d.m but uses parametised rotation matrices to fit
+% pitch, roll & yaw, along with 3 scale factors
 %
-% usage:
-%       [dcloud1] = align_clouds_3d(cloud0,cloud1)
-%
-% cloud0,cloud1 both nx3
 %
 % AS
 
@@ -72,8 +64,9 @@ fprintf('Posterior (squared) fit error = %d\n',F(end));
 
 % compute posterior positions
 %---------------------------------------------------------
-Rx       = reshape(X,[4 4]);  % rotation (affine-like)
-pnts     = points1*Rx(1:3,1:3);
+
+
+
 %scale0   = Rx(1:3,4);     % scaling
 %scale1   = Rx(4,1:3);
 %bounds   = [min(points1);max(points1)];
@@ -103,8 +96,24 @@ global points0 points0_sub points1 doplot
 
 % compute location given roation and scale
 %--------------------------------------------------------------------
-Rx = reshape(Rx,[4 4]);
-M  = points1*Rx(1:3,1:3);
+x = Rx(1);
+y = Rx(2);
+z = Rx(3);
+
+    Rxx= [ 1       0       0      ;
+           0       cos(x) -sin(x) ;
+           0       sin(x)  cos(x) ];
+    Ryy= [ cos(y)  0      sin(y)  ;
+           0       1      0       ;
+          -sin(y)  0      cos(y)  ];
+    Rzz= [ cos(z) -sin(z) 0       ;
+           sin(z)  cos(z) 0       ;
+           0       0      1       ];
+   
+M = (Rxx*(M'))';
+M = (Ryy*(M'))';
+M = (Rzz*(M'))';
+
 % scale0 = Rx(1:3,4);
 % scale1 = Rx(4,1:3);
 % bounds = [min(points1);max(points1)];

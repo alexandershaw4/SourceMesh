@@ -930,14 +930,17 @@ if isfield(data.sourcemodel,'vi')
     v  = pos;
     vi = data.sourcemodel.vi;
     n  = unique(vi);
+    roi = zeros(max(n),3);
     for i = 1:length(n)
         these = find(vi==n(i));
-        roi(i,:) = spherefit(v(these,:));
+        roi(n(i),:) = spherefit(v(these,:));
     end
     pos = roi;
     for ip = 1:length(pos)
-        [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
-        pos(ip,:) = data.mesh.vertices(this,:);
+        if any(pos(ip,:))
+            [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+            pos(ip,:) = data.mesh.vertices(this,:);
+        end
     end
 end
 
@@ -1722,7 +1725,7 @@ mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
 % Switch which projection method to use:
 %--------------------------------------------------------------------------
-switch method
+switch lower(method)
     
     case 'raycast'
         % This is an attempt at employing the ray casting method
@@ -2079,7 +2082,7 @@ switch method
         fprintf('Routine took %d seconds\n',stime);
         
         
-    case {'aal','aal90','AAL90'}
+    case {'aal','aal90','aal_90'}
         % project into pre-computed AAL parcellation - 1 value per region
         %
         
@@ -2101,7 +2104,7 @@ switch method
         data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case {'aal_light','aal_reduced','AAL_light'};
+    case {'aal_light','aal_reduced','aal_red'};
         % project into pre-computed AAL parcellation - 1 value per region
         % - reduce dversion
         
@@ -2124,7 +2127,7 @@ switch method
         return;
         
         
-    case {'HarvOx','HO','HarvardOxford','HOA'}
+    case {'harvox','ho','harvardoxford','hoa','harvard_oxford'}
         % project into pre-computed Harvard-Oxford Atlas
         % parcellation - 1 value per region
         % then use interp/project method above to render on user mesh
@@ -2157,7 +2160,7 @@ switch method
         data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case {'aal116','AAL116'};
+    case {'aal116','aal_116'};
         % project into pre-computed AAL parcellation - 1 value per region
         %
         
@@ -2177,6 +2180,28 @@ switch method
         
         data = overlay(data,ol,write,fname,colbar);
         return;
+        
+    case {'hoa_cerebellum','hoac','hoa_c'};
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
+        
+        load HOA_Cerebellum.mat
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
+        
         
     case {'user'}
         % project into pre-computed AAL parcellation - 1 value per region
