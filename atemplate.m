@@ -2337,6 +2337,7 @@ if isfield(data,'post_parcel')
         data.post_parcel.ParcelMean = ParcelMean;
         data.post_parcel.ParcelCent = MeanLoc;
         data.post_parcel.ParVal     = ParVal;
+        data.post_parcel.ParcelID   = iv;
     end 
 end
 
@@ -2379,9 +2380,10 @@ elseif write == 3
     vrml(gcf,[fname]);
 elseif write == 4
     fprintf('Generating nifti volume for writing\n');    
-    new = mesh;
-    dim = ceil(nthroot(length(y),3));
-    V   = sm2vol(new.vertices,dim*3,y,256);
+    V = genvol(data.mesh.vertices,data.overlay.data,[256 256 256]);
+    %new = mesh;
+    %dim = ceil(nthroot(length(y),3));
+    %V   = sm2vol(new.vertices,dim*3,y,256);
     % just return the volume in the output for now
     data.overlay.volume = V;
 end
@@ -2848,6 +2850,8 @@ if dofillholes
         x       = [x; ek];           % new faces
     end
     
+    x0 = x;
+    
     % update faces
     g.fleft = [g.fleft; x];
         
@@ -2863,6 +2867,8 @@ if dofillholes
     % update faces
     g.fright = [g.fright; x];
     
+    % update full-model faces
+    g.faces = [g.faces; x0; x];
 end
 
 
