@@ -1,5 +1,9 @@
 # SourceMesh Features
 
+A better usage overview and examples can be found here:
+https://sites.google.com/view/dralexandershaw/code-visualisation/sourcemesh
+
+
 Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template brains in matlab.
 
 Provide data along with it's sourcemodel coordinates (from, e.g. fieldtrip), use the default AAL90 vertices or define a sourcemodel based on a nifti volume.
