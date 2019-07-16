@@ -20,7 +20,7 @@ load AAL116
 
 figure('position',[1000 249 885 729]);
 atemplate('mesh','def3','overlay',fun_data,...
-    'sourcemodel',{v vi}, 'method',{'user','spheres'},'optimise',1);
+    'sourcemodel',{v vi}, 'method',{'user','spheres'},'optimise',0);
 
 
 % Network - AAL116 (with cerebellum)

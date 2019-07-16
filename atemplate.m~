@@ -1631,13 +1631,10 @@ if iscell(L)
     % replace L and flag requirement for a new axis
     L = L{2};
     NewAx = 1;
-elseif isfield(data.overlay,'NewAx')
-    NewAx = data.overlay.NewAx;
 else
     NewAx = 0;
 end
 
-data.overlay.NewAx = NewAx; % save this in case of recursive calls
 
 % If atlas data and peaks frequested, label them
 %-------------------------------------------------------------
@@ -2375,21 +2372,9 @@ switch method
             set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
         else
             
-            if ~isempty(data.overlay.thresh)
-                thrsh = data.overlay.thresh;
-            else; thrsh = .4;
-            end
             
-            fcol_orig = y;
-            thr  = max(abs(y))*thrsh;
-            inan = find(abs(y) < thr);
-            y(inan) = nan;
             
             set(hp,'FaceVertexCData',y(:),'FaceColor','interp');
-            linksubplots([ax1 ax2])
-            data.overlay.mesh2 = hp;
-            data.overlay.y_nonan = fcol_orig;
-
         end
         drawnow;
         shading interp
