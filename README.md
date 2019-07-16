@@ -3,6 +3,7 @@
 A better usage overview and examples can be found here:
 https://sites.google.com/view/dralexandershaw/code-visualisation/sourcemesh
 
+![ExampleImage](figs/NewOverlayLeft.png)
 
 Plot MEG/EEG functional overlays, networks (nodes & edges) and more on template brains in matlab.
 
