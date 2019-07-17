@@ -1625,8 +1625,12 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
-    %colormap('gray');
-    colormap(othercolor('Greys5'));
+    try
+        colormap(othercolor('Greys5'));
+    catch
+        colormap('gray');
+    end
+    %
     alpha 1;
 
     % replace L and flag requirement for a new axis
