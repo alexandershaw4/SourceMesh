@@ -1600,7 +1600,7 @@ else
 end
 
 % If requested multi-overlay, where one is curvature, draw the curvature
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 if iscell(L)
     % curvature is first
     C = L{1};
@@ -1625,12 +1625,8 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
-    try
-        colormap(othercolor('Greys5'));
-    catch
-        colormap('gray');
-    end
-    %
+    fprintf('Generating combined function+curvature colormap\n');
+    themap = [flipud(gray(256)); flipud(jet(256))];
     alpha 1;
 
     % replace L and flag requirement for a new axis
@@ -1667,24 +1663,11 @@ mesh    = data.mesh;
 
 if NewAx
     % if overlaying functional and curvature
+    % *no longer generates new axes!*
     ax1     =  gca;
     ax1_pos = get(ax1,'Position'); 
-    ax2 = axes('Position',ax1_pos,'visible',0);  
+    %ax2 = axes('Position',ax1_pos,'visible',0);  
     h0  = findobj(ax1,'type','patch');
-    
-    h0  = gifti(h0);
-    axes(ax2);
-    hp=plot(h0,'fighnd',ax2);
-%     hp = patch(...
-%     'vertices',  h0.Vertices,...
-%     'faces',     h0.Faces,...
-%     'FaceColor', [.5 .5 .5],...%'b',...
-%     'EdgeColor', 'none',...
-%     'Parent',ax2);
-%     axis(ax2,'image');
-%     lighting phong;
-
-    %copyobj(gifti(h0),ax2);
 end
     
 % if overlay,L, is same length as mesh verts, just plot!
@@ -2009,31 +1992,43 @@ switch lower(method)
                     fcol_orig = fcol;
                     thr  = max(abs(fcol))*thrsh;
                     inan = find(abs(fcol) < thr);
-                    %fcol(inan) = 0;
-                    falpha = .8*ones(size(fcol));
+                    falpha = 1*ones(size(fcol));
                     falpha(inan)=0;
                     %fcol = fcol.*falpha;
+                                        
+                    fprintf('Rescaling overlay values\n');
                     
-                    set(hp,'FaceVertexCData',fcol(:),'FaceColor','interp');
-                    set(hp,'FaceVertexAlphaData',falpha(:));
-                    set(hp,'EdgeAlpha','flat');
-                    set(hp,'FaceAlpha','interp');
-                    linksubplots([ax1 ax2])
-                    %data.overlay.mesh2 = hp;
-                    %gar = get(gcf,'children');
-                    %set(gcf,'children', gar([1 3 2]) );
-                    %data.mesh.h.FaceVertexAlphaData = double(~falpha(:));
-                    %data.mesh.h.FaceAlpha='interp';
-                    %data.mesh.h.EdgeAlpha='flat';
+                    % get curvature colours
+                    y0 = data.mesh.h.FaceVertexCData;
                     
+                    % rescale y0 into colour map part 1:
+                    % 1:256
+                    y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
+                    
+                    % rescale fcol into colour map part 2:
+                    % 257:512
+                    m = 257;
+                    n = 512;
+                    fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+                    
+                    % mask new functional colours
+                    fcol = fcol.*falpha;
+                    
+                    new_over = y0;
+                    these    = find(fcol);
+                    new_over(these) = fcol(these); 
+                    
+                    set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
+                    colormap(themap);
                     
                 end
         end
         
         % Use symmetric colourbar and jet as defaults
         if NewAx
-            colormap(ax2,'jet');
-            s = max(abs(fcol(:))); caxis(ax2,[-s s]);
+            %colormap(ax2,'jet');
+            %s = max(abs(fcol(:))); caxis(ax2,[-s s]);
+            caxis([0 512]);
         else
             colormap('jet');
             s = max(abs(fcol(:))); caxis([-s s]);

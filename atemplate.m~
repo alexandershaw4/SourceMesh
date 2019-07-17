@@ -1625,8 +1625,14 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
-    %colormap('gray');
-    colormap(othercolor('Greys5'));
+    %try
+    %   colormap(othercolor('Greys5'));
+    %catch
+    %   colormap('gray');
+    %end
+    
+    fp
+    themap = [flipud(gray(256)); flipud(jet(256))];
     alpha 1;
 
     % replace L and flag requirement for a new axis
@@ -1665,12 +1671,13 @@ if NewAx
     % if overlaying functional and curvature
     ax1     =  gca;
     ax1_pos = get(ax1,'Position'); 
-    ax2 = axes('Position',ax1_pos,'visible',0);  
+    %ax2 = axes('Position',ax1_pos,'visible',0);  
     h0  = findobj(ax1,'type','patch');
     
-    h0  = gifti(h0);
-    axes(ax2);
-    hp=plot(h0,'fighnd',ax2);
+    %h0  = gifti(h0);
+    %axes(ax2);
+    %hp=plot(h0,'fighnd',ax2);
+    
 %     hp = patch(...
 %     'vertices',  h0.Vertices,...
 %     'faces',     h0.Faces,...
@@ -2006,16 +2013,49 @@ switch lower(method)
                     thr  = max(abs(fcol))*thrsh;
                     inan = find(abs(fcol) < thr);
                     %fcol(inan) = 0;
-                    falpha = ones(size(fcol));
+                    falpha = 1*ones(size(fcol));
                     falpha(inan)=0;
                     %fcol = fcol.*falpha;
                     
-                    set(hp,'FaceVertexCData',fcol(:),'FaceColor','interp');
-                    set(hp,'FaceVertexAlphaData',double(falpha(:)));
-                    set(hp,'EdgeAlpha','flat');
-                    set(hp,'FaceAlpha','interp');
-                    linksubplots([ax1 ax2])
+                    % mask new functional colours
+                    %fcol = fcol.*falpha;                    
+                    
+                    % get curvature colours
+                    y0 = data.mesh.h.FaceVertexCData;
+                    
+                    % rescale y0 into colour map part 1:
+                    % 1:256
+                    y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
+                    
+                    % rescale fcol into colour map part 2:
+                    % 257:512
+                    m = 257;
+                    n = 512;
+                    fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+                    
+                    % mask new functional colours
+                    fcol = fcol.*falpha;
+                    %fcol(fcol==256)=0;
+                    
+                    new_over = y0;
+                    these    = find(fcol);
+                    new_over(these) = fcol(these); 
+                    
+                    set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
+                    colormap(themap);
+                    
+                    %set(data.mesh.h,'EdgeAlpha','flat');
+                    %set(data.mesh.h,'FaceAlpha','interp');
+                    
+                    %set(hp,'FaceVertexCData',fcol(:),'FaceColor','interp');
+                    %set(hp,'FaceVertexAlphaData',falpha(:));
+                    %set(hp,'EdgeAlpha','flat');
+                    %set(hp,'FaceAlpha','interp');
+                    %linksubplots([ax1 ax2])
                     %data.overlay.mesh2 = hp;
+                    %data.mesh.h.SpecularStrength = 0;
+                    %data.mesh.h.AmbientStrength = .5;
+                    
                     %gar = get(gcf,'children');
                     %set(gcf,'children', gar([1 3 2]) );
                     %data.mesh.h.FaceVertexAlphaData = double(~falpha(:));
@@ -2028,8 +2068,9 @@ switch lower(method)
         
         % Use symmetric colourbar and jet as defaults
         if NewAx
-            colormap(ax2,'jet');
-            s = max(abs(fcol(:))); caxis(ax2,[-s s]);
+            %colormap(ax2,'jet');
+            %s = max(abs(fcol(:))); caxis(ax2,[-s s]);
+            caxis([0 512]);
         else
             colormap('jet');
             s = max(abs(fcol(:))); caxis([-s s]);
