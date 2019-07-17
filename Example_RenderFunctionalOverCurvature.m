@@ -15,7 +15,7 @@ FunVol = 'Vis100B_Av.nii';
 
 % The default mesh to render 
 % (def1, 2 & 4 = cortical-only, 3=with cerebellum)
-Surf = 'def2';
+Surf = 'def1';
 
 % the threshold
 thr = 0.4;

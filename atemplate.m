@@ -1625,7 +1625,8 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
-    colormap('gray');
+    %colormap('gray');
+    colormap(othercolor('Greys5'));
     alpha 1;
 
     % replace L and flag requirement for a new axis
@@ -1666,6 +1667,7 @@ if NewAx
     ax1_pos = get(ax1,'Position'); 
     ax2 = axes('Position',ax1_pos,'visible',0);  
     h0  = findobj(ax1,'type','patch');
+    
     h0  = gifti(h0);
     axes(ax2);
     hp=plot(h0,'fighnd',ax2);
@@ -1675,7 +1677,9 @@ if NewAx
 %     'FaceColor', [.5 .5 .5],...%'b',...
 %     'EdgeColor', 'none',...
 %     'Parent',ax2);
-    %axis(ax2,'image');
+%     axis(ax2,'image');
+%     lighting phong;
+
     %copyobj(gifti(h0),ax2);
 end
     
@@ -2001,22 +2005,36 @@ switch lower(method)
                     fcol_orig = fcol;
                     thr  = max(abs(fcol))*thrsh;
                     inan = find(abs(fcol) < thr);
-                    fcol(inan) = nan;
+                    %fcol(inan) = 0;
+                    falpha = .8*ones(size(fcol));
+                    falpha(inan)=0;
+                    %fcol = fcol.*falpha;
                     
                     set(hp,'FaceVertexCData',fcol(:),'FaceColor','interp');
+                    set(hp,'FaceVertexAlphaData',falpha(:));
+                    set(hp,'EdgeAlpha','flat');
+                    set(hp,'FaceAlpha','interp');
                     linksubplots([ax1 ax2])
-                    data.overlay.mesh2 = hp;
+                    %data.overlay.mesh2 = hp;
+                    %gar = get(gcf,'children');
+                    %set(gcf,'children', gar([1 3 2]) );
+                    %data.mesh.h.FaceVertexAlphaData = double(~falpha(:));
+                    %data.mesh.h.FaceAlpha='interp';
+                    %data.mesh.h.EdgeAlpha='flat';
+                    
+                    
                 end
         end
         
         % Use symmetric colourbar and jet as defaults
-        s = max(abs(fcol(:))); caxis([-s s]);
         if NewAx
             colormap(ax2,'jet');
+            s = max(abs(fcol(:))); caxis(ax2,[-s s]);
         else
             colormap('jet');
+            s = max(abs(fcol(:))); caxis([-s s]);
         end
-        alpha 1;
+        %alpha 1;
         
         % Return the face colours
         data.overlay.data  = fcol(:);       % the functional vector
