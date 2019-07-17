@@ -2397,23 +2397,45 @@ switch method
             else; thrsh = .4;
             end
             
-            fcol_orig = y;
-            thr  = max(abs(y))*thrsh;
-            inan = find(abs(y) < thr);
-            y(inan) = nan;
+            fcol_orig = fcol;
+            thr  = max(abs(fcol))*thrsh;
+            inan = find(abs(fcol) < thr);
+            falpha = 1*ones(size(fcol));
+            falpha(inan)=0;
+            %fcol = fcol.*falpha;
             
-            set(hp,'FaceVertexCData',y(:),'FaceColor','interp');
-            linksubplots([ax1 ax2])
-            data.overlay.mesh2 = hp;
-            data.overlay.y_nonan = fcol_orig;
-
+            fprintf('Rescaling overlay values\n');
+            
+            % get curvature colours
+            y0 = data.mesh.h.FaceVertexCData;
+            
+            % rescale y0 into colour map part 1:
+            % 1:256
+            y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
+            
+            % rescale fcol into colour map part 2:
+            % 257:512
+            m = 257;
+            n = 512;
+            fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+            
+            % mask new functional colours
+            fcol = fcol.*falpha;
+            
+            new_over = y0;
+            these    = find(fcol);
+            new_over(these) = fcol(these);
+            
+            set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
+            colormap(themap);
         end
         drawnow;
         shading interp
         % force symmetric caxis bounds
         s = max(abs(y(:))); caxis([-s s]);
         if ~NewAx
-            colormap('jet');
+            %colormap('jet');
+            caxis([0 512]);
         else
             colormap(ax2,'jet');
         end
