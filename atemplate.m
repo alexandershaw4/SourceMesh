@@ -2434,10 +2434,10 @@ switch method
         % force symmetric caxis bounds
         s = max(abs(y(:))); caxis([-s s]);
         if ~NewAx
-            %colormap('jet');
-            caxis([0 512]);
+            colormap('jet');
         else
-            colormap(ax2,'jet');
+            %colormap(ax2,'jet');
+            caxis([0 512]);
         end
         alpha 1;
         
