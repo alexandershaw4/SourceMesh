@@ -51,7 +51,7 @@ for num = 1:360
         case 'background'
             
             %print(gcf,[pathname,'/temp.png'],'-dpng','-r600');
-            export_fig([pathname,'/temp.png'],'-transparent','-m2');
+            export_fig([pathname,'/temp.png'],'-transparent','-m2','-nocrop');
             tempimg   = imread([pathname,'/temp.png']);
 
             currFrame = im2frame(tempimg);

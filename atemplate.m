@@ -2396,7 +2396,7 @@ switch method
                 thrsh = data.overlay.thresh;
             else; thrsh = .4;
             end
-            
+            fcol      = y;
             fcol_orig = fcol;
             thr  = max(abs(fcol))*thrsh;
             inan = find(abs(fcol) < thr);
@@ -2425,6 +2425,9 @@ switch method
             new_over = y0;
             these    = find(fcol);
             new_over(these) = fcol(these);
+            
+            % re-smooth?
+            new_over  = spm_mesh_smooth(mesh, new_over(:), 4);
             
             set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
             colormap(themap);
