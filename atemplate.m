@@ -71,6 +71,14 @@ function data = atemplate(varargin)
 %  % Plot overlay from nifti volume
 %  atemplate('overlay','overlay_volume.nii')
 %
+%
+% % Plot overlay (e.g. from nifti volume) along with curvature on an
+% inflated mesh:
+%  afigure;D=atemplate('mesh','def2','inflate',...
+%                      'overlay',{'curvature','Vis100B_Av.nii'},...
+%                      'thresh',.4,'open');
+%
+%
 %  *Note on sourcemodel option: Some fieldtrip sourcemodels have x & y
 %  swapped (?), undo by doing sm = [sm(:,2),sm(:,1),sm(:,3)];
 %
@@ -227,11 +235,13 @@ in.roi  = [];
 in.optimise = 0;
 in.post_parcel = [];
 in.thresh      = [];
+in.open        = 0;
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
+    if strcmp(varargin{i},'open');        in.open= 1;             end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
@@ -292,6 +302,11 @@ end
 
 % Preliminaries & parse functions for plots
 %--------------------------------------------------------------------------
+if in.open
+    data = isopen(data,in);
+    return;
+end
+
 data = sort_sourcemodel(data,in);       % Sourcemodel vertices
 
 [mesh,data] = get_mesh(in,data);        % Get Surface
@@ -313,6 +328,48 @@ end
 % FUNCTIONS
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
+function data = isopen(data,in)
+    % a wrapper on atemplate for generating the same plot for the left and
+    % right hemis separately in different sublots
+    s(1) = subplot(121);
+    s(2) = subplot(122);
+    
+    data_in     = data;
+    
+    % Plot 1.
+    in.hemi     = 'l';
+    in.fighnd   = s(1);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_l      = data;
+    
+    view([90 0]);
+    
+    % Plot 2.
+    in.hemi     = 'r';
+    in.fighnd   = s(2);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_r      = data;
+    
+    view([270 0]);
+    
+    data   = [];
+    data.l = data_l;
+    data.r = data_r;
+
+end
+
 function data = parse_plots(data,i)
 
 % unpack triggers
@@ -1976,18 +2033,20 @@ switch lower(method)
                 % Set vertex color, using interpolated face colours
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
                 fcol(isnan(fcol)) = 0;
-                fcol = [fcol; S(1); S(2)];
+                %fcol = [fcol; S(1); S(2)];
                 fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
                 fcol = fcol(1:end-2);
                 
                 if ~NewAx
                     set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
                 else
-                    
+                    % if we're overlaying the functional ray-casted colours on top of the curvature
                     if ~isempty(data.overlay.thresh)
                           thrsh = data.overlay.thresh;
                     else; thrsh = .4;
                     end
+                    
+                    fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
                     
                     fcol_orig = fcol;
                     thr  = max(abs(fcol))*thrsh;
@@ -2009,7 +2068,9 @@ switch lower(method)
                     % 257:512
                     m = 257;
                     n = 512;
+                    fcol = [fcol; -S0; S0];
                     fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+                    fcol = fcol(1:end-2);
                     
                     % mask new functional colours
                     fcol = fcol.*falpha;
@@ -2020,7 +2081,7 @@ switch lower(method)
                     
                     set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
                     colormap(themap);
-                    
+                    data.overlay.themap=themap;
                 end
         end
         
@@ -2397,6 +2458,8 @@ switch method
             else; thrsh = .4;
             end
             fcol      = y;
+            fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                    
             fcol_orig = fcol;
             thr  = max(abs(fcol))*thrsh;
             inan = find(abs(fcol) < thr);
@@ -2411,13 +2474,15 @@ switch method
             
             % rescale y0 into colour map part 1:
             % 1:256
-            y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
+            y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
             
             % rescale fcol into colour map part 2:
             % 257:512
             m = 257;
             n = 512;
+            fcol = [fcol; -S0; S0];
             fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+            fcol = fcol(1:end-2);
             
             % mask new functional colours
             fcol = fcol.*falpha;
@@ -2426,11 +2491,9 @@ switch method
             these    = find(fcol);
             new_over(these) = fcol(these);
             
-            % re-smooth?
-            new_over  = spm_mesh_smooth(mesh, new_over(:), 4);
-            
             set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
             colormap(themap);
+            data.overlay.themap=themap;
         end
         drawnow;
         shading interp
