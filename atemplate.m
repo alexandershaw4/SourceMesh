@@ -2035,7 +2035,7 @@ switch lower(method)
                 fcol(isnan(fcol)) = 0;
                 %fcol = [fcol; S(1); S(2)];
                 fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
-                fcol = fcol(1:end-2);
+                %fcol = fcol(1:end-2);
                 
                 if ~NewAx
                     set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
@@ -2093,6 +2093,7 @@ switch lower(method)
         else
             colormap('jet');
             s = max(abs(fcol(:))); caxis([-s s]);
+            alpha 1;
         end
         %alpha 1;
         
