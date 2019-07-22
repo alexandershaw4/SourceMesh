@@ -723,6 +723,12 @@ if ischar(mesh)
                 mesh.vertices = nmesh.vertices;
                 mesh.faces    = nmesh.faces;
             end
+            if strcmp(lower(mesh),'def5')
+                nmesh         = load('ft_mesh_mni');
+                mesh          = [];
+                mesh.vertices = nmesh.vertices;
+                mesh.faces    = nmesh.faces;
+            end
     end
     
 elseif isnumeric(mesh) && ndims(mesh)==3
@@ -3016,12 +3022,19 @@ end
 % pos      = V;
 
 % % calculate curvature for shading
-curv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
+curv  = docurvature(struct('vertices',g.vertices,'faces',g.faces));
+cvar  = var(curv);
+dcurv = curv;
 
 % inflate
 if inflate
-    fprintf('Inflating mesh\n');
-    g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),150);
+    fprintf('Inflating mesh\n'); nrep = 0;
+    %while cvar / var(dcurv) < 50
+        %nrep = nrep + 1;
+        g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),200);
+        %dcurv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
+    %end
+    %fprintf('Finished inflation after %d reps\n',nrep);
 end
 
 
