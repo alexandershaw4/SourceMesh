@@ -20,6 +20,13 @@ Surf = 'def1';
 % the threshold
 thr = 0.4;
 
-% When overlaying both curvature and function, MUST use default raycast
+% overlaying both curvature and function
 afigure; D = atemplate('hemi','l','mesh',Surf,'inflate','overlay',...
 			{'curvature',FunVol},'thresh',thr,'post_parcel',{v vi});
+
+
+        
+% use the output to render a1-value per parcel version
+afigure;
+atemplate('mesh','def1','inflate','overlay',D.post_parcel.ParVal,...
+    'sourcemodel',D.post_parcel.pos,'method','spheres')
