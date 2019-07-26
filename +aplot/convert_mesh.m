@@ -178,6 +178,12 @@ if ischar(mesh)
                 mesh.vertices = nmesh.vertices;
                 mesh.faces    = nmesh.faces;
             end
+            if strcmp(lower(mesh),'def5')
+                nmesh         = load('ft_mesh_mni');
+                mesh          = [];
+                mesh.vertices = nmesh.vertices;
+                mesh.faces    = nmesh.faces;
+            end
     end
     try
         close(wb);  

@@ -18,12 +18,15 @@ checkori = i.checkori;
 % fill holes during hemisphere separation?
 dofillholes = i.fillholes;
 
+% explicitly optimise the alignment of the cloud points?
+optimise = i.optimise;
+
 if     i.pmesh && ~isfield(i,'T')
-       [mesh,data.sourcemodel.pos,h,p] = aplot.meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes);
+       [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
 elseif i.pmesh
-       [mesh,data.sourcemodel.pos,h,p] = aplot.meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes);
+       [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
 else
     h = [];
     p = [];

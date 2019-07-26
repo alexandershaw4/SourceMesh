@@ -11,6 +11,7 @@ if isfield(inputs,'L')
     data.overlay.pca        = i.pca;
     data.overlay.method     = i.method;
     data.overlay.depth      = i.depth;
+    data.overlay.thresh     = i.thresh;
     data.overlay.tf_interactive = i.tf_interactive;
     
     if isfield(i,'funcaffine')

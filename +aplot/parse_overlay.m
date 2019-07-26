@@ -4,6 +4,14 @@ function [y,data] = parse_overlay(x,data)
 %
 %
 
+if iscell(x)
+    % multiple overlays (e.g. {'curvature','nif.nii'} )
+   for i = 1:length(x)
+       [y{i},data] = parse_overlay(x{i},data);
+   end
+   return;
+end
+
 if ischar(x)
     [fp,fn,fe] = fileparts(x);
     
@@ -23,7 +31,7 @@ if ischar(x)
             gunzip(x);
             x = strrep(x,'.gz','');
             
-            [y,data] = aplot.parse_overlay(x,data);
+            [y,data] = parse_overlay(x,data);
             return;
             
         case{'.nii'}
@@ -76,7 +84,7 @@ if ischar(x)
             data.volume.grid.z = zarr;
             
             
-            [y,data] = aplot.vol2surf(vol,data,wb);
+            [y,data] = vol2surf(vol,data,wb);
             
             
             % ensure sourcemodel (pos) is around same scale as mesh boundaries
@@ -102,11 +110,6 @@ if ischar(x)
                     data.sourcemodel.pos = data.mesh.vertices;
                 end     
             end
-            
-        otherwise
-            % probably calling atlas data
-            y = x;
-            data = data;
     end
 end
 
@@ -121,11 +124,8 @@ if isnumeric(x) && ndims(x)==3
     fprintf('Subsampling structural volume\n');
     [NX, NY, NZ, x] = reducevolume(x,2);
 
-    [y,data] = aplot.vol2surf(x,data,wb);
+    [y,data] = vol2surf(x,data,wb);
     
-elseif isnumeric(x) && ndims(x)==2
-    y = x;
-    fprintf('Assuming atlas data\n');
 end
 
 end

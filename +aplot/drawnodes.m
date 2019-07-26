@@ -6,6 +6,24 @@ hold on;
 pos = data.sourcemodel.pos;
 %v   = pos*0.9;
 
+if isfield(data.sourcemodel,'vi')
+    % if pos is cell, it's because we've passed both a vertex set and a
+    % vector that describes which vertex belongs to which roi
+    v  = pos;
+    vi = data.sourcemodel.vi;
+    n  = unique(vi);
+    for i = 1:length(n)
+        these = find(vi==n(i));
+        roi(i,:) = spherefit(v(these,:));
+    end
+    pos = roi;
+    for ip = 1:length(pos)
+        [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+        pos(ip,:) = data.mesh.vertices(this,:);
+    end
+end
+
+
 bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
 offset = 0.99;
 for ip = 1:3
@@ -38,11 +56,24 @@ if size(N,1) > 1 && size(N,2) > 1
         end
     end
     
+elseif iscell(N)
+    % pass a cell of length sm with color strings
+    % e.g. N=cell(90,1);
+    %      N{1} = 'r';
+    ForPlot = [];
+    for j = 1:length(N)
+        if any(N{j})
+            v0 = v(j,:);
+            ForPlot = [ForPlot v0];
+            scatter3(v0(1),v0(2),v0(3),150,N{j},'filled');
+        end
+    end
+    
 else
     ForPlot = v(find(N),:);
     %s       = find(N);
-    s = ones(length(find(N)),1)*40;
-    for i   = 1:length(ForPlot)
+    s = ones(length(find(N)),1)*150;
+    for i   = 1:size(ForPlot,1)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
     end

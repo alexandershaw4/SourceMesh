@@ -40,7 +40,7 @@ end
 %-------------------------------------------------------------
 if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
     % is this is filename of a nifti or gifti file
-   [L,data] = aplot.parse_overlay(L,data);
+   [L,data] = parse_overlay(L,data);
    
    if isempty(L)
         fprintf('Overlay does not match sourcemodel!\n');
@@ -53,7 +53,7 @@ if ~isnumeric(L) || (isnumeric(L) && ndims(L)==3)
            i.model    = data.template.model;
            i.labels   = data.template.labels;
            i.L        = L;
-           [data,i]   = aplot.sort_template(data,i);
+           [data,i]   = sort_template(data,i);
            L          = i.L;
        end
    end
@@ -62,13 +62,54 @@ end
 % method for searching between the 3D coordinate systems
 %-------------------------------------------------------------
 if ischar(data.overlay.method)
-    if ismember(lower(data.overlay.method),{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
+    if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
          method = data.overlay.method;
     else,method = 'euclidean';  
     end
 else
     method = data.overlay.method{1};
 end
+
+% If requested multi-overlay, where one is curvature, draw the curvature
+%--------------------------------------------------------------------------
+if iscell(L)
+    % curvature is first
+    C = L{1};
+        
+    % spm mesh smoothing
+    fprintf('Smoothing overlay...\n');
+    y = spm_mesh_smooth(data.mesh, double(C(:)), 4);
+    percNaN = length(find(isnan(C)))/length(C)*100;
+    newpNaN = length(find(isnan(y)))/length(y)*100;
+    
+    % when using a NaN-masked overlay, smoothing can result in all(nan) or
+    % an increase in the number of nans: enforce a 5% tolerance on this, which
+    % forces reverting to the uns-smoothed version if reached
+    if all(isnan(y)) || newpNaN > (percNaN*1.05)
+        fprintf('Reverting to non-smoothed overlay due to too many NaNs\n');
+        y = C(:);
+    end
+    
+    set(data.mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+    
+    drawnow;
+    shading interp
+    % force symmetric caxis bounds
+    s = max(abs(y(:))); caxis([-s s]);
+    fprintf('Generating combined function+curvature colormap\n');
+    themap = [flipud(gray(256)); flipud(jet(256))];
+    alpha 1;
+
+    % replace L and flag requirement for a new axis
+    L = L{2};
+    NewAx = 1;
+elseif isfield(data.overlay,'NewAx')
+    NewAx = data.overlay.NewAx;
+else
+    NewAx = 0;
+end
+
+data.overlay.NewAx = NewAx; % save this in case of recursive calls
 
 % If atlas data and peaks frequested, label them
 %-------------------------------------------------------------
@@ -91,8 +132,15 @@ interpl = 1;
 pos     = data.sourcemodel.pos;
 mesh    = data.mesh;
 
-
-
+if NewAx
+    % if overlaying functional and curvature
+    % *no longer generates new axes!*
+    ax1     =  gca;
+    ax1_pos = get(ax1,'Position'); 
+    %ax2 = axes('Position',ax1_pos,'visible',0);  
+    h0  = findobj(ax1,'type','patch');
+end
+    
 % if overlay,L, is same length as mesh verts, just plot!
 %--------------------------------------------------------------------------
 if length(L) == length(mesh.vertices)
@@ -167,12 +215,16 @@ else
 % otherwise find closest points (assume both in mm)
 %--------------------------------------------------------------------------
 
+% first-pass attempt at ensuring alignment of sourcemodel and outer mesh
+%pos = fixmesh(mesh,pos);
+
 % Overlay
 v  = pos;                       % sourcemodel vertices
 x  = v(:,1);                    % AAL x verts
 mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
 S  = [min(L(:)),max(L(:))];     % min max values
+S0 = max(abs(L(:)));
 
 switch method
     case{'raycast'}
@@ -196,6 +248,7 @@ Rht = mv(:,1) > cnt(1);
 Lft = find(Lft);
 Rht = find(Rht);
 
+
 fprintf('Determining closest points between sourcemodel & template vertices\n');
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
@@ -216,7 +269,7 @@ switch lower(method)
         wb = waitbar(0,'Ray casting: Please wait...');
         
         % Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
-        UseFaceVertex = 'face'; 
+        UseFaceVertex = 'vertex'; 
         RND = 1;
         
         % Grid resolution
@@ -240,7 +293,8 @@ switch lower(method)
                 a(1)  = L(i);
                 a(2)  = vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3));
                 [~,I] = max(abs(a));
-                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = a(I);                
+                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = ...
+                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) + a(I);                
             end
         end
                 
@@ -393,20 +447,79 @@ switch lower(method)
                 % Set vertex color, using interpolated face colours
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
                 fcol(isnan(fcol)) = 0;
+                %fcol = [fcol; S(1); S(2)];
                 fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
-                set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
+                %fcol = fcol(1:end-2);
+                
+                if ~NewAx
+                    set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
+                else
+                    % if we're overlaying the functional ray-casted colours on top of the curvature
+                    if ~isempty(data.overlay.thresh)
+                          thrsh = data.overlay.thresh;
+                    else; thrsh = .4;
+                    end
+                    
+                    fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                    
+                    fcol_orig = fcol;
+                    thr  = max(abs(fcol))*thrsh;
+                    inan = find(abs(fcol) < thr);
+                    falpha = 1*ones(size(fcol));
+                    falpha(inan)=0;
+                    %fcol = fcol.*falpha;
+                                        
+                    fprintf('Rescaling overlay values\n');
+                    
+                    % get curvature colours
+                    y0 = data.mesh.h.FaceVertexCData;
+                    
+                    % rescale y0 into colour map part 1:
+                    % 1:256
+                    y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
+                    
+                    % rescale fcol into colour map part 2:
+                    % 257:512
+                    m = 257;
+                    n = 512;
+                    fcol = [fcol; -S0; S0];
+                    fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+                    fcol = fcol(1:end-2);
+                    
+                    % mask new functional colours
+                    fcol = fcol.*falpha;
+                    
+                    new_over = y0;
+                    these    = find(fcol);
+                    new_over(these) = fcol(these); 
+                    
+                    set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
+                    colormap(themap);
+                    data.overlay.themap=themap;
+                end
         end
         
         % Use symmetric colourbar and jet as defaults
-        s = max(abs(fcol(:))); caxis([-s s]);
-        colormap('jet');
-        alpha 1;
+        if NewAx
+            %colormap(ax2,'jet');
+            %s = max(abs(fcol(:))); caxis(ax2,[-s s]);
+            caxis([0 512]);
+        else
+            colormap('jet');
+            s = max(abs(fcol(:))); caxis([-s s]);
+            alpha 1;
+        end
+        %alpha 1;
         
         % Return the face colours
         data.overlay.data  = fcol(:);       % the functional vector
         data.overlay.steps = step;          % the depths at which searched
         data.overlay.hits  = hits;          % num hits / intersects at each depth
         data.overlay.cast  = UseFaceVertex; % whether computed for faces or vertices
+        
+        if NewAx
+            data.overlay.data_nonan = fcol_orig;
+        end
         
         data.overlay.FaceNormals   = FaceNorm;
         data.overlay.FaceCentroids = FaceCent;
@@ -516,6 +629,9 @@ switch lower(method)
         w  = fliplr(w);                 % 
         M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
 
+        % for no interpolation, set w = 1;
+        % w = 1;
+        
         fprintf('Using euclidean search algorithm\n');
         tic
         for i = 1:length(x)
@@ -553,7 +669,7 @@ switch lower(method)
         fprintf('Routine took %d seconds\n',stime);
         
         
-    case 'aal'
+    case {'aal','aal90','aal_90'}
         % project into pre-computed AAL parcellation - 1 value per region
         %
         
@@ -567,15 +683,15 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = aplot.fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        data = aplot.overlay(data,ol,write,fname,colbar);
+        data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case {'aal_light','aal_reduced','AAL_light'};
+    case {'aal_light','aal_reduced','aal_red'};
         % project into pre-computed AAL parcellation - 1 value per region
         % - reduce dversion
         
@@ -589,16 +705,16 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = aplot.fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         data.overlay.atlasvalues = L;
-        data = aplot.overlay(data,ol,write,fname,colbar);
+        data = overlay(data,ol,write,fname,colbar);
         return;
         
         
-    case {'HarvOx','HO','HarvardOxford','HOA'}
+    case {'harvox','ho','harvardoxford','hoa','harvard_oxford'}
         % project into pre-computed Harvard-Oxford Atlas
         % parcellation - 1 value per region
         % then use interp/project method above to render on user mesh
@@ -613,25 +729,25 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = aplot.fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        % compute roi centres for labelling if req
-        data.overlay.atlas_flag = 1;
-        %v_roi = get_roi_centres0(v,vi);
-        data.overlay.atlas.labels = labels(:,2);
-        %data.overlay.rois = v_roi;
-        data.overlay.atlas.v  = v;
-        data.overlay.atlas.vi = vi;
+%         % compute roi centres for labelling if req
+%         data.overlay.atlas_flag = 1;
+%         %v_roi = get_roi_centres0(v,vi);
+%         data.overlay.atlas.labels = labels(:,2);
+%         %data.overlay.rois = v_roi;
+%         data.overlay.atlas.v  = v;
+%         data.overlay.atlas.vi = vi;
         
         %v_roi(isnan(v_roi)) = 0;
         
-        data = aplot.overlay(data,ol,write,fname,colbar);
+        data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case {'aal116','AAL116'};
+    case {'aal116','aal_116'};
         % project into pre-computed AAL parcellation - 1 value per region
         %
         
@@ -644,17 +760,61 @@ switch lower(method)
         end
         
         % update sourcemodel
-        v = aplot.fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
-        data = aplot.overlay(data,ol,write,fname,colbar);
-        return;        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
+        
+    case {'hoa_cerebellum','hoac','hoa_c'};
+        % project into pre-computed AAL parcellation - 1 value per region
+        %
+        
+        load HOA_Cerebellum.mat
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
+        
+        
+    case {'user'}
+        % project into user specified parcellation - 1 value per region
+        %
+        
+        v  = data.sourcemodel.pos;
+        vi = data.sourcemodel.vi; 
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        % update sourcemodel
+        %v = fit_check_source2mesh(v,data.mesh); 
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        
+        data = overlay(data,ol,write,fname,colbar);
+        return;
 end
 
 
-switch lower(method)
+switch method
     case {'raycast','aal'}
         % Don't do anything        
     otherwise
@@ -690,7 +850,7 @@ switch lower(method)
         y  = double(y);
 
         % spm mesh smoothing
-        %--------------------------------------------------------------------------
+        %------------------------------------------------------------------
         fprintf('Smoothing overlay...\n');
         y  = spm_mesh_smooth(mesh, y(:), 4);
         y(isnan(y)) = 0;
@@ -698,23 +858,129 @@ switch lower(method)
         y(isnan(y)) = 0;
 
         % return these in data structre
-        data.overlay.data           = y;
-        data.overlay.smooth_weights = M;
-        data.overlay.NumComp        = NumComp;
-        data.overlay.indz           = indz;
-        data.overlay.w              = w;
+        try data.overlay.data           = y; end
+        try data.overlay.smooth_weights = M; end
+        try data.overlay.NumComp        = NumComp; end
+        try data.overlay.indz           = indz;    end
+        try data.overlay.w              = w;       end
 
-        set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+        if ~NewAx
+            set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+        else
+            
+            if ~isempty(data.overlay.thresh)
+                thrsh = data.overlay.thresh;
+            else; thrsh = .4;
+            end
+            fcol      = y;
+            fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                    
+            fcol_orig = fcol;
+            thr  = max(abs(fcol))*thrsh;
+            inan = find(abs(fcol) < thr);
+            falpha = 1*ones(size(fcol));
+            falpha(inan)=0;
+            %fcol = fcol.*falpha;
+            
+            fprintf('Rescaling overlay values\n');
+            
+            % get curvature colours
+            y0 = data.mesh.h.FaceVertexCData;
+            
+            % rescale y0 into colour map part 1:
+            % 1:256
+            y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
+            
+            % rescale fcol into colour map part 2:
+            % 257:512
+            m = 257;
+            n = 512;
+            fcol = [fcol; -S0; S0];
+            fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+            fcol = fcol(1:end-2);
+            
+            % mask new functional colours
+            fcol = fcol.*falpha;
+            
+            new_over = y0;
+            these    = find(fcol);
+            new_over(these) = fcol(these);
+            
+            set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
+            colormap(themap);
+            data.overlay.themap=themap;
+        end
         drawnow;
         shading interp
         % force symmetric caxis bounds
         s = max(abs(y(:))); caxis([-s s]);
-        colormap('jet');
+        if ~NewAx
+            colormap('jet');
+        else
+            %colormap(ax2,'jet');
+            caxis([0 512]);
+        end
         alpha 1;
+        
+end
+
+S = [-s s];
+
+% post-hoc template reduction here?
+%--------------------------------------------------------------------------
+if isfield(data,'post_parcel')
+    fprintf('Also computing requested (parcellated) atlas transform\n');
+    newv = data.post_parcel{1};
+    newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
+    D0   = cdist(data.sourcemodel.pos,newv);
+    
+    % assume the vertex value of the closest mesh point
+    for i = 1:size(D0,2)
+        [~,ind] = min(D0(:,i));
+        newL(i) = data.overlay.orig(ind);
+    end
+    newL = [newL S(1) S(2)];
+    newL = S(1) + ((S(2)-S(1))).*(newL - min(newL))./(max(newL) - min(newL));
+    newL = newL(1:end-2);
+    
+    % if the second input was supplied, compute average atlas value as mean
+    % of parcel vertices
+    try 
+        iv = data.post_parcel{2};
+        fprintf('Computing parcel means\n');
+        n = unique(iv);
+        n(n==0) = [];
+        ParVal  = iv*0; 
+        for i = 1:length(n)
+            these = find(iv==n(i));
+            ParcelMean(i) = mean( newL(these) );
+            MeanLoc(i,:)  = mean([spherefit( newv(these,:) ) ; mean( newv(these,:) )]);
+            ParVal(these) = ParcelMean(i);
+        end
+        ParcelMean = S(1) + ((S(2)-S(1))).*(ParcelMean - min(ParcelMean))./(max(ParcelMean) - min(ParcelMean));
+        ParVal     = S(1) + ((S(2)-S(1))).*(ParVal - min(ParVal))./(max(ParVal) - min(ParVal));
+    end
+    
+    % box bound new set
+    %MeanLoc = fit_check_source2mesh(MeanLoc,data.mesh);
+    
+    % return the new v and data
+    data.post_parcel      = [];
+    data.post_parcel.pos  = newv;
+    data.post_parcel.data = newL;  
+
+    try 
+        % return atlas data as means
+        data.post_parcel.ParcelMean = ParcelMean;
+        data.post_parcel.ParcelCent = MeanLoc;
+        data.post_parcel.ParVal     = ParVal;
+        data.post_parcel.ParcelID   = iv;
+    end 
 end
 
 
-if colbar
+
+if colbar && ~NewAx
     data.overlay.cb = InteractiveColorbar;
 end
     
@@ -751,9 +1017,10 @@ elseif write == 3
     vrml(gcf,[fname]);
 elseif write == 4
     fprintf('Generating nifti volume for writing\n');    
-    new = mesh;
-    dim = ceil(nthroot(length(y),3));
-    V   = sm2vol(new.vertices,dim*3,y,256);
+    V = genvol(data.mesh.vertices,data.overlay.data,[256 256 256]);
+    %new = mesh;
+    %dim = ceil(nthroot(length(y),3));
+    %V   = sm2vol(new.vertices,dim*3,y,256);
     % just return the volume in the output for now
     data.overlay.volume = V;
 end

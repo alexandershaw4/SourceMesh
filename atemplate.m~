@@ -1772,51 +1772,9 @@ if length(L) == length(mesh.vertices)
         end
     else % if newax (curvature + function)
         
-        if ~isempty(data.overlay.thresh)
-            thrsh = data.overlay.thresh;
-        else; thrsh = .4;
-        end
-        fcol  = L;
-        S     = [min(L(:)),max(L(:))];
-        S0    = max(abs(L(:)));
-        fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
         
-        fcol_orig = fcol;
-        thr  = max(abs(fcol))*thrsh;
-        inan = find(abs(fcol) < thr);
-        falpha = 1*ones(size(fcol));
-        falpha(inan)=0;
-        %fcol = fcol.*falpha;
         
-        fprintf('Rescaling overlay values\n');
         
-        % get curvature colours
-        y0 = data.mesh.h.FaceVertexCData;
-        
-        % rescale y0 into colour map part 1:
-        % 1:256
-        y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
-        
-        % rescale fcol into colour map part 2:
-        % 257:512
-        m = 257;
-        n = 512;
-        fcol = [fcol; -S0; S0];
-        fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
-        fcol = fcol(1:end-2);
-        
-        % mask new functional colours
-        fcol = fcol.*falpha;
-        
-        new_over = y0;
-        these    = find(fcol);
-        new_over(these) = fcol(these);
-        
-        set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
-        colormap(themap);
-        data.overlay.themap=themap;
-        
-        caxis([0 512]);
         
     end
     

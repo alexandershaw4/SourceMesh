@@ -1,4 +1,4 @@
-function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes)
+function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise)
 % Main brain-mesh plot. 
 %
 % Separates hemispheres, computes curvature, check orientation, inflate, 
@@ -7,6 +7,11 @@ function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,fli
 %
 % Returns everything in data.mesh
 %
+
+if iscell(pos)
+   orig_pos = pos;
+   pos      = pos{1};
+end
 
 if isempty(a);
     a = .6;
@@ -44,22 +49,38 @@ g.vertices = v - repmat(spherefit(v),[size(v,1),1]);
 
 
 % ensure sourcemodel (pos) is around same scale as mesh boundaries
-m = min(g.vertices);% *1.1;
-M = max(g.vertices);% *1.1;
+pos = fit_check_source2mesh(pos,g);
 
-V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
-V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-pos      = V;
+% explicitly optimise the alignment of the cloud points?
+% (source model vertices and mesh vertices)
+if optimise
+    pos = align_clouds_3d(g.vertices,pos);
+    clf; drawnow;
+end
+
+% m = min(g.vertices);% *1.1;
+% M = max(g.vertices);% *1.1;
+% 
+% V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+% pos      = V;
 
 % % calculate curvature for shading
-curv = aplot.docurvature(struct('vertices',g.vertices,'faces',g.faces));
+curv  = docurvature(struct('vertices',g.vertices,'faces',g.faces));
+cvar  = var(curv);
+dcurv = curv;
 
 % inflate
 if inflate
-    fprintf('Inflating mesh\n');
-    g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),100);
+    fprintf('Inflating mesh\n'); nrep = 0;
+    %while cvar / var(dcurv) < 50
+        %nrep = nrep + 1;
+        g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),200);
+        %dcurv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
+    %end
+    %fprintf('Finished inflation after %d reps\n',nrep);
 end
 
 
@@ -74,6 +95,9 @@ end
 v = g.vertices;
 f = g.faces;
 c = spherefit(v);
+
+% save centre point for later - e.g. label setting
+g.centre = c;
 
 left  = find(v(:,1) < c(1));
 right = find(v(:,1) > c(1));
@@ -108,6 +132,8 @@ if dofillholes
         x       = [x; ek];           % new faces
     end
     
+    x0 = x;
+    
     % update faces
     g.fleft = [g.fleft; x];
         
@@ -123,6 +149,8 @@ if dofillholes
     % update faces
     g.fright = [g.fright; x];
     
+    % update full-model faces
+    g.faces = [g.faces; x0; x];
 end
 
 
@@ -193,5 +221,12 @@ if write == 1
     save(gout,fname);
 end
 
+
+
+if exist('orig_pos')
+    % is pos was a cell, re-instate 
+    orig_pos{1} = pos;
+    pos         = orig_pos;
+end
 
 end
