@@ -2333,41 +2333,32 @@ switch lower(method)
         v = fit_check_source2mesh(v,data.mesh);
         v = v - repmat(spherefit(v),[size(v,1),1]);
         
-        % identify parcels which straddle hemispheres
-        %------------------------------------------------------------------
-        parc_id = unique(vi);
-        newv  = []; % new version of v
-        newvi = []; % new version of vi
-        for i = 1:length(parc_id)
-            parc_verts = v( find(vi==parc_id(i)) , :);
-            
-            % location of point cluster: percentage on the left
-            PercOnLeft = sum( parc_verts(:,1) < cnt(1) ) ./ length(parc_verts);
-            
-            if      PercOnLeft == 1 || PercOnLeft == 0
-                    newv  = [newv; parc_verts];
-                    newvi = [newvi; i*ones(size(parc_verts,1),1)];
-                    
-            elseif  PercOnLeft >= 0.65                  % >=65% on left
-                    these = parc_verts(:,1) > cnt(1);
-            end
-            
-        end
-                
+        % parcellation hemisphere registration
+        [v,vi] = parcellation_hemispheres(v,vi,cnt);
+                        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
             ol(these) = L(i);
         end
         
-        % update sourcemodel
-        %v = v - repmat(spherefit(v),[size(v,1),1]);
-        %v = fit_check_source2mesh(v,data.mesh); 
-        %v = v - repmat(spherefit(v),[size(v,1),1]);
+        % squeeze outer points onto mesh
+        bnds  = [min(v); max(v)];
+        bnds1 = bnds * .9; 
         
+        [Vx,Ix] = sort(v(:,1));
+        [Vy,Iy] = sort(v(:,2));
+        [Vz,Iz] = sort(v(:,3));
         
+        % lower x
+        lx = find( Vx(:,1) < bnds1(1,1) );
         
+        for i = 1:length(lx)
+            [~,repl] = min(cdist( v(Ix(lx(i)),:), mv ));
+            v( Ix(lx(i)), : ) = mv(repl,:);
+        end
         
+                
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2382,16 +2373,20 @@ switch lower(method)
         % new method for AAL90: wrapper on ray casting routine
         load LightAAL.mat
 
+        % update sourcemodel
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+        v = fit_check_source2mesh(v,data.mesh); 
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+
+        % parcellation hemisphere registration
+        [v,vi] = parcellation_hemispheres(v,vi,cnt);
+        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
             ol(these) = L(i);
         end
         
-        % update sourcemodel
-        v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh); 
-        v = v - repmat(spherefit(v),[size(v,1),1]);
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2408,16 +2403,20 @@ switch lower(method)
         % new method for AAL90: wrapper on above routine
         load HarvOx.mat
 
+        % update sourcemodel
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+        v = fit_check_source2mesh(v,data.mesh); 
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+
+        % parcellation hemisphere registration
+        [v,vi] = parcellation_hemispheres(v,vi,cnt);
+        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
             ol(these) = L(i);
         end
         
-        % update sourcemodel
-        v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh); 
-        v = v - repmat(spherefit(v),[size(v,1),1]);
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2441,16 +2440,20 @@ switch lower(method)
         
         load AAL116.mat
 
+        % update sourcemodel
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+        v = fit_check_source2mesh(v,data.mesh); 
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+
+        % parcellation hemisphere registration
+        [v,vi] = parcellation_hemispheres(v,vi,cnt);
+        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
             ol(these) = L(i);
         end
         
-        % update sourcemodel
-        v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh); 
-        v = v - repmat(spherefit(v),[size(v,1),1]);
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2464,16 +2467,20 @@ switch lower(method)
         
         load HOA_Cerebellum.mat
 
+        % update sourcemodel
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+        v = fit_check_source2mesh(v,data.mesh);
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+
+        % parcellation hemisphere registration
+        [v,vi] = parcellation_hemispheres(v,vi,cnt);
+        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
             ol(these) = L(i);
         end
         
-        % update sourcemodel
-        v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh);
-        v = v - repmat(spherefit(v),[size(v,1),1]);
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2486,9 +2493,15 @@ switch lower(method)
         % project into user specified parcellation - 1 value per region
         %
         
+                
+
         v  = data.sourcemodel.pos;
         vi = data.sourcemodel.vi; 
+        v = v - repmat(spherefit(v),[size(v,1),1]);
 
+        % parcellation hemisphere registration
+        [v,vi] = parcellation_hemispheres(v,vi,cnt);
+        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
@@ -2497,7 +2510,6 @@ switch lower(method)
         
         % update sourcemodel
         %v = fit_check_source2mesh(v,data.mesh); 
-        v = v - repmat(spherefit(v),[size(v,1),1]);
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
@@ -2523,19 +2535,7 @@ switch method
                 
         OL(VL,MR) = 0;
         OL(VR,ML) = 0;
-        
-
-        
-         
-%          % recompile 'v' into all left then all right
-%          v  = [ v(VL,:) ; v(VR,:) ];
-%          L  = [ L(VL,:) ; L(VR,:) ];     
-%          OL = [OL(VL,:);OL(VR,:)];
-%          
-%          % now kill outer quadrants
-%          OL = killinterhems(OL);
-
-        
+                
         fprintf('\n'); clear L;
         if ~interpl
              % mean value of a given vertex
@@ -2999,6 +2999,47 @@ if isfield(data.overlay,'Peaks')
 end
 
 end
+
+
+function [v,vi] = parcellation_hemispheres(v,vi,cnt)
+
+% identify parcels which straddle hemispheres
+%------------------------------------------------------------------
+parc_id = unique(vi);
+newv  = []; % new version of v
+newvi = []; % new version of vi
+for i = 1:length(parc_id)
+    parc_verts = v( find(vi==parc_id(i)) , :);
+    
+    % location of point cluster: percentage on the left
+    PercOnLeft = sum( parc_verts(:,1) < cnt(1) ) ./ length(parc_verts);
+    
+    if      PercOnLeft == 1 || PercOnLeft == 0
+        newv  = [newv; parc_verts];
+        newvi = [newvi; i*ones(size(parc_verts,1),1)];
+        
+    elseif  PercOnLeft >= 0.65                  % >=65% on left
+        these = find(parc_verts(:,1) > cnt(1));
+        parc_verts(these,:) = [];
+        newv  = [newv; parc_verts];
+        newvi = [newvi; i*ones(size(parc_verts,1),1)];
+    elseif  PercOnLeft <= 0.35
+        these = find(parc_verts(:,1) < cnt(1));
+        parc_verts(these,:) = [];
+        newv  = [newv; parc_verts];
+        newvi = [newvi; i*ones(size(parc_verts,1),1)];
+    end
+    
+end
+
+% return the new lists
+v  = newv;
+vi = newvi;
+
+end
+
+
+
 
 function pos = fit_check_source2mesh(pos,g)
 % check box bounds of sourcemodel and mesh are matched

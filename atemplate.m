@@ -2335,8 +2335,7 @@ switch lower(method)
         
         % parcellation hemisphere registration
         [v,vi] = parcellation_hemispheres(v,vi,cnt);
-        
-                
+                        
         ol    = zeros(length(v),1);
         for i = 1:length(L)
             these = find(vi==i);
@@ -2532,6 +2531,10 @@ switch method
             end
             OL = L;
         end
+        
+        % THIS WAS MISSING: DE-NaN BEFORE ANYTHING
+        % ADDED AUGUST 2019
+        OL(isnan(OL))=0;
 
         % normalise and rescale
         OL = double(full(OL));
