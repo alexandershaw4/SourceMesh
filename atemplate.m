@@ -2378,19 +2378,11 @@ switch lower(method)
         return;
         
     case {'aal_super'};
-        % project into pre-computed AAL parcellation - 1 value per region
-        % - reduce dversion
+        % project into pre-computed AAL parcellation - already computed
+        % face values for defaut mesh 1
         
         % new method for AAL90: wrapper on ray casting routine
         load('SuperAAL.mat','MeshVertexParcelID');
-
-%         % update sourcemodel
-%         v = v - repmat(spherefit(v),[size(v,1),1]);
-%         v = fit_check_source2mesh(v,data.mesh); 
-%         v = v - repmat(spherefit(v),[size(v,1),1]);
-% 
-%         % parcellation hemisphere registration
-%         [v,vi] = parcellation_hemispheres(v,vi,cnt);
         
         v  = data.mesh.vertices;
         vi = MeshVertexParcelID;
@@ -2403,7 +2395,7 @@ switch lower(method)
         
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
-        data.overlay.method  = data.overlay.method{2};
+        data.overlay.method  = ' ';%data.overlay.method{2};
         data.overlay.atlasvalues = L;
         data = overlay(data,ol,write,fname,colbar);
         return;        
