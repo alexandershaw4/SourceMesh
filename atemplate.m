@@ -2349,7 +2349,7 @@ switch lower(method)
         data = overlay(data,ol,write,fname,colbar);
         return;
         
-    case {'aal_light','aal_reduced','aal_red'};
+    case {'aal_light','aal_reduced','aal_red','aal90_light'};
         % project into pre-computed AAL parcellation - 1 value per region
         % - reduce dversion
         
@@ -2377,6 +2377,36 @@ switch lower(method)
         data = overlay(data,ol,write,fname,colbar);
         return;
         
+    case {'aal_super'};
+        % project into pre-computed AAL parcellation - 1 value per region
+        % - reduce dversion
+        
+        % new method for AAL90: wrapper on ray casting routine
+        load('SuperAAL.mat','MeshVertexParcelID');
+
+%         % update sourcemodel
+%         v = v - repmat(spherefit(v),[size(v,1),1]);
+%         v = fit_check_source2mesh(v,data.mesh); 
+%         v = v - repmat(spherefit(v),[size(v,1),1]);
+% 
+%         % parcellation hemisphere registration
+%         [v,vi] = parcellation_hemispheres(v,vi,cnt);
+        
+        v  = data.mesh.vertices;
+        vi = MeshVertexParcelID;
+
+        ol    = zeros(length(v),1);
+        for i = 1:length(L)
+            these = find(vi==i);
+            ol(these) = L(i);
+        end
+        
+        data.sourcemodel.pos = v;
+        data.overlay.orig    = ol;
+        data.overlay.method  = data.overlay.method{2};
+        data.overlay.atlasvalues = L;
+        data = overlay(data,ol,write,fname,colbar);
+        return;        
         
     case {'harvox','ho','harvardoxford','hoa','harvard_oxford'}
         % project into pre-computed Harvard-Oxford Atlas
