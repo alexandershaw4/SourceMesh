@@ -1802,7 +1802,7 @@ if length(L) == length(mesh.vertices)
         
         % rescale y0 into colour map part 1:
         % 1:256
-        y0 = 256 * (y0-min(y))./(max(y0)-min(y0));
+        y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
         
         % rescale fcol into colour map part 2:
         % 257:512
