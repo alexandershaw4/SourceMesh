@@ -247,6 +247,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
     if strcmp(varargin{i},'roi');         in.roi = varargin{i+1}; end
     if strcmp(varargin{i},'network');     in.A   = varargin{i+1}; end
+    if strcmp(varargin{i},'net_pos');     in.net_pos = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');      in.T   = varargin{i+1}; in.H = varargin{i+2}; end
     if strcmp(varargin{i},'nosurf');      in.pmesh  = 0;            end
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
@@ -495,6 +496,11 @@ end
 
 data.sourcemodel.pos = pos;
 
+% add ability to have network on a separate sourcemodel to overlay
+if isfield(i,'net_pos') && size(i.net_pos,2)==3
+    fprintf('*Also found a set of source vertices for a network\n');
+    data.sourcemodel.net_pos = i.net_pos;
+end
 
 % not hugely revelant here, but use this func to also store data for the
 % post-hoc atlas-registration function if required
@@ -995,7 +1001,12 @@ function data = connections(data,A,colbar,write,fname,netcmap)
 % Network (Node & Edges) plotter function
 %
 %
-pos = data.sourcemodel.pos;
+
+if isfield(data.sourcemodel,'net_pos')
+    pos = data.sourcemodel.net_pos;
+else
+    pos = data.sourcemodel.pos;
+end
 
 if isfield(data.sourcemodel,'vi')
     % if pos is cell, it's because we've passed both a vertex set and a
