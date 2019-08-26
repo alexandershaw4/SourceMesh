@@ -1202,7 +1202,14 @@ function data = drawnodes(data, N)
 %
 % 
 hold on;
-pos = data.sourcemodel.pos;
+if isfield(data.sourcemodel,'net_pos')
+    pos = data.sourcemodel.net_pos;
+else
+    pos = data.sourcemodel.pos;
+end
+
+
+%pos = data.sourcemodel.pos;
 %v   = pos*0.9;
 
 if isfield(data.sourcemodel,'vi')
