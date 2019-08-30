@@ -277,18 +277,3 @@ addpath(genpath('~/Downloads/MeshAAL-master'));
 
 Dependencies: fieldtrip & spm
 
-# Other Examples
-
-![alt text](Examples/Ex_OverlayWithNetworkAndLabels.gif)
-
-![alt text](figs/ExampleTracksNodesLabels.gif)
-
-
-
-# in development:
-add a set of tracks, as loaded with along-tract-stats toolbox
-```
-atemplate('gifti',g,'tracks',tracks,header);
-```
-
-
