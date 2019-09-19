@@ -231,16 +231,18 @@ in.tf_interactive = 0;     % ignore
 in.checkori       = 0;     % interactively check/adjust orientation of mesh
 in.fillholes      = 0;     % fill holes in mesh 
 in.hemi = 'both';          % hemisphere to plot
-in.roi  = [];
-in.optimise = 0;
-in.post_parcel = [];
-in.thresh      = [];
-in.open        = 0;
+in.roi  = [];              % roi list
+in.optimise = 0;           % explicitly optimise the alignments (gradient descent)
+in.post_parcel = [];       % parcellate an overlay post-projection
+in.thresh      = [];       % only display top % /threshold
+in.open        = 0;        % open the 2 hemispheres, i.e 2 plots
+in.verbose     = 0;         % print everything it does...
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
+    if strcmp(varargin{i},'verbose');     in.verbose= varargin{i+1}; end
     if strcmp(varargin{i},'open');        in.open= 1;             end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
@@ -303,6 +305,8 @@ end
 
 % Preliminaries & parse functions for plots
 %--------------------------------------------------------------------------
+data.verbose = in.verbose; % make sure every subfunction knows if verbose mode
+
 if in.open
     data = isopen(data,in);
     return;
@@ -456,11 +460,15 @@ function data = sort_sourcemodel(data,i)
 % Sort out what source model vertices we're going to use
 
 if      isfield(i,'pos')
-            fprintf('Using supplied sourcemodel vertices\n');
+             if i.verbose
+                fprintf('+Using supplied sourcemodel vertices\n');
+             end
             pos = i.pos;
         
 elseif  isfield(i,'A') && ischar(i.A)
-        fprintf('Using coords in node-file as sourcemodel\n');
+        if i.verbose
+            fprintf('+Using coords in node-file as sourcemodel\n');
+        end
         
         [~,pos] = rw_edgenode(i.A); 
         pos = pos(:,1:3);
@@ -475,7 +483,9 @@ elseif  isfield(i,'A') && ischar(i.A)
 %          pos       = data.sourcemodel.pos;
          
 else
-        fprintf('Assuming AAL90 source vertices by default\n');
+        if i.verbose
+            fprintf('+Assuming AAL90 source vertices by default\n');
+        end
         load('AAL_SOURCEMOD');
         pos  = template_sourcemodel.pos;
 end
@@ -498,7 +508,9 @@ data.sourcemodel.pos = pos;
 
 % add ability to have network on a separate sourcemodel to overlay
 if isfield(i,'net_pos') && size(i.net_pos,2)==3
-    fprintf('*Also found a set of source vertices for a network\n');
+    if i.verbose
+        fprintf('++Also found a set of source vertices for a network\n');
+    end
     data.sourcemodel.net_pos = i.net_pos;
 end
 
@@ -536,10 +548,10 @@ optimise = i.optimise;
 
 if     i.pmesh && ~isfield(i,'T')
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise,i.verbose);
 elseif i.pmesh
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise,i.verbose);
 else
     h = [];
     p = [];
@@ -559,21 +571,24 @@ if ischar(mesh)
     switch fe
         
         case{'.gz'}
-            fprintf('Unpacking .gz\n');
+            if data.verbose
+                fprintf('-Unpacking .gz\n');
+            end
             gunzip(mesh);
             mesh = strrep(mesh,'.gz','');
             [mesh, data] = convert_mesh(mesh,data);
             return;
             
         case{'.nii','.mri'}
-            wb = waitbar(0,'Reading nifti volume...');
+            %wb = waitbar(0,'Reading nifti volume...');
             
             % mini switch for load type
             switch fe
                 case '.nii'
                     % load nifti volume file
-                    fprintf('Reading Nifti volume\n');
-                    
+                    if data.verbose
+                        fprintf('-Reading Nifti volume\n');
+                    end
 %                     ni    = load_nii(mesh);
 %                     vol   = ni.img;
 %                     
@@ -614,7 +629,9 @@ if ischar(mesh)
                     % NEW: subsample volume by 2. This speeds up subsequent patch
                     % reduction enormously with at relatively little cost to
                     % resolution
-                    fprintf('Subsampling structural volume\n');
+                    if data.verbose
+                        fprintf('-Subsampling structural volume\n');
+                    end
                     [xg,yg,zg] = meshgrid(yarr,xarr,zarr);
                     [NX, NY, NZ, vol] = reducevolume(xg,yg,zg,vol,2);
                     xarr = linspace(xarr(1),xarr(end),size(vol,1));
@@ -626,7 +643,9 @@ if ischar(mesh)
                     
                 case '.mri'
                     % load ctf mri file
-                    fprintf('Reading CTF_MRI4 volume\n');
+                    if data.verbose
+                        fprintf('-Reading CTF_MRI4 volume\n');
+                    end
                     ni  = ft_read_mri(mesh,'dataformat','ctf_mri4');
                     vol = ni.anatomy;
                     vol = vol - mean(vol(:));                    
@@ -634,14 +653,16 @@ if ischar(mesh)
             
             
             if ndims(vol) ~= 3
-                fprintf('Volume has wrong number of dimensions!\nUsing default mesh\n');
+                fprintf('-Volume has wrong number of dimensions!\nUsing default mesh\n');
                 mesh = read_nv;
                 return
             end
             
             % bounds:
-            waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
-            fprintf('Extracting ISO surface\n');
+            %waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
+            if data.verbose
+                fprintf('-Extracting ISO surface\n');
+            end
             B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
             
             try    fv  = isosurface(X,Y,Z,vol,0.5); % nifti's 
@@ -654,8 +675,10 @@ if ischar(mesh)
             fv.vertices = v;
              
             % reduce vertex density
-            waitbar(0.6,wb,'Reading nifti volume: Reducing density');
-            fprintf('Reducing patch density\n');
+            %waitbar(0.6,wb,'Reading nifti volume: Reducing density');
+            if data.verbose
+                fprintf('-Reducing patch density\n');
+            end
             nv  = length(fv.vertices);
             count  = 0;
                         
@@ -671,9 +694,11 @@ if ischar(mesh)
             %end
 
             % print
-            waitbar(0.9,wb,'Reading nifti volume: Rescaling');
-            fprintf('Patch reduction finished\n');
-            fprintf('Rescaling mesh to sourcemodel\n');
+            %waitbar(0.9,wb,'Reading nifti volume: Rescaling');
+            if data.verbose
+                fprintf('-Patch reduction finished\n');
+                fprintf('-Rescaling mesh to sourcemodel\n');
+            end
             
             v = fv.vertices;
             for i = 1:3
@@ -688,7 +713,7 @@ if ischar(mesh)
             mesh.vol        = vol;
             data.mesh       = mesh;
             
-            close(wb);
+            %close(wb);
             
         case{'.gii'}
             % load the gifti
@@ -747,16 +772,20 @@ if ischar(mesh)
 elseif isnumeric(mesh) && ndims(mesh)==3
            
             % bounds:
-            wb = waitbar(0,'Reading nifti volume...');
-            waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
+            %wb = waitbar(0,'Reading nifti volume...');
+            %waitbar(0.2,wb,'Reading nifti volume: Extracting isosurface');
             
             % NEW: subsample volume by 2. This speeds up subsequent patch
             % reduction enormously with at relatively little cost to
             % resolution
-            fprintf('Subsampling structural volume\n');
+            if data.verbose
+                fprintf('-Subsampling structural volume\n');
+            end
             [NX, NY, NZ, mesh] = reducevolume(mesh,2);
 
-            fprintf('Extracting ISO surface\n');
+            if data.verbose
+                fprintf('-Extracting ISO surface\n');
+            end
             B   = [min(data.sourcemodel.pos); max(data.sourcemodel.pos)];
             fv  = isosurface(mesh,0.5);            
             
@@ -766,11 +795,13 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             fv.vertices = v;
              
             % reduce vertex density
-            fprintf('Reducing patch density\n');
+            if data.verbose
+                fprintf('-Reducing patch density\n');
+            end
             nv  = length(fv.vertices);
             count  = 0;
             
-            waitbar(0.6,wb,'Reading nifti volume: Reducing density');
+            %waitbar(0.6,wb,'Reading nifti volume: Reducing density');
             while nv > 60000
                 fv    = reducepatch(fv, 0.5);
                 nv    = length(fv.vertices);
@@ -778,10 +809,12 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             end
 
             % print
-            fprintf('Patch reduction finished\n');
-            fprintf('Rescaling mesh to sourcemodel\n');
+            if data.verbose
+                fprintf('-Patch reduction finished\n');
+                fprintf('-Rescaling mesh to sourcemodel\n');
+            end
             
-            waitbar(0.9,wb,'Reading nifti volume: Rescaling');
+            %waitbar(0.9,wb,'Reading nifti volume: Rescaling');
             v = fv.vertices;
             for i = 1:3
                 v(:,i) = rescale(v(:,i),B(:,i));
@@ -793,7 +826,7 @@ elseif isnumeric(mesh) && ndims(mesh)==3
             mesh.vertices   = v;
             data.mesh       = mesh;    
             
-            close(wb);        
+            %close(wb);        
 end
 
 end
@@ -902,14 +935,18 @@ function [mesh,data] = get_mesh(i,data)
 % Decide what brain we're actually using, return it
 
 try   mesh = i.g;
-      fprintf('Using user provided mesh\n');
-      
+    if i.verbose
+        fprintf('+Using user provided mesh\n');
+    end
+    
       if ischar(mesh) || isnumeric(mesh)
           [mesh,data] = convert_mesh(mesh,data);
       end
       
 catch mesh = read_nv();
-      fprintf('(Using template brain mesh)\n');
+      if i.verbose
+          fprintf('+Using template brain mesh\n');
+      end
 end
 
 % if i.inflate
@@ -1339,7 +1376,9 @@ if ischar(x)
     switch fe
         
         case{'.gz'}
-            fprintf('Unpacking .gz\n');
+            if data.verbose
+                fprintf('+Unpacking functional .gz\n');
+            end
             gunzip(x);
             x = strrep(x,'.gz','');
             
@@ -1349,10 +1388,12 @@ if ischar(x)
         case{'.nii'}
             
             % add waitbar
-            wb = waitbar(0,'Reading volume: Please wait...');
+           %wb = waitbar(0,'Reading volume: Please wait...');
             
             % load nifti volume file
-            fprintf('Reading Nifti volume\n');
+            if data.verbose
+                fprintf('+Reading Nifti volume\n');
+            end
 %             ni    = load_nii(x);
 %             vol   = ni.img;
 
@@ -1395,7 +1436,7 @@ if ischar(x)
             data.volume.grid.y = yarr;
             data.volume.grid.z = zarr;
             
-            
+            wb=0;
             [y,data] = vol2surf(vol,data,wb);
             
             
@@ -1427,15 +1468,20 @@ end
 
 if isnumeric(x) && ndims(x)==3
     % this is a pre-loaded nifti volume
-    fprintf('This is a pre-loaded 3D nifti volume: extracting...\n');
+    if data.verbose
+        fprintf('+This is a pre-loaded 3D nifti volume: extracting...\n');
+    end
     
     % add waitbar
-    wb = waitbar(0,'Preloaded volume: Please wait...');
+    %wb = waitbar(0,'Preloaded volume: Please wait...');
     
     % NEW: subsample volume by 2 to speed up patch reduction
-    fprintf('Subsampling structural volume\n');
+    if data.verbose
+        fprintf('+Subsampling structural volume\n');
+    end
     [NX, NY, NZ, x] = reducevolume(x,2);
 
+    wb=0;
     [y,data] = vol2surf(x,data,wb);
     
 end
@@ -1478,7 +1524,7 @@ if length(find(vol)) == prod(S)
 end
 
 % waitbar
-waitbar(.15,wb,'Reading volume: Smoothing volume');
+%waitbar(.15,wb,'Reading volume: Smoothing volume');
 
 % a little smoothing
 vol = smooth3(vol,'gaussian');
@@ -1489,29 +1535,35 @@ try
 end
 
 if ~isfield(data,'volume') || ~isfield(data.volume,'grid')
-    fprintf('Using computed voxel coordinates\n');
+    if data.verbose
+        fprintf('+Using computed voxel coordinates\n');
+    end
     x = 1:size(vol,1);
     y = 1:size(vol,2);
     z = 1:size(vol,3);
 elseif isfield(data.volume,'grid')
-    fprintf('Using real-world voxel coordintes from nifti\n');
+    if data.verbose
+        fprintf('+Using real-world voxel coordintes from nifti\n');
+    end
     x = data.volume.grid.x;
     y = data.volume.grid.y;
     z = data.volume.grid.z;
 end
 
 % waitbar
-waitbar(.30,wb,'Reading volume: Indexing volume');
+%waitbar(.30,wb,'Reading volume: Indexing volume');
 
 % find indices of tissue in old grid
 [nix,niy,niz] = ind2sub(size(vol),find(vol));
 [~,~,C]       = find(vol);
 
 % waitbar
-waitbar(.45,wb,'Reading volume: Compiling new vertex list');
+%waitbar(.45,wb,'Reading volume: Compiling new vertex list');
 
 % compile a new vertex list
-fprintf('Compiling new vertex list (%d verts)\n',length(nix));
+if data.verbose
+    fprintf('+Compiling new vertex list (%d verts)\n',length(nix));
+end
 v = [x(nix); y(niy); z(niz)]';
 v = double(v);
 try
@@ -1522,7 +1574,9 @@ end
 if isfield(data.overlay,'affine')
     affine = data.overlay.affine;
     if length(affine) == 4
-        fprintf('Applying affine transform\n');
+        if data.verbose
+            fprintf('+Applying affine transform\n');
+        end
         va = [v ones(length(v),1)]*affine;
         v  = va(:,1:3);
     end
@@ -1554,10 +1608,12 @@ v        = V;
 
 
 % reduce patch
-fprintf('Reducing patch density\n');
+if data.verbose
+    fprintf('+Reducing patch density\n');
+end
 
 % waitbar
-waitbar(.50,wb,'Reading volume: Triangulating');
+%waitbar(.50,wb,'Reading volume: Triangulating');
 
 nv  = length(v);
 tri = delaunay(v(:,1),v(:,2),v(:,3));
@@ -1565,7 +1621,7 @@ fv  = struct('faces',tri,'vertices',v);
 count  = 0;
 
 % waitbar
-waitbar(.60,wb,'Reading volume: Smoothing');
+%waitbar(.60,wb,'Reading volume: Smoothing');
 
 % smooth overlay at triangulated points first
 Cbound = [min(C) max(C)];
@@ -1573,7 +1629,7 @@ C      = spm_mesh_smooth(fv,double(C),4);
 C      = Cbound(1) + (Cbound(2)-Cbound(1)).*(C - min(C))./(max(C) - min(C));
 
 % waitbar
-waitbar(.70,wb,'Reading volume: Reducing patch density');
+%waitbar(.70,wb,'Reading volume: Reducing patch density');
 
 while nv > 10000
    fv  = reducepatch(fv, 0.5);
@@ -1582,20 +1638,24 @@ while nv > 10000
 end
 
 % print
-fprintf('Patch reduction finished\n');
-fprintf('Using nifti volume as sourcemodel and overlay!\n');
-fprintf('New sourcemodel has %d vertices\n',nv);
+if data.verbose
+    fprintf('+Patch reduction finished\n');
+    fprintf('+Using nifti volume as sourcemodel and overlay!\n');
+    fprintf('+New sourcemodel has %d vertices\n',nv);
+end
 
 % waitbar
-waitbar(.90,wb,'Reading volume: Computing colours for reduced patch');
+%waitbar(.90,wb,'Reading volume: Computing colours for reduced patch');
 
 % find the indices of the retained vertexes only
-fprintf('Retrieving vertex colours\n');
+if data.verbose
+    fprintf('+Retrieving vertex colours\n');
+end
 Ci = compute_reduced_indices(v, fv.vertices);
 
 % waitbar
-waitbar(1,wb,'Reading volume: eComplete');
-close(wb);
+%waitbar(1,wb,'Reading volume: eComplete');
+%close(wb);
 
 
 % Update sourcemodel and ovelray data
@@ -1642,7 +1702,9 @@ persistent themap
 if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924 && ...
         ischar(data.overlay.method) && strcmp(data.overlay.method,'euclidean')
     
-     fprintf('Using default AAL90 weights for this mesh\n');
+     if data.verbose
+         fprintf('-Using default AAL90 weights for this mesh\n');
+     end
      load('AAL90DefaultWeights','M','NumComp','indz','w');
      
      % incorporate overlay into precomputed weights matrix
@@ -1705,7 +1767,9 @@ if iscell(L)
     C = L{1};
         
     % spm mesh smoothing
-    fprintf('Smoothing overlay...\n');
+    if data.verbose
+        fprintf('-Smoothing overlay...\n');
+    end
     y = spm_mesh_smooth(data.mesh, double(C(:)), 4);
     percNaN = length(find(isnan(C)))/length(C)*100;
     newpNaN = length(find(isnan(y)))/length(y)*100;
@@ -1724,7 +1788,9 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
-    fprintf('Generating combined function+curvature colormap\n');
+    if data.verbose
+        fprintf('-Generating combined function+curvature colormap\n');
+    end
     themap = [flipud(gray(256)); flipud(jet(256))];
     alpha 1;
 
@@ -1772,11 +1838,15 @@ end
 % if overlay,L, is same length as mesh verts, just plot!
 %--------------------------------------------------------------------------
 if length(L) == length(mesh.vertices)
-    fprintf('Overlay already fits mesh! Plotting...\n');
+    if data.verbose
+        fprintf('-Overlay already fits mesh! Plotting...\n');
+    end
     
     if ~NewAx
         % spm mesh smoothing
-        fprintf('Smoothing overlay...\n');
+        if data.verbose
+            fprintf('-Smoothing overlay...\n');
+        end
         y = spm_mesh_smooth(mesh, double(L(:)), 4);
         percNaN = length(find(isnan(L)))/length(L)*100;
         newpNaN = length(find(isnan(y)))/length(y)*100;
@@ -1820,7 +1890,9 @@ if length(L) == length(mesh.vertices)
         falpha(inan)=0;
         %fcol = fcol.*falpha;
         
-        fprintf('Rescaling overlay values\n');
+        if data.verbose
+            fprintf('-Rescaling overlay values\n');
+        end
         
         % get curvature colours
         y0 = data.mesh.h.FaceVertexCData;
@@ -1926,8 +1998,9 @@ Rht = mv(:,1) > cnt(1);
 Lft = find(Lft);
 Rht = find(Rht);
 
-
-fprintf('Determining closest points between sourcemodel & template vertices\n');
+if data.verbose
+    fprintf('+Determining closest points between sourcemodel & template vertices\n');
+end
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
 
 
@@ -1944,7 +2017,7 @@ switch lower(method)
         % has one value per FACE of the mesh, although this is converted to
         % vertex values by taking the maximum value of each triangle
         
-        wb = waitbar(0,'Ray casting: Please wait...');
+        %wb = waitbar(0,'Ray casting: Please wait...');
         
         % Ray cast from FACES or from VERTICES: SET 'face' / 'vertex'
         UseFaceVertex = 'vertex'; 
@@ -1959,10 +2032,12 @@ switch lower(method)
         nmesh.faces    = double(data.mesh.faces);
         dv             = round(dv*RND)/RND;
            
-        waitbar(.2,wb,'Ray casting: Gridding data');
+        %waitbar(.2,wb,'Ray casting: Gridding data');
         
         % volume the data so vertices are (offset) indices
-        fprintf('Gridding data for ray cast\n');
+        if data.verbose
+            fprintf(' +Gridding data for ray cast\n');
+        end
         vol = zeros( (max(dv) - min(dv))+1 );
         ndv = min(dv)-1;
         
@@ -1976,15 +2051,20 @@ switch lower(method)
             end
         end
                 
-        waitbar(.4,wb,'Ray casting: Smoothing');
+        %waitbar(.4,wb,'Ray casting: Smoothing');
         
         % Smooth volume
-        fprintf('Volume Smoothing & Rescaling  ');tic        
+        if data.verbose
+            fprintf(' +Volume Smoothing & Rescaling  ');tic;
+        end
+        %tic
         vol  = smooth3(vol,'box',3);        
         V    = spm_vec(vol);
         V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
         vol  = spm_unvec(V, vol); 
-        fprintf('-- done (%d seconds)\n',round(toc)); 
+        if data.verbose
+            fprintf('-- done (%d seconds)\n',round(toc)); 
+        end
         
         switch UseFaceVertex
             
@@ -1995,15 +2075,19 @@ switch lower(method)
                 if length(mv) == 81924
                     % use precomputed for deault mesh
                     load('DefaultMeshCentroidsNormals','FaceCent','FaceNorm')
-                    fprintf('Using precomputed centroids & normals for default mesh\n');
+                    if data.verbose
+                        fprintf(' +Using precomputed centroids & normals for default mesh\n');
+                    end
                     f = nmesh.faces;
                 else
                     
-                    waitbar(.6,wb,'Ray casting: Computing face norms and centroids');
+                    %waitbar(.6,wb,'Ray casting: Computing face norms and centroids');
                     
                     % Compute face normals
                     %------------------------------------------------------
-                    fprintf('Computing FACE Normals & Centroids  '); tic;
+                    if data.verbose
+                        fprintf(' +Computing FACE Normals & Centroids  '); tic;
+                    end
                     tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
                                         nmesh.vertices(:,2),nmesh.vertices(:,3));
                     FaceNorm = tr.faceNormal;
@@ -2020,7 +2104,9 @@ switch lower(method)
                         FaceCent(If,:) = mean(pnts,1);
                     end
                     
-                    fprintf('-- done (%d seconds)\n',round(toc));
+                    if data.verbose
+                        fprintf('-- done (%d seconds)\n',round(toc));
+                    end
                 end
                 
                 % If a depth vector was specified use that, otherwise
@@ -2029,15 +2115,19 @@ switch lower(method)
                       step = data.overlay.depth;
                 else; step   = -1.5:0.05:1.5;
                 end
-                fprintf('Using depths: %d to %d mm in increments %d\n',...
+                if data.verbose
+                    fprintf(' +Using depths: %d to %d mm in increments %d\n',...
                     step(1), step(end), round((step(2)-step(1))*1000)/1000 );
+                end
                 fcol   = zeros(length(step),length(f));
                 
                 
             case 'vertex'
                 
                 % Compute VERTEX normals
-                fprintf('Computing VERTEX normals\n');
+                if data.verbose
+                    fprintf(' +Computing VERTEX normals\n');
+                end
                 FaceNorm = spm_mesh_normals(nmesh,1);
                 
                 % In this case, centroids are the vertices themselves
@@ -2049,7 +2139,7 @@ switch lower(method)
     
         % Now search outwards along normal line
         %-----------------------------------------------------------------
-        waitbar(.8,wb,'Ray casting: casting');
+        %waitbar(.8,wb,'Ray casting: casting');
         
         nhits  = 0; tic    ;
         perc   = round(linspace(1,length(step),10));
@@ -2060,7 +2150,9 @@ switch lower(method)
             
             % print progress
             if ismember(i,perc)
-                fprintf('Ray casting: %d%% done\n',(10*find(i==perc)));
+                if data.verbose
+                    fprintf(' +Ray casting: %d%% done\n',(10*find(i==perc)));
+                end
             end
             
             % the new points
@@ -2084,7 +2176,9 @@ switch lower(method)
             end
         end
 
-        fprintf('Finished in %d sec\n',round(toc));
+        if data.verbose
+            fprintf(' +Finished in %d sec\n',round(toc));
+        end
         
         % Retain largest absolute value for each face (from each depth)
         [~,I] = max(abs(fcol));
@@ -2095,7 +2189,7 @@ switch lower(method)
         
         % add the values - either 1 per face or 1 per vertex - to the mesh
         %------------------------------------------------------------------
-        waitbar(.9,wb,'Ray casting: sorting...');
+        %waitbar(.9,wb,'Ray casting: sorting...');
         switch UseFaceVertex
             case 'face'
                 % Set face colour data on mesh, requires setting FaceColor= 'flat'
@@ -2146,8 +2240,10 @@ switch lower(method)
                     falpha = 1*ones(size(fcol));
                     falpha(inan)=0;
                     %fcol = fcol.*falpha;
-                                        
-                    fprintf('Rescaling overlay values\n');
+                     
+                    if data.verbose
+                        fprintf(' +Rescaling overlay values\n');
+                    end
                     
                     % get curvature colours
                     y0 = data.mesh.h.FaceVertexCData;
@@ -2203,8 +2299,8 @@ switch lower(method)
         data.overlay.FaceCentroids = FaceCent;
         data.overlay.FaceNormLines = FaceNormLine;
         
-        waitbar(1,wb,'Complete');
-        close(wb);
+        %waitbar(1,wb,'Complete');
+        %close(wb);
     
     
     case 'spheres' % this would be better called 'box' in its current form
@@ -2227,7 +2323,9 @@ switch lower(method)
         w  = fliplr(w);                 % 
         M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
         
-        fprintf('Using inside-spheres search algorithm\n');
+        if data.verbose
+            fprintf(' +Using inside-spheres search algorithm\n');
+        end
         tic
         for i = 1:length(x)
             if any(L(i))      
@@ -2285,7 +2383,9 @@ switch lower(method)
             end
         end
         stime = toc;
-        fprintf('Routine took %d seconds\n',stime);
+        if data.verbose
+            fprintf(' +Routine took %d seconds\n',stime);
+        end
 
     case 'euclidean'
         
@@ -2310,14 +2410,18 @@ switch lower(method)
         % for no interpolation, set w = 1;
         % w = 1;
         
-        fprintf('Using euclidean search algorithm\n');
+        if data.verbose
+            fprintf(' +Using euclidean search algorithm\n');
+        end
         tic
         for i = 1:length(x)
             
             % Print progress
-            if i > 1; fprintf(repmat('\b',[size(str)])); end
-            str = sprintf('%d/%d',i,(length(x)));
-            fprintf(str);
+            if data.verbose
+                if i > 1; fprintf(repmat('\b',[size(str)])); end
+                str = sprintf('%d/%d',i,(length(x)));
+                fprintf(str);
+            end
 
             % Restrict search to this hemisphere
             LR     = v(i,1);
@@ -2344,8 +2448,9 @@ switch lower(method)
 
         end
         stime = toc;
-        fprintf('Routine took %d seconds\n',stime);
-        
+        if data.verbose
+            fprintf(' +Routine took %d seconds\n',stime);
+        end
         
     case {'aal','aal90','aal_90'}
         % project into pre-computed AAL parcellation - 1 value per region
@@ -2593,7 +2698,9 @@ switch method
 
         % spm mesh smoothing
         %------------------------------------------------------------------
-        fprintf('Smoothing overlay...\n');
+        if data.verbose
+            fprintf(' +Smoothing overlay...\n');
+        end
         y  = spm_mesh_smooth(mesh, y(:), 4);
         y(isnan(y)) = 0;
         y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
@@ -2624,7 +2731,9 @@ switch method
             falpha(inan)=0;
             %fcol = fcol.*falpha;
             
-            fprintf('Rescaling overlay values\n');
+            if data.verbose
+                fprintf(' +Rescaling overlay values\n');
+            end
             
             % get curvature colours
             y0 = data.mesh.h.FaceVertexCData;
@@ -2671,8 +2780,10 @@ S = [-s s];
 % post-hoc template reduction here?
 %--------------------------------------------------------------------------
 if isfield(data,'post_parcel')
-    fprintf('Also computing requested (parcellated) atlas transform\n');
-    newv = data.post_parcel{1};
+    if data.verbose
+        fprintf('  -Also computing requested (parcellated) atlas transform\n');
+    end
+        newv = data.post_parcel{1};
     newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
     D0   = cdist(data.sourcemodel.pos,newv);
     
@@ -2689,7 +2800,9 @@ if isfield(data,'post_parcel')
     % of parcel vertices
     try 
         iv = data.post_parcel{2};
-        fprintf('Computing parcel means\n');
+        if data.verbose
+            fprintf('  -Computing parcel means\n');
+        end
         n = unique(iv);
         n(n==0) = [];
         ParVal  = iv*0; 
@@ -3143,7 +3256,7 @@ end
 
 end
 
-function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise)
+function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise,verb)
 % Main brain-mesh plot. 
 %
 % Separates hemispheres, computes curvature, check orientation, inflate, 
@@ -3166,7 +3279,9 @@ v = g.vertices;
 
 % apply affine if req.
 if length(affine) == 4
-    fprintf('Applying affine transform\n');
+    if verb
+        fprintf('-Applying affine transform\n');
+    end
     va = [v ones(length(v),1)]*affine;
     v  = va(:,1:3);
     g.vertices = v;
@@ -3220,7 +3335,10 @@ dcurv = curv;
 
 % inflate
 if inflate
-    fprintf('Inflating mesh\n'); nrep = 0;
+    if verb
+        fprintf('-Inflating mesh\n'); 
+    end
+    nrep = 0;
     %while cvar / var(dcurv) < 50
         %nrep = nrep + 1;
         g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),200);
@@ -3267,7 +3385,9 @@ g.curvature        = curv;
 % fill holes stemming from hemisphere separation - if requested
 %---------------------------------------------------------------
 if dofillholes
-    fprintf('Filling holes resulting from hemisphere separation..\n');
+    if verb
+        fprintf('-Filling holes resulting from hemisphere separation..\n');
+    end
     
     % left side
     x = [];

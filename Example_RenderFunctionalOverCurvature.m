@@ -22,7 +22,8 @@ thr = 0.4;
 
 % overlaying both curvature and function
 afigure; D = atemplate('hemi','l','mesh',Surf,'inflate','overlay',...
-			{'curvature',FunVol},'thresh',thr,'post_parcel',{v vi});
+			{'curvature',FunVol},'method','spheres',...
+            'thresh',thr,'post_parcel',{v vi});
 
 
         
