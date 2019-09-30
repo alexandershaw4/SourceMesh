@@ -217,6 +217,7 @@ in.colbar    = 1;          % display colourbar
 in.template  = 0;          % register source model to a template using ICP
 in.orthog    = 0;          % orthogonalise [ignore]
 in.inflate   = 0;          % inflate the mesh [just calls spm_mesh_inflate]
+in.inflate_n = 200;
 in.peaks     = 0;          % compute peaks on surface functional overlay
 in.components = 0;         % compute local maxima on functional overlay
 in.pca        = 0;         % compute pca on surface functional overlay
@@ -237,12 +238,14 @@ in.post_parcel = [];       % parcellate an overlay post-projection
 in.thresh      = [];       % only display top % /threshold
 in.open        = 0;        % open the 2 hemispheres, i.e 2 plots
 in.verbose     = 0;         % print everything it does...
+in.dosphere    = 0;
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
-    if strcmp(varargin{i},'verbose');     in.verbose= varargin{i+1}; end
+    if strcmp(varargin{i},'verbose');     in.verbose = varargin{i+1}; end
+    if strcmp(varargin{i},'dosphere');    in.dosphere = 1;        end
     if strcmp(varargin{i},'open');        in.open= 1;             end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
@@ -279,6 +282,11 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'video');       in.V     = varargin{i+1}; 
                                           in.fpath = varargin{i+2}; 
                                           in.times = varargin{i+3}; end
+    if strcmp(varargin{i},'inflate') 
+        try 
+            if isnumeric(varargin{i+1});in.inflate_n = varargin{i+1};end
+        end
+    end                                  
     if strcmp(varargin{i},'othermesh');   in.M = varargin{i+1}; in.O = varargin{i+2};   end  
     if strcmp(varargin{i},'tf_interactive');in.tf_interactive = varargin{i+1}; end
     if strcmp(varargin{i},'labels');      in.labels = 1;
@@ -536,6 +544,9 @@ flip   = i.flip;
 
 % if inflate, pass flag
 inflate = i.inflate;
+
+mesh.inflate = i.inflate_n; % allow passing amount to inflate
+mesh.do_ball = i.dosphere;
 
 % check orientation?
 checkori = i.checkori;
@@ -1235,53 +1246,63 @@ end
 end
 
 function data = drawnodes(data, N)
-% Node plotter. N = (90,1) with 1s for nodes to plot and 0s to ignore.
+% Node plotter. 
 %
-% 
+%
+
 hold on;
 if isfield(data.sourcemodel,'net_pos')
     pos = data.sourcemodel.net_pos;
+elseif isfield(data,'network') && isfield(data.network,'node')
+    pos = data.network.node;
 else
     pos = data.sourcemodel.pos;
 end
 
 
-%pos = data.sourcemodel.pos;
-%v   = pos*0.9;
+if isempty(N) && isfield(data,'network') && isfield(data.network,'tofrom')
+    % if N is empty, automatically select networked (edge connected) nodes
+    pos = [ data.network.tofrom.node1 ; data.network.tofrom.node2 ];
+    pos = unique(pos,'rows');
+    N   = ones(length(pos),1);
+    v   = pos;
+else
 
-if isfield(data.sourcemodel,'vi')
-    % if pos is cell, it's because we've passed both a vertex set and a
-    % vector that describes which vertex belongs to which roi
-    v  = pos;
-    vi = data.sourcemodel.vi;
-    n  = unique(vi);
-    for i = 1:length(n)
-        these = find(vi==n(i));
-        roi(i,:) = spherefit(v(these,:));
+
+    if isfield(data.sourcemodel,'vi')
+        % if pos is cell, it's because we've passed both a vertex set and a
+        % vector that describes which vertex belongs to which roi
+        v  = pos;
+        vi = data.sourcemodel.vi;
+        n  = unique(vi);
+        for i = 1:length(n)
+            these = find(vi==n(i));
+            roi(i,:) = spherefit(v(these,:));
+        end
+        pos = roi;
+        for ip = 1:length(pos)
+            [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+            pos(ip,:) = data.mesh.vertices(this,:);
+        end
     end
-    pos = roi;
+
+
+    bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
+    offset = 0.99;
+    for ip = 1:3
+        pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
+                    (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
+        pos(:,ip) = pos(:,ip)*offset;
+    end
+
+    % redirect to clseast mesh point (vertex?)
     for ip = 1:length(pos)
         [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
         pos(ip,:) = data.mesh.vertices(this,:);
     end
+
+    v = pos;
 end
-
-
-bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
-offset = 0.99;
-for ip = 1:3
-    pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
-                (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
-    pos(:,ip) = pos(:,ip)*offset;
-end
-
-% redirect to clseast mesh point (vertex?)
-for ip = 1:length(pos)
-    [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
-    pos(ip,:) = data.mesh.vertices(this,:);
-end
-
-v = pos;
 
 if size(N,1) > 1 && size(N,2) > 1
     cols = {'r' 'm','y','g','c','b'};
@@ -1752,10 +1773,11 @@ end
 % method for searching between the 3D coordinate systems
 %-------------------------------------------------------------
 if ischar(data.overlay.method)
-    if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
-         method = data.overlay.method;
-    else,method = 'euclidean';  
-    end
+    method = data.overlay.method;
+    %if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
+    %     method = data.overlay.method;
+    %else,method = 'euclidean';  
+    %end
 else
     method = data.overlay.method{1};
 end
@@ -2302,6 +2324,7 @@ switch lower(method)
         %waitbar(1,wb,'Complete');
         %close(wb);
     
+        
     
     case 'spheres' % this would be better called 'box' in its current form
         
@@ -3275,7 +3298,8 @@ if isempty(a);
     a = .6;
 end
 
-v = g.vertices;
+v        = g.vertices;
+dosphere = g.do_ball;
 
 % apply affine if req.
 if length(affine) == 4
@@ -3338,15 +3362,28 @@ if inflate
     if verb
         fprintf('-Inflating mesh\n'); 
     end
+    if isfield(g,'inflate')
+        inflate_n = g.inflate;
+    else
+        inflate_n = 200;
+    end
+    
     nrep = 0;
     %while cvar / var(dcurv) < 50
         %nrep = nrep + 1;
-        g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),200);
+        g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),inflate_n);
         %dcurv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
     %end
     %fprintf('Finished inflation after %d reps\n',nrep);
+    g.inflation = inflate_n;
 end
 
+% compute and return face vertex normals
+tr = triangulation(double(g.faces),double(g.vertices(:,1)),...
+                                   double(g.vertices(:,2)),...
+                                   double(g.vertices(:,3)) );
+g.FaceNorm   = tr.faceNormal;
+g.VertexNorm = tr.vertexNormal;           
 
 if checkori
     b = CheckOrientationMesh(g);
@@ -3354,6 +3391,18 @@ if checkori
     g = b;
 end
 
+% % allow user to request that the brain is inflated right out to a sphere
+% % - we'll just replace the vertex list in the patch with the vertex normals
+% if dosphere
+%     B = [min(g.vertices); max(g.vertices)];
+%     for ij = 1:3
+%         g.vertices(:,ij) = rescale(g.VertexNorm(:,ij),B(:,ij));
+%     end
+%     if verb
+%         fprintf('-inflating brain to full sphere\n');
+%     end
+% end
+% g.dosphere = dosphere;
 
 % only one hemisphere?
 v = g.vertices;
@@ -3380,6 +3429,9 @@ g.fright           = f*NaN;
 g.fright(rfaces,:) = f(rfaces,:);
 g.curvature        = curv;
 
+% Left and Riht Hemi Centres
+g.left_centre = spherefit( g.vleft(~all(isnan(g.vleft)')',:) );
+g.right_centre = spherefit( g.vright(~all(isnan(g.vright)')',:) );
 
 
 % fill holes stemming from hemisphere separation - if requested

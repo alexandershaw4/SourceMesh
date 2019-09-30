@@ -217,6 +217,7 @@ in.colbar    = 1;          % display colourbar
 in.template  = 0;          % register source model to a template using ICP
 in.orthog    = 0;          % orthogonalise [ignore]
 in.inflate   = 0;          % inflate the mesh [just calls spm_mesh_inflate]
+in.inflate_n = 200;
 in.peaks     = 0;          % compute peaks on surface functional overlay
 in.components = 0;         % compute local maxima on functional overlay
 in.pca        = 0;         % compute pca on surface functional overlay
@@ -237,12 +238,14 @@ in.post_parcel = [];       % parcellate an overlay post-projection
 in.thresh      = [];       % only display top % /threshold
 in.open        = 0;        % open the 2 hemispheres, i.e 2 plots
 in.verbose     = 0;         % print everything it does...
+in.dosphere    = 0;
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
 for i  = 1:length(varargin)
     if strcmp(varargin{i},'overlay');     in.L   = varargin{i+1}; end
-    if strcmp(varargin{i},'verbose');     in.verbose= varargin{i+1}; end
+    if strcmp(varargin{i},'verbose');     in.verbose = varargin{i+1}; end
+    if strcmp(varargin{i},'dosphere');    in.dosphere = 1;        end
     if strcmp(varargin{i},'open');        in.open= 1;             end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
@@ -279,6 +282,11 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'video');       in.V     = varargin{i+1}; 
                                           in.fpath = varargin{i+2}; 
                                           in.times = varargin{i+3}; end
+    if strcmp(varargin{i},'inflate') 
+        try 
+            if isnumeric(varargin{i+1});in.inflate_n = varargin{i+1};end
+        end
+    end                                  
     if strcmp(varargin{i},'othermesh');   in.M = varargin{i+1}; in.O = varargin{i+2};   end  
     if strcmp(varargin{i},'tf_interactive');in.tf_interactive = varargin{i+1}; end
     if strcmp(varargin{i},'labels');      in.labels = 1;
@@ -305,7 +313,7 @@ end
 
 % Preliminaries & parse functions for plots
 %--------------------------------------------------------------------------
-data.verbose = i.verbose; % make sure every subfunction knows if verbose mode
+data.verbose = in.verbose; % make sure every subfunction knows if verbose mode
 
 if in.open
     data = isopen(data,in);
@@ -537,6 +545,9 @@ flip   = i.flip;
 % if inflate, pass flag
 inflate = i.inflate;
 
+mesh.inflate = i.inflate_n; % allow passing amount to inflate
+mesh.do_ball = i.dosphere;
+
 % check orientation?
 checkori = i.checkori;
 
@@ -548,10 +559,10 @@ optimise = i.optimise;
 
 if     i.pmesh && ~isfield(i,'T')
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise,i.verbose);
 elseif i.pmesh
        [mesh,data.sourcemodel.pos,h,p] = meshmesh(mesh,i.write,i.fname,i.fighnd,...
-           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise);
+           .3,data.sourcemodel.pos,hemi,affine,flip,inflate,checkori,dofillholes,optimise,i.verbose);
 else
     h = [];
     p = [];
@@ -1237,12 +1248,18 @@ end
 function data = drawnodes(data, N)
 % Node plotter. N = (90,1) with 1s for nodes to plot and 0s to ignore.
 %
-% 
+%
+
 hold on;
 if isfield(data.sourcemodel,'net_pos')
     pos = data.sourcemodel.net_pos;
 else
     pos = data.sourcemodel.pos;
+end
+
+if isempty(N) && isfield(data,'network') && isfield(data.network,'tofrom')
+    N = data.network.tofrom.node1;
+    
 end
 
 
@@ -1376,7 +1393,7 @@ if ischar(x)
     switch fe
         
         case{'.gz'}
-            if data.overlay
+            if data.verbose
                 fprintf('+Unpacking functional .gz\n');
             end
             gunzip(x);
@@ -1391,7 +1408,7 @@ if ischar(x)
            %wb = waitbar(0,'Reading volume: Please wait...');
             
             % load nifti volume file
-            if data.overlay
+            if data.verbose
                 fprintf('+Reading Nifti volume\n');
             end
 %             ni    = load_nii(x);
@@ -1468,7 +1485,7 @@ end
 
 if isnumeric(x) && ndims(x)==3
     % this is a pre-loaded nifti volume
-    if data.overlay
+    if data.verbose
         fprintf('+This is a pre-loaded 3D nifti volume: extracting...\n');
     end
     
@@ -1476,7 +1493,7 @@ if isnumeric(x) && ndims(x)==3
     %wb = waitbar(0,'Preloaded volume: Please wait...');
     
     % NEW: subsample volume by 2 to speed up patch reduction
-    if data.overlay
+    if data.verbose
         fprintf('+Subsampling structural volume\n');
     end
     [NX, NY, NZ, x] = reducevolume(x,2);
@@ -1535,14 +1552,14 @@ try
 end
 
 if ~isfield(data,'volume') || ~isfield(data.volume,'grid')
-    if data.overlay
+    if data.verbose
         fprintf('+Using computed voxel coordinates\n');
     end
     x = 1:size(vol,1);
     y = 1:size(vol,2);
     z = 1:size(vol,3);
 elseif isfield(data.volume,'grid')
-    if data.overlay
+    if data.verbose
         fprintf('+Using real-world voxel coordintes from nifti\n');
     end
     x = data.volume.grid.x;
@@ -1561,7 +1578,7 @@ end
 %waitbar(.45,wb,'Reading volume: Compiling new vertex list');
 
 % compile a new vertex list
-if data.overlay
+if data.verbose
     fprintf('+Compiling new vertex list (%d verts)\n',length(nix));
 end
 v = [x(nix); y(niy); z(niz)]';
@@ -1574,7 +1591,7 @@ end
 if isfield(data.overlay,'affine')
     affine = data.overlay.affine;
     if length(affine) == 4
-        if data.overlay
+        if data.verbose
             fprintf('+Applying affine transform\n');
         end
         va = [v ones(length(v),1)]*affine;
@@ -1608,7 +1625,7 @@ v        = V;
 
 
 % reduce patch
-if data.overlay
+if data.verbose
     fprintf('+Reducing patch density\n');
 end
 
@@ -1638,7 +1655,7 @@ while nv > 10000
 end
 
 % print
-if data.overlay
+if data.verbose
     fprintf('+Patch reduction finished\n');
     fprintf('+Using nifti volume as sourcemodel and overlay!\n');
     fprintf('+New sourcemodel has %d vertices\n',nv);
@@ -1648,7 +1665,7 @@ end
 %waitbar(.90,wb,'Reading volume: Computing colours for reduced patch');
 
 % find the indices of the retained vertexes only
-if data.overlay
+if data.verbose
     fprintf('+Retrieving vertex colours\n');
 end
 Ci = compute_reduced_indices(v, fv.vertices);
@@ -1702,7 +1719,7 @@ persistent themap
 if isnumeric(L) && ndims(L)==2 && length(L)==90 && length(data.mesh.vertices)== 81924 && ...
         ischar(data.overlay.method) && strcmp(data.overlay.method,'euclidean')
     
-     if data.overlay
+     if data.verbose
          fprintf('-Using default AAL90 weights for this mesh\n');
      end
      load('AAL90DefaultWeights','M','NumComp','indz','w');
@@ -1752,10 +1769,11 @@ end
 % method for searching between the 3D coordinate systems
 %-------------------------------------------------------------
 if ischar(data.overlay.method)
-    if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
-         method = data.overlay.method;
-    else,method = 'euclidean';  
-    end
+    method = data.overlay.method;
+    %if ismember(data.overlay.method,{'euclidean','spheres','precomputed (AAL)','raycast','aal','aal_light'})
+    %     method = data.overlay.method;
+    %else,method = 'euclidean';  
+    %end
 else
     method = data.overlay.method{1};
 end
@@ -1767,7 +1785,7 @@ if iscell(L)
     C = L{1};
         
     % spm mesh smoothing
-    if data.overlay
+    if data.verbose
         fprintf('-Smoothing overlay...\n');
     end
     y = spm_mesh_smooth(data.mesh, double(C(:)), 4);
@@ -1788,7 +1806,7 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
-    if data.overlay
+    if data.verbose
         fprintf('-Generating combined function+curvature colormap\n');
     end
     themap = [flipud(gray(256)); flipud(jet(256))];
@@ -1838,13 +1856,13 @@ end
 % if overlay,L, is same length as mesh verts, just plot!
 %--------------------------------------------------------------------------
 if length(L) == length(mesh.vertices)
-    if data.overlay
+    if data.verbose
         fprintf('-Overlay already fits mesh! Plotting...\n');
     end
     
     if ~NewAx
         % spm mesh smoothing
-        if data.overlay
+        if data.verbose
             fprintf('-Smoothing overlay...\n');
         end
         y = spm_mesh_smooth(mesh, double(L(:)), 4);
@@ -1890,7 +1908,7 @@ if length(L) == length(mesh.vertices)
         falpha(inan)=0;
         %fcol = fcol.*falpha;
         
-        if data.overlay
+        if data.verbose
             fprintf('-Rescaling overlay values\n');
         end
         
@@ -1998,7 +2016,7 @@ Rht = mv(:,1) > cnt(1);
 Lft = find(Lft);
 Rht = find(Rht);
 
-if data.overlay
+if data.verbose
     fprintf('+Determining closest points between sourcemodel & template vertices\n');
 end
 mr = mean(mean(abs(mv)-repmat(spherefit(mv),[size(mv,1),1])));
@@ -2035,7 +2053,7 @@ switch lower(method)
         %waitbar(.2,wb,'Ray casting: Gridding data');
         
         % volume the data so vertices are (offset) indices
-        if data.overlay
+        if data.verbose
             fprintf(' +Gridding data for ray cast\n');
         end
         vol = zeros( (max(dv) - min(dv))+1 );
@@ -2054,7 +2072,7 @@ switch lower(method)
         %waitbar(.4,wb,'Ray casting: Smoothing');
         
         % Smooth volume
-        if data.overlay
+        if data.verbose
             fprintf(' +Volume Smoothing & Rescaling  ');tic;
         end
         %tic
@@ -2062,7 +2080,7 @@ switch lower(method)
         V    = spm_vec(vol);
         V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
         vol  = spm_unvec(V, vol); 
-        if data.overlay
+        if data.verbose
             fprintf('-- done (%d seconds)\n',round(toc)); 
         end
         
@@ -2075,7 +2093,7 @@ switch lower(method)
                 if length(mv) == 81924
                     % use precomputed for deault mesh
                     load('DefaultMeshCentroidsNormals','FaceCent','FaceNorm')
-                    if data.overlay
+                    if data.verbose
                         fprintf(' +Using precomputed centroids & normals for default mesh\n');
                     end
                     f = nmesh.faces;
@@ -2085,7 +2103,7 @@ switch lower(method)
                     
                     % Compute face normals
                     %------------------------------------------------------
-                    if data.overlay
+                    if data.verbose
                         fprintf(' +Computing FACE Normals & Centroids  '); tic;
                     end
                     tr = triangulation(nmesh.faces,nmesh.vertices(:,1),...
@@ -2104,7 +2122,7 @@ switch lower(method)
                         FaceCent(If,:) = mean(pnts,1);
                     end
                     
-                    if data.overlay
+                    if data.verbose
                         fprintf('-- done (%d seconds)\n',round(toc));
                     end
                 end
@@ -2115,7 +2133,7 @@ switch lower(method)
                       step = data.overlay.depth;
                 else; step   = -1.5:0.05:1.5;
                 end
-                if data.overlay
+                if data.verbose
                     fprintf(' +Using depths: %d to %d mm in increments %d\n',...
                     step(1), step(end), round((step(2)-step(1))*1000)/1000 );
                 end
@@ -2125,7 +2143,7 @@ switch lower(method)
             case 'vertex'
                 
                 % Compute VERTEX normals
-                if data.overlay
+                if data.verbose
                     fprintf(' +Computing VERTEX normals\n');
                 end
                 FaceNorm = spm_mesh_normals(nmesh,1);
@@ -2150,7 +2168,7 @@ switch lower(method)
             
             % print progress
             if ismember(i,perc)
-                if data.overlay
+                if data.verbose
                     fprintf(' +Ray casting: %d%% done\n',(10*find(i==perc)));
                 end
             end
@@ -2176,7 +2194,7 @@ switch lower(method)
             end
         end
 
-        if data.overlay
+        if data.verbose
             fprintf(' +Finished in %d sec\n',round(toc));
         end
         
@@ -2241,7 +2259,7 @@ switch lower(method)
                     falpha(inan)=0;
                     %fcol = fcol.*falpha;
                      
-                    if data.overlay
+                    if data.verbose
                         fprintf(' +Rescaling overlay values\n');
                     end
                     
@@ -2302,6 +2320,7 @@ switch lower(method)
         %waitbar(1,wb,'Complete');
         %close(wb);
     
+        
     
     case 'spheres' % this would be better called 'box' in its current form
         
@@ -2324,7 +2343,7 @@ switch lower(method)
         M  = zeros( length(x), nv);     % weights matrix: size(len(mesh),len(AAL))
         
         if data.verbose
-            fprintf('Using inside-spheres search algorithm\n');
+            fprintf(' +Using inside-spheres search algorithm\n');
         end
         tic
         for i = 1:length(x)
@@ -2383,7 +2402,9 @@ switch lower(method)
             end
         end
         stime = toc;
-        fprintf('Routine took %d seconds\n',stime);
+        if data.verbose
+            fprintf(' +Routine took %d seconds\n',stime);
+        end
 
     case 'euclidean'
         
@@ -2408,14 +2429,18 @@ switch lower(method)
         % for no interpolation, set w = 1;
         % w = 1;
         
-        fprintf('Using euclidean search algorithm\n');
+        if data.verbose
+            fprintf(' +Using euclidean search algorithm\n');
+        end
         tic
         for i = 1:length(x)
             
             % Print progress
-            if i > 1; fprintf(repmat('\b',[size(str)])); end
-            str = sprintf('%d/%d',i,(length(x)));
-            fprintf(str);
+            if data.verbose
+                if i > 1; fprintf(repmat('\b',[size(str)])); end
+                str = sprintf('%d/%d',i,(length(x)));
+                fprintf(str);
+            end
 
             % Restrict search to this hemisphere
             LR     = v(i,1);
@@ -2442,8 +2467,9 @@ switch lower(method)
 
         end
         stime = toc;
-        fprintf('Routine took %d seconds\n',stime);
-        
+        if data.verbose
+            fprintf(' +Routine took %d seconds\n',stime);
+        end
         
     case {'aal','aal90','aal_90'}
         % project into pre-computed AAL parcellation - 1 value per region
@@ -2691,7 +2717,9 @@ switch method
 
         % spm mesh smoothing
         %------------------------------------------------------------------
-        fprintf('Smoothing overlay...\n');
+        if data.verbose
+            fprintf(' +Smoothing overlay...\n');
+        end
         y  = spm_mesh_smooth(mesh, y(:), 4);
         y(isnan(y)) = 0;
         y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
@@ -2722,7 +2750,9 @@ switch method
             falpha(inan)=0;
             %fcol = fcol.*falpha;
             
-            fprintf('Rescaling overlay values\n');
+            if data.verbose
+                fprintf(' +Rescaling overlay values\n');
+            end
             
             % get curvature colours
             y0 = data.mesh.h.FaceVertexCData;
@@ -2769,8 +2799,10 @@ S = [-s s];
 % post-hoc template reduction here?
 %--------------------------------------------------------------------------
 if isfield(data,'post_parcel')
-    fprintf('Also computing requested (parcellated) atlas transform\n');
-    newv = data.post_parcel{1};
+    if data.verbose
+        fprintf('  -Also computing requested (parcellated) atlas transform\n');
+    end
+        newv = data.post_parcel{1};
     newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
     D0   = cdist(data.sourcemodel.pos,newv);
     
@@ -2787,7 +2819,9 @@ if isfield(data,'post_parcel')
     % of parcel vertices
     try 
         iv = data.post_parcel{2};
-        fprintf('Computing parcel means\n');
+        if data.verbose
+            fprintf('  -Computing parcel means\n');
+        end
         n = unique(iv);
         n(n==0) = [];
         ParVal  = iv*0; 
@@ -3241,7 +3275,7 @@ end
 
 end
 
-function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise)
+function [g,pos,h,p] = meshmesh(g,write,fname,fighnd,a,pos,hemisphere,affine,flip,inflate,checkori,dofillholes,optimise,verb)
 % Main brain-mesh plot. 
 %
 % Separates hemispheres, computes curvature, check orientation, inflate, 
@@ -3260,11 +3294,14 @@ if isempty(a);
     a = .6;
 end
 
-v = g.vertices;
+v        = g.vertices;
+dosphere = g.do_ball;
 
 % apply affine if req.
 if length(affine) == 4
-    fprintf('Applying affine transform\n');
+    if verb
+        fprintf('-Applying affine transform\n');
+    end
     va = [v ones(length(v),1)]*affine;
     v  = va(:,1:3);
     g.vertices = v;
@@ -3318,15 +3355,31 @@ dcurv = curv;
 
 % inflate
 if inflate
-    fprintf('Inflating mesh\n'); nrep = 0;
+    if verb
+        fprintf('-Inflating mesh\n'); 
+    end
+    if isfield(g,'inflate')
+        inflate_n = g.inflate;
+    else
+        inflate_n = 200;
+    end
+    
+    nrep = 0;
     %while cvar / var(dcurv) < 50
         %nrep = nrep + 1;
-        g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),200);
+        g = spm_mesh_inflate(struct('vertices',g.vertices,'faces',g.faces),inflate_n);
         %dcurv = docurvature(struct('vertices',g.vertices,'faces',g.faces));
     %end
     %fprintf('Finished inflation after %d reps\n',nrep);
+    g.inflation = inflate_n;
 end
 
+% compute and return face vertex normals
+tr = triangulation(double(g.faces),double(g.vertices(:,1)),...
+                                   double(g.vertices(:,2)),...
+                                   double(g.vertices(:,3)) );
+g.FaceNorm   = tr.faceNormal;
+g.VertexNorm = tr.vertexNormal;           
 
 if checkori
     b = CheckOrientationMesh(g);
@@ -3334,6 +3387,18 @@ if checkori
     g = b;
 end
 
+% % allow user to request that the brain is inflated right out to a sphere
+% % - we'll just replace the vertex list in the patch with the vertex normals
+% if dosphere
+%     B = [min(g.vertices); max(g.vertices)];
+%     for ij = 1:3
+%         g.vertices(:,ij) = rescale(g.VertexNorm(:,ij),B(:,ij));
+%     end
+%     if verb
+%         fprintf('-inflating brain to full sphere\n');
+%     end
+% end
+% g.dosphere = dosphere;
 
 % only one hemisphere?
 v = g.vertices;
@@ -3360,12 +3425,17 @@ g.fright           = f*NaN;
 g.fright(rfaces,:) = f(rfaces,:);
 g.curvature        = curv;
 
+% Left and Riht Hemi Centres
+g.left_centre = spherefit( g.vleft(~all(isnan(g.vleft)')',:) );
+g.right_centre = spherefit( g.vright(~all(isnan(g.vright)')',:) );
 
 
 % fill holes stemming from hemisphere separation - if requested
 %---------------------------------------------------------------
 if dofillholes
-    fprintf('Filling holes resulting from hemisphere separation..\n');
+    if verb
+        fprintf('-Filling holes resulting from hemisphere separation..\n');
+    end
     
     % left side
     x = [];
