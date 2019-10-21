@@ -19,3 +19,7 @@ z([43 44]) = [-10 10]; % calcarine
         'thresh' ,0, ...
         'mesh'   ,fv );
     
+    
+% If using default mesh 1, use precomputed parcel values:
+%  afigure; D = atemplate('inflate','overlay',...
+% 			{'curvature',z},'method',{'aal_super',[]} ,'thresh',0);
