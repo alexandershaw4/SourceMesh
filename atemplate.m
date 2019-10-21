@@ -644,7 +644,7 @@ if ischar(mesh)
                         fprintf('-Subsampling structural volume\n');
                     end
                     [xg,yg,zg] = meshgrid(yarr,xarr,zarr);
-                    [NX, NY, NZ, vol] = reducevolume(xg,yg,zg,vol,2);
+                    [NX, NY, NZ, vol] = reducevolume(xg,yg,zg,vol,4);
                     xarr = linspace(xarr(1),xarr(end),size(vol,1));
                     yarr = linspace(yarr(1),yarr(end),size(vol,2));
                     zarr = linspace(zarr(1),zarr(end),size(vol,3));
@@ -1446,8 +1446,11 @@ if ischar(x)
             % NEW: subsample volume by 2. This speeds up subsequent patch
             % reduction enormously without at relatively little cost to
             % resolution
+            if data.verbose
+                fprintf('+Subsampling volume\n');
+            end
             [xg,yg,zg] = meshgrid(yarr,xarr,zarr);
-            [NX, NY, NZ, vol] = reducevolume(xg,yg,zg,vol,2);
+            [NX, NY, NZ, vol] = reducevolume(xg,yg,zg,vol,4);
             xarr = linspace(xarr(1),xarr(end),size(vol,1));
             yarr = linspace(yarr(1),yarr(end),size(vol,2));
             zarr = linspace(zarr(1),zarr(end),size(vol,3));
@@ -1500,7 +1503,7 @@ if isnumeric(x) && ndims(x)==3
     if data.verbose
         fprintf('+Subsampling structural volume\n');
     end
-    [NX, NY, NZ, x] = reducevolume(x,2);
+    [NX, NY, NZ, x] = reducevolume(x,4);
 
     wb=0;
     [y,data] = vol2surf(x,data,wb);
@@ -1792,7 +1795,8 @@ if iscell(L)
     if data.verbose
         fprintf('-Smoothing overlay...\n');
     end
-    y = spm_mesh_smooth(data.mesh, double(C(:)), 4);
+    C = round(C*10)/10;
+    y = spm_mesh_smooth(data.mesh, double(C(:)), 2);   % smoth it
     percNaN = length(find(isnan(C)))/length(C)*100;
     newpNaN = length(find(isnan(y)))/length(y)*100;
     
@@ -1813,7 +1817,14 @@ if iscell(L)
     if data.verbose
         fprintf('-Generating combined function+curvature colormap\n');
     end
-    themap = [flipud(gray(256)); flipud(jet(256))];
+    
+    try
+        % if othercolor installed
+        themap = [flipud(othercolor('Greys9',256)); flipud(jet(256))];
+        %themap = [flipud(gray(256)); flipud(jet(256))];
+    catch
+        themap = [flipud(gray(256)); flipud(jet(256))];
+    end
     alpha 1;
 
     % replace L and flag requirement for a new axis
@@ -2409,7 +2420,42 @@ switch lower(method)
         if data.verbose
             fprintf(' +Routine took %d seconds\n',stime);
         end
+                
+    case 'quick'
+        % registers both sets of points (the brain and the source points)
+        % to a sphere, then projects sources->sphere->brain
+        % VERY low resolution but computatyionally quick
+        
+        % Generate a sphere
+        [X,Y,Z] = sphere(128);
+        fvc = surf2patch(X,Y,Z,'triangles');
+        V = fvc.vertices;
+        B = [min(mv) ; max(mv) ];
+        
+        % Fit the sphere over the brain and source points
+        for i = 1:3
+            V(:,i) = rescale(V(:,i),B(:,i));
+        end
+        
+        % Compute distances between point clouds and sphere
+        mvV = cdist(V,mv);
+        vV  = cdist(V, v);
+        
+        %C = cov(cdist(v,v));
 
+        % Normalise the distnces
+        nmvV = mvV ./ sum(mvV(:)); % max?
+        nvV  = vV ./ sum(vV(:));
+        
+        fcol = double(full( nmvV'*(nvV*L) ));      % the projection
+        fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
+        fcol(isnan(fcol)) = 0;
+        fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));        
+        set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
+        colormap jet;
+        s = max(abs(fcol(:))); caxis([-s s]);
+        return;
+        
     case 'euclidean'
         
         % Computes (vectorised) euclidean distance from each vertex to
@@ -3736,7 +3782,7 @@ end
 
 
 
-function [Centre,A,B] = spherefit(X)
+function [Centre,A,B,A0] = spherefit(X)
 % Fit sphere to centre of vertices, return centre points
 %
 %
@@ -3750,6 +3796,7 @@ A =  [mean(X(:,1).*(X(:,1)-mean(X(:,1)))), ...
     0, ...
     0, ...
     mean(X(:,3).*(X(:,3)-mean(X(:,3))))];
+A0 = A;
 A = A+A.';
 B = [mean((X(:,1).^2+X(:,2).^2+X(:,3).^2).*(X(:,1)-mean(X(:,1))));...
      mean((X(:,1).^2+X(:,2).^2+X(:,3).^2).*(X(:,2)-mean(X(:,2))));...
