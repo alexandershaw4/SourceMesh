@@ -1932,7 +1932,7 @@ if length(L) == length(mesh.vertices)
         
         % rescale y0 into colour map part 1:
         % 1:256
-        y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
+        y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
         
         % rescale fcol into colour map part 2:
         % 257:512
@@ -2289,19 +2289,16 @@ switch lower(method)
                     
                     % rescale y0 into colour map part 1:
                     % 1:256
-                    y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
+                    y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
                     
                     % rescale fcol into colour map part 2:
                     % 257:512
-                    m = 258;     % more stable than 257
+                    m = 257;
                     n = 512;
                     fcol = [fcol(:); -S0; S0];
                     fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
                     fcol = fcol(1:end-2);
                     
-                    iszero = (fcol==385);
-                    falpha = falpha(:) .* ~iszero(:);
-
                     % mask new functional colours
                     fcol = fcol.*falpha(:);
                     
@@ -2818,19 +2815,16 @@ switch method
             
             % rescale y0 into colour map part 1:
             % 1:256
-            y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
+            y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
             
             % rescale fcol into colour map part 2:
             % 257:512
-            m = 258;
+            m = 257;
             n = 512;
             fcol = [fcol(:); -S0; S0];
             fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
             fcol = fcol(1:end-2);
             
-            iszero = (fcol==385);
-            falpha = falpha(:) .* ~iszero(:);
-
             % mask new functional colours
             fcol = fcol.*falpha(:);
             
