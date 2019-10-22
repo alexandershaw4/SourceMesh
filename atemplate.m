@@ -239,6 +239,7 @@ in.thresh      = [];       % only display top % /threshold
 in.open        = 0;        % open the 2 hemispheres, i.e 2 plots
 in.verbose     = 0;         % print everything it does...
 in.dosphere    = 0;
+in.allsides    = 0;
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
@@ -247,6 +248,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'verbose');     in.verbose = varargin{i+1}; end
     if strcmp(varargin{i},'dosphere');    in.dosphere = 1;        end
     if strcmp(varargin{i},'open');        in.open= 1;             end
+    if strcmp(varargin{i},'allsides');    in.allsides= 1;         end
     if strcmp(varargin{i},'hemi');        in.hemi= varargin{i+1}; end
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
@@ -320,6 +322,11 @@ if in.open
     return;
 end
 
+if in.allsides
+    data = allsides(data,in);
+    return;
+end
+
 data = sort_sourcemodel(data,in);       % Sourcemodel vertices
 
 [mesh,data] = get_mesh(in,data);        % Get Surface
@@ -382,6 +389,76 @@ function data = isopen(data,in)
     data.r = data_r;
 
 end
+
+function data = allsides(data,in)
+    % a wrapper on atemplate for generating the same plot for the left and
+    % right hemis separately in different sublots
+
+    s           = in.fighnd;
+    data_in     = data;
+    
+    % Plot 1.
+    in.hemi     = 'r';
+    in.fighnd   = s(1);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_l      = data;
+    
+    view([90 0]);
+    
+    % Plot 2.
+    in.hemi     = 'r';
+    in.fighnd   = s(2);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_l      = data;
+    
+    view([-90 0]);
+    
+    % Plot 3.
+    in.hemi     = 'l';
+    in.fighnd   = s(3);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_r      = data;
+    
+    view([-270 0]);
+    
+    % Plot 4.
+    in.hemi     = 'l';
+    in.fighnd   = s(4);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_r      = data;
+    
+    view([270 0]);
+
+    data   = [];
+    data.l = data_l;
+    data.r = data_r;
+
+end
+
 
 function data = parse_plots(data,i)
 

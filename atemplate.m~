@@ -383,6 +383,50 @@ function data = isopen(data,in)
 
 end
 
+function data = isopen(data,in)
+    % a wrapper on atemplate for generating the same plot for the left and
+    % right hemis, each from the left and right, separately in different sublots
+    
+    % NOTE: pass fighnd as a vector of 4 axes handles!
+    
+    s = data.
+    
+    data_in     = data;
+    
+    % Plot 1.
+    in.hemi     = 'l';
+    in.fighnd   = s(1);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_l      = data;
+    
+    view([90 0]);
+    
+    % Plot 2.
+    in.hemi     = 'r';
+    in.fighnd   = s(2);
+    data        = sort_sourcemodel(data_in,in); % Sourcemodel vertices
+    [mesh,data] = get_mesh(in,data);         % Get Surface
+    [data,in]   = sort_template(data,in);    % Template space? (aal90/78/58)
+    [mesh,data] = parse_mesh(mesh,in,data);  % Mesh to put stuff on
+    data.mesh   = mesh;
+    data        = parse_plots(data,in);      % Overlays, networks, etc
+    data.in     = in;                        % Return everything
+    data_r      = data;
+    
+    view([270 0]);
+    
+    data   = [];
+    data.l = data_l;
+    data.r = data_r;
+
+end
+
 function data = parse_plots(data,i)
 
 % unpack triggers
@@ -1932,7 +1976,7 @@ if length(L) == length(mesh.vertices)
         
         % rescale y0 into colour map part 1:
         % 1:256
-        y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
+        y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
         
         % rescale fcol into colour map part 2:
         % 257:512
@@ -2289,16 +2333,19 @@ switch lower(method)
                     
                     % rescale y0 into colour map part 1:
                     % 1:256
-                    y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
+                    y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
                     
                     % rescale fcol into colour map part 2:
                     % 257:512
-                    m = 257;
+                    m = 258;     % more stable than 257
                     n = 512;
                     fcol = [fcol(:); -S0; S0];
                     fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
                     fcol = fcol(1:end-2);
                     
+                    iszero = (fcol==385);
+                    falpha = falpha(:) .* ~iszero(:);
+
                     % mask new functional colours
                     fcol = fcol.*falpha(:);
                     
@@ -2815,16 +2862,19 @@ switch method
             
             % rescale y0 into colour map part 1:
             % 1:256
-            y0 = 256 * (y0-min(y0))./(max(y0)-min(y0));
+            y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
             
             % rescale fcol into colour map part 2:
             % 257:512
-            m = 257;
+            m = 258;
             n = 512;
             fcol = [fcol(:); -S0; S0];
             fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
             fcol = fcol(1:end-2);
             
+            iszero = (fcol==385);
+            falpha = falpha(:) .* ~iszero(:);
+
             % mask new functional colours
             fcol = fcol.*falpha(:);
             
