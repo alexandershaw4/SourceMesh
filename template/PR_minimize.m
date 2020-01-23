@@ -70,7 +70,8 @@ ls_failed = 0;                             % no previous line search has failed
 [f0 df0] = feval(f, X, varargin{:});          % get function value and gradient
 fX = f0;
 i = i + (length<0);                                            % count epochs?!
-s = -df0; d0 = -s'*s;           % initial search direction (steepest) and slope
+s = -df0; 
+d0 = -s'*s;           % initial search direction (steepest) and slope
 x3 = red/(1-d0);                                  % initial step is red/(|s|+1)
 
 while i < abs(length)                                      % while not finished

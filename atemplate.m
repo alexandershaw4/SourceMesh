@@ -950,7 +950,7 @@ if i.template
     
     % generate & apply a ROI mask if requested
     %----------------------------------------------------
-    if isfield(i,'roi')
+    if isfield(i,'roi') && ~isempty(i.roi)
         
         % should be cell array of labels
         if ischar(i.roi)
@@ -1091,8 +1091,9 @@ end
 
 fprintf('Scanning points:\n');
 M = zeros( length(atlas.pos), length(pos) )';
-r = floor( length(atlas.pos) / length(pos) );%1;
-w = 1;
+r = round( pi*floor( length(atlas.pos) / length(pos) ) );%1;
+%w = 1;
+w = (1:r)/r;
 
 dist  = cdist(pos,atlas.pos)';    
 %for i = 1:length(atlas.pos)
@@ -1233,7 +1234,9 @@ data.network.tofrom.node2 = node2;
 
 % force girth boundaries if stable
 if ~any(isnan( (S - min(S)) ./ (max(S) - min(S)) ))
-    S = 0.1 + (3 - 0) .* (S - min(S)) ./ (max(S) - min(S));
+    S = 1 + (1.5 - 1) .* (S - min(S)) ./ (max(S) - min(S));
+else
+    S = (S*0) + 1;
 end
 
 % Paint edges
@@ -1388,7 +1391,7 @@ if size(N,1) > 1 && size(N,2) > 1
     end
     
     for j = 1:size(N,2)
-        ForPlot = v(find(N(:,j)),:) + (1e-2 * (2*j) ) ;
+        ForPlot = v(find(N(:,j)),:) ; %+ (1e-2 * (2*j) ) ;
         s       = find(N);
         col     = cols{j};
         for i   = 1:length(ForPlot)
@@ -1413,7 +1416,7 @@ elseif iscell(N)
 else
     ForPlot = v(find(N),:);
     %s       = find(N);
-    s = ones(length(find(N)),1)*150;
+    s = ones(length(find(N)),1)*200;%40;%150;
     for i   = 1:size(ForPlot,1)
         col = 'r';
         scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),s(i),'r','filled');
@@ -1540,17 +1543,17 @@ if ischar(x)
             wb=0;
             [y,data] = vol2surf(vol,data,wb);
             
-            
+            data.sourcemodel.pos = fit_check_source2mesh(data.sourcemodel.pos,data.mesh);
             % ensure sourcemodel (pos) is around same scale as mesh boundaries
-            m = min(data.mesh.vertices);% *1.1;
-            M = max(data.mesh.vertices);% *1.1;
+            %m = min(data.mesh.vertices);% *1.1;
+            %M = max(data.mesh.vertices);% *1.1;
 
-            pos      = data.sourcemodel.pos;
-            V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
-            V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-            V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-            V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-            data.sourcemodel.pos = V;
+            %pos      = data.sourcemodel.pos;
+            %V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+            %V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+            %V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+            %V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+            %data.sourcemodel.pos = V;
             
         case{'.gii'}
             % load gifti functional
@@ -1684,12 +1687,14 @@ if isfield(data.overlay,'affine')
 end
 
 % Fit this gridded-volume inside the box extremes of the mesh
-B        = [min(data.mesh.vertices); max(data.mesh.vertices)];
-V        = v - repmat(spherefit(v),[size(v,1),1]);
-V(:,1)   = B(1,1) + ((B(2,1)-B(1,1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = B(1,2) + ((B(2,2)-B(1,2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = B(1,3) + ((B(2,3)-B(1,3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-v        = V;
+v = fit_check_source2mesh(v,data.mesh);
+
+%B        = [min(data.mesh.vertices); max(data.mesh.vertices)];
+%V        = v - repmat(spherefit(v),[size(v,1),1]);
+%V(:,1)   = B(1,1) + ((B(2,1)-B(1,1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+%V(:,2)   = B(1,2) + ((B(2,2)-B(1,2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+%V(:,3)   = B(1,3) + ((B(2,3)-B(1,3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+%v        = V;
 
 
 % % new grid
@@ -1897,7 +1902,10 @@ if iscell(L)
     
     try
         % if othercolor installed
-        themap = [flipud(othercolor('Greys9',256)); flipud(jet(256))];
+        %themap = [flipud(othercolor('Greys9',256)); flipud(jet(256))];
+        
+        themap = [flipud(othercolor('Greys9',256)); flipud(cmocean('balance',256))];
+        
         %themap = [flipud(gray(256)); flipud(jet(256))];
     catch
         themap = [flipud(gray(256)); flipud(jet(256))];
@@ -1977,7 +1985,9 @@ if length(L) == length(mesh.vertices)
         s = max(abs(y(:))); caxis([-s s]);
         colormap('jet');
         alpha 1;
-
+        
+        data.mesh.h.FaceColor = 'flat';
+        
         if colbar
             %colorbar('peer',a1,'South');
             data.overlay.cb = InteractiveColorbar;
@@ -2032,11 +2042,14 @@ if length(L) == length(mesh.vertices)
         %these = find(these);
         new_over(these) = fcol(these);
         
+        %new_over = spm_mesh_smooth(maker(data.mesh.faces,data.mesh.vertices),new_over,2);
+        
         set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
         colormap(themap);
         data.overlay.themap=themap;
         
         caxis([0 512]);
+        data.mesh.h.FaceColor = 'flat';
         
     end
     
@@ -2296,6 +2309,11 @@ switch lower(method)
             fprintf(' +Finished in %d sec\n',round(toc));
         end
         
+        [u,s,v]=spm_svd(fcol);
+        nc = min(find( cumsum(diag(s))./sum(diag(s)) >= 0.9 ) );
+        fprintf('Using %d (of %d) spatial components explaining 90% variance\n',nc,length(s));
+        fcol = u(:,1:nc)*s(1:nc,1:nc)*v(:,1:nc)';
+        
         % Retain largest absolute value for each face (from each depth)
         [~,I] = max(abs(fcol));
         for i = 1:length(I)
@@ -2527,13 +2545,27 @@ switch lower(method)
         mvV = cdist(V,mv);
         vV  = cdist(V, v);
         
+        mvV;
+        
+%         vd = cdist(v,v);
+%         ld = sqrt(L*L');
+%         
+%         % cheap inversion of distances
+%         vd = vd ./ max(vd(:));
+%         vd = 1 - vd;
+%         j  = (vd.*ld);
+        
         %C = cov(cdist(v,v));
 
         % Normalise the distnces
-        nmvV = mvV ./ sum(mvV(:)); % max?
-        nvV  = vV ./ sum(vV(:));
+        nmvV = mvV ./ max(mvV(:)); % max?
+        nvV  = vV ./ max(vV(:));
+        
+        nmvV = 1 - nmvV;
+        nvV  = 1 - nvV;
         
         fcol = double(full( nmvV'*(nvV*L) ));      % the projection
+                
         fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
         fcol(isnan(fcol)) = 0;
         fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));        
@@ -2678,6 +2710,10 @@ switch lower(method)
             ol(these) = L(i);
         end
         
+        if NewAx
+            data.dosmooth = 0;
+        end
+        
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = ' ';%data.overlay.method{2};
@@ -2777,16 +2813,15 @@ switch lower(method)
         
         data = overlay(data,ol,write,fname,colbar);
         return;
-        
-        
-    case {'user'}
-        % project into user specified parcellation - 1 value per region
+    case {'hoa_cerebellum','hoac','hoa_c'};
+        % project into pre-computed AAL parcellation - 1 value per region
         %
         
-                
+        load HOA_Cerebellum.mat
 
-        v  = data.sourcemodel.pos;
-        vi = data.sourcemodel.vi; 
+        % update sourcemodel
+        v = v - repmat(spherefit(v),[size(v,1),1]);
+        v = fit_check_source2mesh(v,data.mesh);
         v = v - repmat(spherefit(v),[size(v,1),1]);
 
         % parcellation hemisphere registration
@@ -2798,14 +2833,70 @@ switch lower(method)
             ol(these) = L(i);
         end
         
-        % update sourcemodel
-        %v = fit_check_source2mesh(v,data.mesh); 
         data.sourcemodel.pos = v;
         data.overlay.orig    = ol;
         data.overlay.method  = data.overlay.method{2};
         
         data = overlay(data,ol,write,fname,colbar);
         return;
+        
+        
+    case {'hcp250' 'hcp_250'}
+        % project into HCP250 parcellation - 1 value per region
+        %
+        
+        load HCP250.mat
+        
+        if length(mesh.vertices) == 81924
+            % invoke pre-registered brain mesh 
+            
+            v  = data.mesh.vertices;
+            vi = MeshVertexParcelID;
+
+            ol    = zeros(length(v),1);
+            for i = 1:length(L)
+                these = find(vi==i);
+                ol(these) = L(i);
+            end
+
+            if NewAx
+                data.dosmooth = 0;
+            end
+
+            data.sourcemodel.pos = v;
+            data.overlay.orig    = ol;
+            data.overlay.method  = ' ';%data.overlay.method{2};
+            data.overlay.atlasvalues = L;
+            data = overlay(data,ol,write,fname,colbar);
+            return;        
+            
+        else
+            % if using a different mesh, mov to next step - 
+            % i.e. projecting atlas sources onto brain
+            
+            % update sourcemodel
+            v = v - repmat(spherefit(v),[size(v,1),1]);
+            v = fit_check_source2mesh(v,data.mesh);
+            v = v - repmat(spherefit(v),[size(v,1),1]);
+            
+            % parcellation hemisphere registration
+            [v,vi] = parcellation_hemispheres(v,vi,cnt);
+            
+            ol    = zeros(length(v),1);
+            for i = 1:length(L)
+                these = find(vi==i);
+                ol(these) = L(i);
+            end
+            
+            % update sourcemodel
+            %v = fit_check_source2mesh(v,data.mesh);
+            data.sourcemodel.pos = v;
+            data.overlay.orig    = ol;
+            data.overlay.method  = data.overlay.method{2};
+            
+            data = overlay(data,ol,write,fname,colbar);
+            return;
+        end
 end
 
 
@@ -2825,6 +2916,12 @@ switch method
                 
         OL(VL,MR) = 0;
         OL(VR,ML) = 0;
+        
+%         % eigendecomposition
+%         [u,s,v]=spm_svd(OL);
+%         nc = min(find( cumsum(diag(s))./sum(diag(s)) >= 0.9 ) );
+%         fprintf('Using %d (of %d) spatial components\n',nc,length(s));
+%         OL = u(:,1:nc)*s(1:nc,1:nc)*v(:,1:nc)';
                 
         fprintf('\n'); clear L;
         if ~interpl
@@ -2856,10 +2953,10 @@ switch method
         if data.verbose
             fprintf(' +Smoothing overlay...\n');
         end
-        y  = spm_mesh_smooth(mesh, y(:), 4);
-        y(isnan(y)) = 0;
-        y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
-        y(isnan(y)) = 0;
+        %y  = spm_mesh_smooth(mesh, y(:), 4);
+        %y(isnan(y)) = 0;
+        %y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+        %y(isnan(y)) = 0;
 
         % return these in data structre
         try data.overlay.data           = y; end
@@ -3350,6 +3447,37 @@ function pos = fit_check_source2mesh(pos,g)
 % check box bounds of sourcemodel and mesh are matched
 %
 % pos = nx3 source model, g = mesh gifti/struct
+
+% v = g.vertices;
+% 
+% m = min(g.vertices);% *1.1;
+% M = max(g.vertices);% *1.1;
+% 
+% % refit box boundaries
+% V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
+% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
+% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
+% pos = V;
+% 
+% b0 = boundary(double(full(v)));
+% b1 = boundary(double(full(pos)));
+% 
+% npnt = min([ length(v) length(pos) ]);
+% npnt = round(npnt/2);
+% npnt = min([npnt 5000]);
+% 
+% SamPt0 = randi(length(b0),[npnt 1]);
+% SamPt1 = randi(length(b1),[npnt 1]);
+% 
+% SamPt0 = sort(SamPt0);
+% SamPt1 = sort(SamPt1);
+% 
+% Pnts0 = v(b0(SamPt0),:);
+% Pnts1 = pos(b1(SamPt1),:);
+% 
+% [dcloud1] = align_clouds_3d_xyz(Pnts0, Pnts1);
+
 
 % ensure sourcemodel (pos) is around same scale as mesh boundaries
 m = min(g.vertices);% *1.1;
