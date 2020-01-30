@@ -76,7 +76,7 @@ function data = atemplate(varargin)
 %            sourcemodels, provide network sources using 'net_pos' flag
 %
 % SCROLL TO THE BOTTOM OF THIS FILE FOR A LONGER HELP AND MORE METHODS.
-% Alexander Shaw [alexandershaw4@gmail.com | github.com/alexandershaw4]
+% Alexander Shaw
 
 
 % defaults
