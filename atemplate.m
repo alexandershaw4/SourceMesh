@@ -1186,7 +1186,7 @@ for i = 1:size(node1,1)
         c = data.mesh.centre;
         r = max(abs(v - c));         
         s = 1 - ( abs(v(Is,:) - c)./(r) ); % curviness f(relative radius)
-        s = s/4;           % change this number to control the bendiness
+        s = s/2;           % change this number to control the bendiness
         h = hanning(n);
 
         hx = h*s(1);
