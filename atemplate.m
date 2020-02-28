@@ -1147,8 +1147,8 @@ end
 % see if user specified width scale, else 1
 %S = [];
 
-A = spm_mesh_adjacency(data.mesh.faces);
-[N, D] = spm_mesh_utils('neighbours',A);
+%A = spm_mesh_adjacency(data.mesh.faces);
+%[N, D] = spm_mesh_utils('neighbours',A);
 
 
 %curve = 1;
