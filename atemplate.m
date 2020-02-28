@@ -115,6 +115,7 @@ in.verbose     = 0;         % print everything it does...
 in.dosphere    = 0;
 in.allsides    = 0;
 in.curvednet   = 0;
+in.netscale    = [];
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
@@ -129,8 +130,9 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
     if strcmp(varargin{i},'roi');         in.roi = varargin{i+1}; end
     if strcmp(varargin{i},'network');     in.A   = varargin{i+1}; end
+    if strcmp(varargin{i},'netscale');    in.netscale = varargin{i+1};end
     if strcmp(varargin{i},'net_pos');     in.net_pos = varargin{i+1}; end
-    if strcmp(varargin{1},'curved');      in.curvednet = varargin{i+1}; end
+    if strcmp(varargin{i},'curved');      in.curvednet = varargin{i+1}; end
     if strcmp(varargin{i},'tracks');      in.T   = varargin{i+1}; in.H = varargin{i+2}; end
     if strcmp(varargin{i},'nosurf');      in.pmesh  = 0;            end
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
@@ -367,6 +369,7 @@ end
 
 % networks
 if isfield(inputs,'A')
+    data.network.scale = i.netscale;
     data = connections(data,i.A,i.colbar,i.write,i.fname,i.netcmap,i.curvednet); 
 end 
 
@@ -1077,19 +1080,44 @@ end
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(A,pos);
 
+% COLOUR BAR SCALING:
+if ~isempty(data.network.scale)
+    thescale = [-data.network.scale;data.network.scale];
+else
+    thescale = [-max(abs(strng)); max(abs(strng))];
+end
+
+%strng2 = linspace(thescale(1),thescale(2),length(strng));
+
 % place both signed absmax value in overlay so that colorbar is symmetrical
-strng2 = [strng; -max(abs(strng)); max(abs(strng))];
+
+% rescale the data to the colorbar edges (?)
+if ~isempty(data.network.scale)
+    strng2 = strng;
+    strng2( strng2<=(thescale(1)) ) = thescale(1);
+    strng2( strng2>=(thescale(2)) ) = thescale(2);
+else
+    strng2 = [strng; -max(abs(strng)); max(abs(strng))];
+end
+
+% also scale the opacity to the color
+opacity = rescale(abs(strng2),[.2 1]);
+
+%strng2 = [strng; thescale'];
 RGB    = makecolbar(strng2,netcmap);
+
+R = thescale;
 
 % LineWidth (scaled) for strength
 if any(strng)
-    R = [-max(abs(strng)),max(abs(strng))];
-    S = ( abs(strng) - R(1) ) + 1e-3;
+    R1 = [-max(abs(strng)),max(abs(strng))];
+    S = ( abs(strng) - R1(1) ) + 1e-3;
     
     % If all edges same value, make thicker
-    if  max(S(:)) == 1e-3; 
-        S = 3*ones(size(S)); 
+    if  max(S(:)) == 1e-3;
+        S = 3*ones(size(S));
     end
+    
 else
     S = [0 0];
 end
@@ -1108,12 +1136,16 @@ data.network.RGB  = RGB;
 data.network.tofrom.node1 = node1;
 data.network.tofrom.node2 = node2;
 
-% force girth boundaries if stable
+%force width boundaries if stable
 if ~any(isnan( (S - min(S)) ./ (max(S) - min(S)) ))
     S = 1 + (1.5 - 1) .* (S - min(S)) ./ (max(S) - min(S));
 else
     S = (S*0) + 1;
 end
+
+
+% see if user specified width scale, else 1
+%S = [];
 
 A = spm_mesh_adjacency(data.mesh.faces);
 [N, D] = spm_mesh_utils('neighbours',A);
@@ -1122,13 +1154,15 @@ A = spm_mesh_adjacency(data.mesh.faces);
 %curve = 1;
 % Paint edges
 %--------------------------------------------------------------------------
+start = [];
+ends  = [];
 for i = 1:size(node1,1)
     
     if ~curved
         l0(i)=line( [node1(i,1),node2(i,1)],...
                     [node1(i,2),node2(i,2)],...
                     [node1(i,3),node2(i,3)],...
-                    'LineWidth',S(i),'Color',[RGB(i,:)]);
+                    'LineWidth',S(i),'Color',[RGB(i,:) opacity(i)]);
 
     else
         % to-from in xyz:
@@ -1151,8 +1185,8 @@ for i = 1:size(node1,1)
         % use hanning for some curves -
         c = data.mesh.centre;
         r = max(abs(v - c));         
-        s = 1 - ( abs(v(Is,:) - c)./r ); % curviness f(relative radius)
-        s = s/2;
+        s = 1 - ( abs(v(Is,:) - c)./(r) ); % curviness f(relative radius)
+        s = s/4;           % change this number to control the bendiness
         h = hanning(n);
 
         hx = h*s(1);
@@ -1167,12 +1201,19 @@ for i = 1:size(node1,1)
         xp = xp.*hx;
         yp = yp.*hy;%(h*s(2));
         zp = zp.*hz;%h*s(3));
+        
+        start = [start; [xp(1) yp(1) zp(1)] ];
+        ends  = [ends ; [xp(end) yp(end) zp(end)] ];
 
         l0(i) = line(xp,yp,zp,'LineWidth',S(i),'Color',[RGB(i,:)]);
     end
 end
     
-    
+if curved
+    % save these (slightly different ends to straight lines)
+    data.network.tofrom.node1 = start;
+    data.network.tofrom.node2 = ends;
+end
    
 % Set colorbar only if there are valid edges
 %--------------------------------------------------------------------------
@@ -1277,66 +1318,97 @@ else
     pos = data.sourcemodel.pos;
 end
 
+%--------------------------
 
-if isempty(N) && isfield(data,'network') && isfield(data.network,'tofrom')
-    % if N is empty, automatically select networked (edge connected) nodes
-    pos = [ data.network.tofrom.node1 ; data.network.tofrom.node2 ];
-    pos = unique(pos,'rows');
-    N   = ones(length(pos),1);
-    v   = pos;
-else
-
-
-    if isfield(data.sourcemodel,'vi')
-        % if pos is cell, it's because we've passed both a vertex set and a
-        % vector that describes which vertex belongs to which roi
-        v  = pos;
-        vi = data.sourcemodel.vi;
-        n  = unique(vi);
-        for i = 1:length(n)
-            these = find(vi==n(i));
-            roi(i,:) = spherefit(v(these,:));
-        end
-        pos = roi;
-        for ip = 1:length(pos)
-            [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
-            pos(ip,:) = data.mesh.vertices(this,:);
-        end
-    end
-
-
+% rescale network positions inside box boundaries of mesh
+% (i thought meshmesh had already done this?)
+if ~isempty(data.mesh.h)
     bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
-    offset = 0.99;
+    offset = .99;
     for ip = 1:3
         pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
                     (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
         pos(:,ip) = pos(:,ip)*offset;
     end
 
-    % redirect to clseast mesh point (vertex?)
+    % redirect to closest mesh point (vertex)
     for ip = 1:length(pos)
         [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
         pos(ip,:) = data.mesh.vertices(this,:);
     end
-
-    v = pos;
 end
+v=pos;
+%--------------------------
+
+if isfield(data,'network') && isfield(data.network,'tofrom')
+    % if N is empty, automatically select networked (edge connected) nodes
+    pos = [ data.network.tofrom.node1 ; data.network.tofrom.node2 ];
+    pos = unique(pos,'rows');
+    N   = diag(ones(length(pos),1));
+    v   = pos;
+end
+% else
+% 
+% 
+%     if isfield(data.sourcemodel,'vi')
+%         % if pos is cell, it's because we've passed both a vertex set and a
+%         % vector that describes which vertex belongs to which roi
+%         v  = pos;
+%         vi = data.sourcemodel.vi;
+%         n  = unique(vi);
+%         for i = 1:length(n)
+%             these = find(vi==n(i));
+%             roi(i,:) = spherefit(v(these,:));
+%         end
+%         pos = roi;
+%         for ip = 1:length(pos)
+%             [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+%             pos(ip,:) = data.mesh.vertices(this,:);
+%         end
+%     end
+% 
+% 
+%     bounds = [min(data.mesh.vertices); max(data.mesh.vertices)];
+%     offset = 0.99;
+%     for ip = 1:3
+%         pos(:,ip) = bounds(1,ip) + ((bounds(2,ip)-bounds(1,ip))) .* ...
+%                     (pos(:,ip) - min(pos(:,ip)))./(max(pos(:,ip)) - min(pos(:,ip)));
+%         pos(:,ip) = pos(:,ip)*offset;
+%     end
+% 
+%     % redirect to clseast mesh point (vertex?)
+%     for ip = 1:length(pos)
+%         [~,this]  = min(cdist(pos(ip,:),data.mesh.vertices));
+%         pos(ip,:) = data.mesh.vertices(this,:);
+%     end
+% 
+%     v = pos;
+% end
 
 if size(N,1) > 1 && size(N,2) > 1
-    cols = {'r' 'm','y','g','c','b'};
-    if size(size(N,2)) == 90
-        N = N';
-    end
+    %cols = {'r' 'm','y','g','c','b'};
+    %if size(size(N,2)) == 90
+    %    N = N';
+    %end
     
-    for j = 1:size(N,2)
-        ForPlot = v(find(N(:,j)),:) ; %+ (1e-2 * (2*j) ) ;
-        s       = find(N);
-        col     = cols{j};
-        for i   = 1:length(ForPlot)
-            scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),70,col,'filled',...
-                'MarkerFaceAlpha',.6,'MarkerEdgeAlpha',.6);        hold on;
+    N = ~~sum(N)';
+    
+    %for j = 1:size(N,2)
+        %ForPlot = v(find(N(:,j)),:) ; %+ (1e-2 * (2*j) ) ;
+        %s       = find(N);
+        %col     = cols{j};
+        
+        for i   = 1:length(N)
+           % scatter3(ForPlot(i,1),ForPlot(i,2),ForPlot(i,3),70,col,'filled',...
+            %    'MarkerFaceAlpha',.6,'MarkerEdgeAlpha',.6);        hold on;
+            
+            if N(i)
+                vx = v(i,:); 
+                scatter3(v(i,1),v(i,2),v(i,3),70,'k','filled',...
+                    'MarkerFaceAlpha',.6,'MarkerEdgeAlpha',.6);  hold on;
+            end
+            ForPlot = v(find(N),:) ;
         end
-    end
     
 elseif iscell(N)
     % pass a cell of length sm with color strings
@@ -1362,7 +1434,7 @@ else
 end
 %RGB = makecolbar(ForPlot);
 %set(gcf,'DefaultAxesColorOrder',RGB); jet;
-colorbar
+%colorbar
 
 data.drawnodes.data = ForPlot;
 
@@ -3557,8 +3629,9 @@ end
 
 % % calculate curvature for shading
 curv  = docurvature(struct('vertices',g.vertices,'faces',g.faces));
-cvar  = var(curv);
-dcurv = curv;
+curv  = spm_mesh_smooth( struct('vertices',g.vertices,'faces',g.faces) , curv ,4 );
+%cvar  = var(curv);
+%dcurv = curv;
 
 % inflate
 if inflate
