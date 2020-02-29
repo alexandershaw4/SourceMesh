@@ -1078,7 +1078,7 @@ end
 
 % Edges
 %--------------------------------------------------------------------------
-[node1,node2,strng] = matrix2nodes(A,pos);
+[node1,node2,strng] = matrix2nodes(triu(A),pos);
 
 % COLOUR BAR SCALING:
 if ~isempty(data.network.scale)
