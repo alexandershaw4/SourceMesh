@@ -1102,16 +1102,31 @@ if ~isempty(data.network.scale)
     strng2 = strng;
     strng2( strng2<=(thescale(1)) ) = thescale(1);
     strng2( strng2>=(thescale(2)) ) = thescale(2);
-    strng2 = [strng2 ; thescale(1); thescale(2)];
+    %strng2 = [strng2 ; thescale(1); thescale(2)];
 else
-    strng2 = [strng; -max(abs(strng)); max(abs(strng))];
+    strng2 = [strng];%; -max(abs(strng)); max(abs(strng))];
+    data.network.scale = max(abs(strng2));
 end
 
 % also scale the opacity to the color
-opacity = rescale(abs(strng2(1:end-2)),[.2 1]);
+opacity = rescale(abs(strng2),[.2 1]);
 
 %strng2 = [strng; thescale'];
-RGB    = makecolbar(strng2,netcmap);
+
+if any(any(netcmap ~= 0))
+    Colors = colormap(netcmap);
+else
+    Colors   = jet;
+end
+
+Ct = (strng2 + data.network.scale) ./ (2*data.network.scale);
+Ci = 1+(Ct*(size(Colors,1)-1));
+
+% get the actual colours from the color palette (nx3 rgb matrix)
+RGB = Colors(round(Ci),:);
+
+%RGB = makecolbar((strng2 + data.network.scale) ./ (2*data.network.scale),netcmap);
+%RGB    = makecolbar(strng2,netcmap);
 
 R = thescale;
 
@@ -1169,7 +1184,7 @@ for i = 1:size(node1,1)
         l0(i)=line( [node1(i,1),node2(i,1)],...
                     [node1(i,2),node2(i,2)],...
                     [node1(i,3),node2(i,3)],...
-                    'LineWidth',S(i),'Color',[RGB(i,:) opacity(i)]);
+                    'LineWidth',S(i),'Color',[RGB(i,:) opacity(i)*.9]);
 
     else
         % to-from in xyz:
@@ -1236,7 +1251,7 @@ if any(i) && colbar
         set(axb,'visible','off')
         axes(axb);
         %set(a1,'DefaultAxesColorOrder',RGB)
-        set(gcf,'Colormap',RGB)
+        set(gca,'Colormap',RGB) % gcf
         
         if any(any(netcmap ~= 0)); 
                     colormap(netcmap);
