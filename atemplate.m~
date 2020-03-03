@@ -1076,9 +1076,11 @@ if ~isempty(data.mesh.h)
     end
 end
 
+if ~any(spm_vec(triu(A))) && any(spm_vec(tril
+
 % Edges
 %--------------------------------------------------------------------------
-[node1,node2,strng] = matrix2nodes(A,pos);
+[node1,node2,strng] = matrix2nodes(triu(A),pos);
 
 % COLOUR BAR SCALING:
 if ~isempty(data.network.scale)
@@ -1147,13 +1149,15 @@ end
 % see if user specified width scale, else 1
 %S = [];
 
-A = spm_mesh_adjacency(data.mesh.faces);
-[N, D] = spm_mesh_utils('neighbours',A);
+%A = spm_mesh_adjacency(data.mesh.faces);
+%[N, D] = spm_mesh_utils('neighbours',A);
 
 
 %curve = 1;
 % Paint edges
 %--------------------------------------------------------------------------
+start = [];
+ends  = [];
 for i = 1:size(node1,1)
     
     if ~curved
@@ -1183,8 +1187,8 @@ for i = 1:size(node1,1)
         % use hanning for some curves -
         c = data.mesh.centre;
         r = max(abs(v - c));         
-        s = 1 - ( abs(v(Is,:) - c)./r ); % curviness f(relative radius)
-        s = s/2;
+        s = 1 - ( abs(v(Is,:) - c)./(r) ); % curviness f(relative radius)
+        s = s/2;           % change this number to control the bendiness
         h = hanning(n);
 
         hx = h*s(1);
@@ -1200,13 +1204,18 @@ for i = 1:size(node1,1)
         yp = yp.*hy;%(h*s(2));
         zp = zp.*hz;%h*s(3));
         
-        st
+        start = [start; [xp(1) yp(1) zp(1)] ];
+        ends  = [ends ; [xp(end) yp(end) zp(end)] ];
 
         l0(i) = line(xp,yp,zp,'LineWidth',S(i),'Color',[RGB(i,:)]);
     end
 end
     
-    
+if curved
+    % save these (slightly different ends to straight lines)
+    data.network.tofrom.node1 = start;
+    data.network.tofrom.node2 = ends;
+end
    
 % Set colorbar only if there are valid edges
 %--------------------------------------------------------------------------
@@ -1333,11 +1342,11 @@ end
 v=pos;
 %--------------------------
 
-if isempty(N) && isfield(data,'network') && isfield(data.network,'tofrom')
+if isfield(data,'network') && isfield(data.network,'tofrom')
     % if N is empty, automatically select networked (edge connected) nodes
     pos = [ data.network.tofrom.node1 ; data.network.tofrom.node2 ];
     pos = unique(pos,'rows');
-    N   = ones(length(pos),1);
+    N   = diag(ones(length(pos),1));
     v   = pos;
 end
 % else

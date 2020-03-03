@@ -1076,6 +1076,12 @@ if ~isempty(data.mesh.h)
     end
 end
 
+A = A.*~eye(length(A));
+if ~any(spm_vec(triu(A))) && any(spm_vec(tril(A)))
+    A = tril(A)';
+    fprintf('Rendering lower triangular portion\n');
+end
+
 % Edges
 %--------------------------------------------------------------------------
 [node1,node2,strng] = matrix2nodes(triu(A),pos);
@@ -1096,12 +1102,13 @@ if ~isempty(data.network.scale)
     strng2 = strng;
     strng2( strng2<=(thescale(1)) ) = thescale(1);
     strng2( strng2>=(thescale(2)) ) = thescale(2);
+    strng2 = [strng2 ; thescale(1); thescale(2)];
 else
     strng2 = [strng; -max(abs(strng)); max(abs(strng))];
 end
 
 % also scale the opacity to the color
-opacity = rescale(abs(strng2),[.2 1]);
+opacity = rescale(abs(strng2(1:end-2)),[.2 1]);
 
 %strng2 = [strng; thescale'];
 RGB    = makecolbar(strng2,netcmap);
