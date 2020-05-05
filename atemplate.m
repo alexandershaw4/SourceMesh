@@ -2136,6 +2136,7 @@ mv = mesh.vertices;             % brain mesh vertices
 nv = length(mv);                % number of brain vertices
 S  = [min(L(:)),max(L(:))];     % min max values
 S0 = max(abs(L(:)));
+MS = mean(L);
 
 switch method
     case{'raycast'}
@@ -2208,9 +2209,47 @@ switch lower(method)
                 a(2)  = vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3));
                 [~,I] = max(abs(a));
                 vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) = ...
-                vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) + a(I);                
+                + a(I);
+                %vol(dv(i,1)-ndv(1),dv(i,2)-ndv(2),dv(i,3)-ndv(3)) + a(I);
+            
             end
         end
+        
+        % now manually smooth without changing distirbution: ie. just rep
+        % the same number over neighbouring voxels
+        vsize = (max(dv) - min(dv))+1;
+        ovol  = vol;
+        
+        for i = 1:vsize(1)
+            for j = 1:vsize(2)
+                for k  = 1:vsize(3)
+                    
+                    if any(ovol(i,j,k))
+                        val = ovol(i,j,k);
+                        
+                        % immediately besdies
+                        try; vol(i-1,j+0,k+0) = val; end
+                        try; vol(i+1,j+0,k+0) = val; end
+                        try; vol(i+0,j-1,k+0) = val; end
+                        try; vol(i+0,j+1,k+0) = val; end
+                        try; vol(i+0,j+0,k-1) = val; end
+                        try; vol(i+0,j+0,k+1) = val; end
+                        
+                        % off the corners
+                        try; vol(i-1,j-1,k+0) = val; end
+                        try; vol(i+1,j+1,k+0) = val; end
+                        
+                        try; vol(i-1,j+0,k-1) = val; end
+                        try; vol(i+1,j+0,k+1) = val; end
+                        
+                        try; vol(i+0,j-1,k-1) = val; end
+                        try; vol(i+0,j+1,k+1) = val; end
+                    end
+                end
+            end
+        end
+        
+        
                 
         %waitbar(.4,wb,'Ray casting: Smoothing');
         
@@ -2218,10 +2257,24 @@ switch lower(method)
         if data.verbose
             fprintf(' +Volume Smoothing & Rescaling  ');tic;
         end
-        %tic
-        vol  = smooth3(vol,'box',3);        
+        %tic      
         V    = spm_vec(vol);
+        
+%         fun  = @(V) abs(min(V)-S(1)) + abs(max(V)-S(2)) + abs(mean(V)-MS);
+%         nfun = 0;
+%         while fun(V) >= 1e-2 && nfun < 100
+%             nfun = nfun + 1;
+%             V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+%             V    = V - mean(V);
+%             V    = V + MS;
+%             V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+%             DMV  = median(V);
+%             V(V==DMV) = 0;
+%             fun(V)
+%         end
+
         V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+
         vol  = spm_unvec(V, vol); 
         if data.verbose
             fprintf('-- done (%d seconds)\n',round(toc)); 
@@ -2341,10 +2394,10 @@ switch lower(method)
             fprintf(' +Finished in %d sec\n',round(toc));
         end
         
-        [u,s,v]=spm_svd(fcol);
-        nc = min(find( cumsum(diag(s))./sum(diag(s)) >= 0.9 ) );
-        fprintf('Using %d (of %d) spatial components explaining 90% variance\n',nc,length(s));
-        fcol = u(:,1:nc)*s(1:nc,1:nc)*v(:,1:nc)';
+        %[u,s,v]=spm_svd(fcol);
+        %nc = min(find( cumsum(diag(s))./sum(diag(s)) >= 0.9 ) );
+        %fprintf('Using %d (of %d) spatial components explaining 90% variance\n',nc,length(s));
+        %fcol = u(:,1:nc)*s(1:nc,1:nc)*v(:,1:nc)';
         
         % Retain largest absolute value for each face (from each depth)
         [~,I] = max(abs(fcol));
