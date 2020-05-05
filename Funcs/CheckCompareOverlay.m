@@ -2,7 +2,7 @@ function t = CheckCompareOverlay(D)
 % give the output structure of an atemplate call containing 'overlay'
 % structure
 
-Name   = {'Orig Data' 'Overlay Model' 'Sq Error'}';
+Name   = {'Input Overlay' 'Output Overlay' 'Sq Error'}';
 Mean   = [mean(D.overlay.orig) mean(D.overlay.data)]';
 Mode   = [mode(D.overlay.orig) mode(D.overlay.data)]';
 Median = [median(D.overlay.orig) median(D.overlay.data)]';
