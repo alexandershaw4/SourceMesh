@@ -2278,6 +2278,8 @@ switch lower(method)
             fprintf('-- done (%d seconds)\n',round(toc)); 
         end
         
+        data.overlay.lr_volume = vol;
+        
         switch UseFaceVertex
             
             case 'face'
