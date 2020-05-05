@@ -2260,19 +2260,18 @@ switch lower(method)
         %tic      
         V    = spm_vec(vol);
         
-%         fun  = @(V) abs(min(V)-S(1)) + abs(max(V)-S(2)) + abs(mean(V)-MS);
-%         nfun = 0;
-%         while fun(V) >= 1e-2 && nfun < 10
-%             nfun = nfun + 1;
-%             V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-%             V    = V - mean(V);
-%             V    = V + MS;
-%             V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-%             V    = V - median(V);
-%             V    = V + median(L);
-%         end
+        fun  = @(V) abs(min(V)-S(1)) + abs(max(V)-S(2)) + abs(mean(V)-MS);
+        nfun = 0;
+        while fun(V) >= 1e-2 && nfun < 100
+            nfun = nfun + 1;
+            V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+            V    = V - mean(V);
+            V    = V + MS;
+            V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+            V    = V - median(V);
+        end
 
-        V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
+        %V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 
         vol  = spm_unvec(V, vol); 
         if data.verbose
@@ -2438,7 +2437,7 @@ switch lower(method)
                 fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
                 fcol(isnan(fcol)) = 0;
                 %fcol = [fcol; S(1); S(2)];
-                fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
                 %fcol = fcol(1:end-2);
                 
                 if ~NewAx
@@ -2450,7 +2449,7 @@ switch lower(method)
                     else; thrsh = .4;
                     end
                     
-                    fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                    %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
                     
                     fcol_orig = fcol;
                     thr  = max(abs(fcol))*thrsh;
