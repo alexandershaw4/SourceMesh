@@ -2262,15 +2262,14 @@ switch lower(method)
         
 %         fun  = @(V) abs(min(V)-S(1)) + abs(max(V)-S(2)) + abs(mean(V)-MS);
 %         nfun = 0;
-%         while fun(V) >= 1e-2 && nfun < 100
+%         while fun(V) >= 1e-2 && nfun < 10
 %             nfun = nfun + 1;
 %             V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
 %             V    = V - mean(V);
 %             V    = V + MS;
 %             V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-%             DMV  = median(V);
-%             V(V==DMV) = 0;
-%             fun(V)
+%             V    = V - median(V);
+%             V    = V + median(L);
 %         end
 
         V    = S(1) + (S(2)-S(1)).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
