@@ -2539,7 +2539,7 @@ switch lower(method)
         
         debugplot = 0;
         
-        r  = (nv/length(pos))*1.3;      % radius - number of closest points on mesh
+        r  = (nv/length(pos))*.5;      % radius - number of closest points on mesh
         r  = max(r,1);                  % catch when the overlay is over specified!
         OL = sparse(length(L),nv);      % this will be overlay matrix we average
         w  = linspace(.1,1,r);          % weights for closest points
@@ -2553,35 +2553,6 @@ switch lower(method)
         for i = 1:length(x)
             if any(L(i))      
                 newv = [];
-                r   = 7;
-                res = 20;
-                th  = 0:pi/res:2*pi;
-                r0  = [th(1:2:end-1) th(end) fliplr(th(1:2:end-1))];  
-                
-                % make [circle] radius change with z-direction (height)
-                r0 = th.*fliplr(th);
-                r0 = r0/max(r0);
-                r0 = r0*r;
-                r0 = r0 ;
-                
-                % the height at which each circle making the sphere will go
-                z0 = linspace(v(i,3)-r,v(i,3)+r,(res*2)+1);
-
-                % this generates the vertices of the sphere
-                for zi = 1:length(z0)
-                    xunit = r0(zi) * cos(th) + v(i,1);
-                    yunit = r0(zi) * sin(th) + v(i,2);
-                    zunit = repmat(z0(zi),[1,length(xunit)]);
-                    newv  = [newv; [xunit' yunit' zunit']];
-                end
-
-                if debugplot
-                    hold on;
-                    s1 = scatter3(v(i,1),v(i,2),v(i,3),200,'r','filled');
-                    s2 = scatter3(newv(:,1),newv(:,2),newv(:,3),150,'b');
-                    s2.MarkerEdgeAlpha = 0.1;
-                    drawnow;
-                end
 
                 % Determine whether this point if left or right hemisphere
                 LR     = v(i,1);
@@ -2591,14 +2562,14 @@ switch lower(method)
                 else;      lri = Rht;
                 end
                 
-                % Bounding box
-                bx = [min(newv); max(newv)];
-                inside = ...
-                    [mv(lri,1) > bx(1,1) & mv(lri,1) < bx(2,1) &...
-                     mv(lri,2) > bx(1,2) & mv(lri,2) < bx(2,2) &...
-                     mv(lri,3) > bx(1,3) & mv(lri,3) < bx(2,3) ];
-                 
-                ind = lri(find(inside));
+                % the point
+                cx = v(i,1); cy = v(i,2); cz = v(i,3);
+                
+                % find points inside or touching sphere with radius r 
+                theinds = ( mv(lri,1)-cx ).^2 + ( mv(lri,2)-cy ).^2 + ( mv(lri,3)-cz ).^ 2 <= r^2;
+                
+                ind = lri(find( theinds ));
+
                 OL(i,ind) = L(i);
                 M (i,ind) = 1;
                 indz{i}   = ind;
@@ -2629,19 +2600,7 @@ switch lower(method)
         % Compute distances between point clouds and sphere
         mvV = cdist(V,mv);
         vV  = cdist(V, v);
-        
-        mvV;
-        
-%         vd = cdist(v,v);
-%         ld = sqrt(L*L');
-%         
-%         % cheap inversion of distances
-%         vd = vd ./ max(vd(:));
-%         vd = 1 - vd;
-%         j  = (vd.*ld);
-        
-        %C = cov(cdist(v,v));
-
+                
         % Normalise the distnces
         nmvV = mvV ./ max(mvV(:)); % max?
         nvV  = vV ./ max(vV(:));
@@ -2984,7 +2943,9 @@ switch lower(method)
         end
 end
 
-
+% Switch to do some post hoc stuff before applying the overlay to the
+% mesh....
+%---------------------------------------------------------------------
 switch method
     case {'raycast','aal'}
         % Don't do anything        
@@ -3008,18 +2969,28 @@ switch method
 %         fprintf('Using %d (of %d) spatial components\n',nc,length(s));
 %         OL = u(:,1:nc)*s(1:nc,1:nc)*v(:,1:nc)';
                 
-        fprintf('\n'); clear L;
-        if ~interpl
-             % mean value of a given vertex
-            OL = mean((OL),1);
-        else
-            for i = 1:size(OL,2)
-                % average overlapping voxels
-                L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
-                NumComp(i) =  length(find(OL(:,i)));
-            end
-            OL = L;
+        fprintf('\n'); %clear L;
+%         if ~interpl
+%              % mean value of a given vertex
+%             OL = mean((OL),1);
+%         else
+%             for i = 1:size(OL,2)
+%                 % average overlapping voxels
+%                 L(i) = sum( OL(:,i) ) / length(find(OL(:,i))) ;
+%                 NumComp(i) =  length(find(OL(:,i)));
+%             end
+%             OL = L;
+%         end
+
+        %OL = mean(OL,1);
+        
+        [~,I]=max(abs(OL));
+        
+        for i = 1:size(OL,2)
+            Li(i) = OL(I(i),i);
         end
+        OL=full(Li);
+        
         
         % THIS WAS MISSING: DE-NaN BEFORE ANYTHING
         % ADDED AUGUST 2019
@@ -3027,17 +2998,19 @@ switch method
 
         % normalise and rescale
         OL = double(full(OL));
-        y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
-
+        
+        %y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
+        
+        y = OL;
         y(isnan(y)) = 0;
         y  = full(y);
         y  = double(y);
 
         % spm mesh smoothing
         %------------------------------------------------------------------
-        if data.verbose
-            fprintf(' +Smoothing overlay...\n');
-        end
+        %if data.verbose
+        %    fprintf(' +Smoothing overlay...\n');
+        %end
         %y  = spm_mesh_smooth(mesh, y(:), 4);
         %y(isnan(y)) = 0;
         %y  = S(1) + ((S(2)-S(1))).*(OL - min(OL))./(max(OL) - min(OL));
