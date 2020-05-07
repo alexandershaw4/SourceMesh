@@ -1928,9 +1928,18 @@ if iscell(L)
     shading interp
     % force symmetric caxis bounds
     s = max(abs(y(:))); caxis([-s s]);
+    
+%     try
+%         themap = [flipud(othercolor('Greys9',256))];
+%     catch
+%         themap = [flipud(gray(256))];
+%     end
+%     colormap(themap);
+    
     if data.verbose
         fprintf('-Generating combined function+curvature colormap\n');
     end
+    
     
     try
         % if othercolor installed
@@ -1952,6 +1961,7 @@ elseif isfield(data.overlay,'NewAx')
 else
     NewAx = 0;
 end
+
 
 data.overlay.NewAx = NewAx; % save this in case of recursive calls
 
@@ -1983,6 +1993,16 @@ if NewAx
     ax1_pos = get(ax1,'Position'); 
     %ax2 = axes('Position',ax1_pos,'visible',0);  
     h0  = findobj(ax1,'type','patch');
+%     h1  = copyobj(h0,ax2);             % put colour data on h1!
+%     %h1.Vertices = h1.Vertices*1.02;
+%         
+%     axis equal;
+%     Link = linkprop([ax1, ax2],{'View' 'CameraUpVector', 'CameraPosition', ...
+%         'CameraTarget', 'XLim', 'YLim', 'ZLim',  ...
+%           'CameraViewAngle',...
+%         'XAxisLocation','YAxisLocation', 'ActivePositionProperty',...
+%         'OuterPosition', 'Clipping'}); %'XAxis', 'YAxis', 'ZAxis','Box' 'DataAspectRatio', 'TightInset','DataAspectRatioMode','PlotBoxAspectRatioMode','PlotBoxAspectRatio',
+%     setappdata(gcf, 'StoreTheLink', Link);
 end
     
 % if overlay,L, is same length as mesh verts, just plot!
@@ -2259,7 +2279,6 @@ switch lower(method)
         end
         %tic      
         V    = spm_vec(vol);
-        
         fun  = @(V) abs(min(V)-S(1)) + abs(max(V)-S(2)) + abs(mean(V)-MS);
         nfun = 0;
         while fun(V) >= 1e-2 && nfun < 100
@@ -2446,20 +2465,53 @@ switch lower(method)
                     set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
                 else
                     % if we're overlaying the functional ray-casted colours on top of the curvature
-                    if ~isempty(data.overlay.thresh)
-                          thrsh = data.overlay.thresh;
+                    computethresh = 1;
+                    if ~isempty(data.overlay.thresh) && ischar(data.overlay.thresh)
+                          thrsh = str2num(data.overlay.thresh);
+                    elseif ~isempty(data.overlay.thresh) && isnumeric(data.overlay.thresh)
+                          thr   = data.overlay.thresh;
+                          thrsh = thr;
+                          computethresh = 0;
                     else; thrsh = .4;
                     end
-                    
+                                        
                     %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
                     
                     fcol_orig = fcol;
-                    thr  = max(abs(fcol))*thrsh;
+                    
+                    if computethresh
+                        thr  = max(abs(fcol))*thrsh;
+                    end
+                    
                     inan = find(abs(fcol) < thr);
+                    
+                    if thrsh == .4 % the default
+                        % see how much of the overlay is empty:
+                        % if it's already 80% sparse, just thrshold by
+                        % non-zero
+                        if length(find(fcol)) / length(fcol) < .2
+                            fprintf('Overlay already sparse, not thresholding\n');
+                            inan = find(~fcol);
+                        end
+                        
+                    end
+                    
                     falpha = 1*ones(size(fcol));
                     falpha(inan)=0;
+                    
                     %fcol = fcol.*falpha;
                      
+                    %null = find(abs(fcol) < thr);
+                    %notnull = (abs(fcol) >= thr);
+                    
+                    % for controlling alpha
+                    %falpha = ones(size(fcol));
+                    %falpha(null) = 0;
+                    
+                    % set null space as nan
+                    %fcol(null) = NaN;
+                    
+                    
                     if data.verbose
                         fprintf(' +Rescaling overlay values\n');
                     end
@@ -2492,6 +2544,42 @@ switch lower(method)
                     set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
                     colormap(themap);
                     data.overlay.themap=themap;
+                    
+                    
+%                     set(h1,'FaceVertexCData',fcol(:),'FaceColor','interp');
+%                     set(ax2,'colormap',jet);
+%                     
+%                     %h1.FaceVertexAlphaData = falpha;
+%                     ax2.Projection = 'perspective';
+%                                         
+%                     h1.FaceVertexAlphaData = falpha;
+%                     %h1.EdgeAlpha = 'interp';
+%                     h1.FaceAlpha = 'interp';
+%                     
+%                     ch = get(gcf,'children');
+%                     set(gcf,'children',[ch(1) ch(3) ch(2)]);
+%                     
+%                     %h0.FaceVertexAlphaData=double(~falpha);
+%                     %h0.FaceAlpha='interp';
+%                     h0.FaceAlpha=1;
+%                     h0.FaceVertexCData(find(falpha))=NaN;
+%                     
+%                     set(h0,'faceoffsetbias', -0.005);
+                    
+                    
+                    
+                    %0.FaceVertexAlphaData = double(~notnull);
+                    %h0.FaceAlpha='interp';
+                    
+                    %h0.FaceAlpha = 1;
+                    %h3.FaceAlpha = .9;
+                    %h3.FaceVertexAlphaData = falpha;
+                    %h3.FaceAlpha = 'interp';
+                    
+                    %h0.FaceVertexAlphaData = falpha;
+                    %h0.FaceVertexCData(notnull)=nan;
+                    %colormap(themap);
+                    %data.overlay.themap=themap;
                 end
         end
         
@@ -3088,7 +3176,7 @@ switch method
         
 end
 
-S = [-s s];
+%S = [-s s];
 
 % post-hoc template reduction here?
 %--------------------------------------------------------------------------
