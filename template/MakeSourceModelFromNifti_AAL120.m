@@ -23,7 +23,7 @@ for i = 1:length(ID)  %90
         newv = [x(xi); y(yi); z(zi)]';
 
         if any(If(:))
-
+        
             % assess proximity of verts in this group
             t = delaunay(newv); t = t(:,1:3);
             [nf,nv] = reducepatch(maker(t,newv),0.1);
