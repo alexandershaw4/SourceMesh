@@ -1,3 +1,5 @@
+![multirender](figs/NewSourceMeshExampleFig.png)
+
 # SourceMesh Features
 
 A better usage overview and examples can be found here:
@@ -160,9 +162,6 @@ atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method',{'aal_light','s
 
 ```
 
-![comparison1](figs/ProjectionCompare2.png)
-![comparison2](figs/ProjectionCompare4.png)
-
 
 # VIDEO OVERLAY:
 ```
@@ -237,17 +236,6 @@ atemplate('gifti',mesh,'sourcemodel',sormod,'overlay',L,'method',{'aal_light','s
 ```
 Any combination of the inputs should be possible.
 See scripts in 'Examples' folder for more help.
-
-# GUI:
-
-A basic interface with limited functionality over command line version.
-
-```
-SourceMeshGUI
-```
-
-![gui11](gui/gui11.png)
-![gui22](gui/gui22.png)
 
 
 # AN EXAMPLE NETWORK (1): 
