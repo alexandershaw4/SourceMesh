@@ -2550,41 +2550,6 @@ switch lower(method)
                                  linspace(-S0,S0,256)' ];
                     data.overlay.colbar_values = cbarvals;
                     
-                    
-%                     set(h1,'FaceVertexCData',fcol(:),'FaceColor','interp');
-%                     set(ax2,'colormap',jet);
-%                     
-%                     %h1.FaceVertexAlphaData = falpha;
-%                     ax2.Projection = 'perspective';
-%                                         
-%                     h1.FaceVertexAlphaData = falpha;
-%                     %h1.EdgeAlpha = 'interp';
-%                     h1.FaceAlpha = 'interp';
-%                     
-%                     ch = get(gcf,'children');
-%                     set(gcf,'children',[ch(1) ch(3) ch(2)]);
-%                     
-%                     %h0.FaceVertexAlphaData=double(~falpha);
-%                     %h0.FaceAlpha='interp';
-%                     h0.FaceAlpha=1;
-%                     h0.FaceVertexCData(find(falpha))=NaN;
-%                     
-%                     set(h0,'faceoffsetbias', -0.005);
-                    
-                    
-                    
-                    %0.FaceVertexAlphaData = double(~notnull);
-                    %h0.FaceAlpha='interp';
-                    
-                    %h0.FaceAlpha = 1;
-                    %h3.FaceAlpha = .9;
-                    %h3.FaceVertexAlphaData = falpha;
-                    %h3.FaceAlpha = 'interp';
-                    
-                    %h0.FaceVertexAlphaData = falpha;
-                    %h0.FaceVertexCData(notnull)=nan;
-                    %colormap(themap);
-                    %data.overlay.themap=themap;
                 end
         end
         
@@ -3120,20 +3085,39 @@ switch method
             set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
         else
             
-            if ~isempty(data.overlay.thresh)
-                thrsh = data.overlay.thresh;
+%             if ~isempty(data.overlay.thresh)
+%                 thrsh = data.overlay.thresh;
+%             else; thrsh = .4;
+%             end
+             fcol  = y;
+%             %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                    
+            
+            computethresh = 1;
+            if ~isempty(data.overlay.thresh) && ischar(data.overlay.thresh)
+                thrsh = str2num(data.overlay.thresh);
+            elseif ~isempty(data.overlay.thresh) && isnumeric(data.overlay.thresh)
+                thr   = data.overlay.thresh;
+                thrsh = thr;
+                computethresh = 0;
             else; thrsh = .4;
             end
-            fcol  = y;
-            fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
-                    
+            
+            %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+            
             fcol_orig = fcol;
-            thr  = max(abs(fcol))*thrsh;
+            
+            if computethresh
+                thr  = max(abs(fcol))*thrsh;
+            end
+            
             inan = find(abs(fcol) < thr);
+            
+            
             falpha = 1*ones(size(fcol));
             falpha(inan)=0;
-            %fcol = fcol.*falpha;
             
+                        
             if data.verbose
                 fprintf(' +Rescaling overlay values\n');
             end
@@ -3166,6 +3150,13 @@ switch method
             set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
             colormap(themap);
             data.overlay.themap=themap;
+            
+            cbarvals = [ zeros(256,1) ; ...
+                                 linspace(-S0,S0,256)' ];
+            data.overlay.colbar_values = cbarvals;
+            
+            
+            
         end
         drawnow;
         shading interp
