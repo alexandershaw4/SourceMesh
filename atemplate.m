@@ -1111,6 +1111,11 @@ end
 % also scale the opacity to the color
 opacity = rescale(abs(strng2),[.2 1]);
 
+if length(unique(strng)) == 1 && any(isnan(opacity))
+    opacity = ones(size(opacity));
+end
+
+
 %strng2 = [strng; thescale'];
 
 if any(any(netcmap ~= 0))
@@ -1947,6 +1952,14 @@ if iscell(L)
         
         %themap = [flipud(othercolor('Greys9',256)); flipud(cmocean('balance',256))];
         themap = [(gray(256)); flipud(cmocean('balance',256))];
+        
+%         [map2,map3,map4]=cubric_meg_palettes;
+%         
+%         kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+%         kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+%         kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+%         
+%         themap = [(gray(256)); flipud(kmap)];
         
         %themap = [flipud(gray(256)); flipud(jet(256))];
     catch
