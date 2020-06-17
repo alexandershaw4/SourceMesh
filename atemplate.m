@@ -1111,6 +1111,7 @@ end
 % also scale the opacity to the color
 opacity = rescale(abs(strng2),[.2 1]);
 
+% (June2020:) catch when var(net)==0 & rescaling produces nans
 if length(unique(strng)) == 1 && any(isnan(opacity))
     opacity = ones(size(opacity));
 end
