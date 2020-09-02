@@ -45,6 +45,27 @@ Perform spatial PCA and find local maxima.
 ![fig3](figs/VisGammaExample.png)
 ![figure2](figs/Example_HemiNetOverlayNodes.png)
 
+# Papers using SourceMesh
+
+Electrophysiological network alterations in adults with
+copy number variants associated with high
+neurodevelopmental risk
+D Dima et al., 2019.
+https://www.biorxiv.org/content/10.1101/753145v1.full.pdf
+
+Oscillatory hyperactivity and hyperconnectivity in young APOE-ɛ4 carriers and hypoconnectivity in Alzheimer’s disease
+L Koelewijn et al., 2019.
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6491037/
+
+Measuring robust functional connectivity from resting-state MEG using amplitude and entropy correlation across frequency-bands and temporal scales
+Godfrey & Singh 2020.
+https://www.biorxiv.org/content/10.1101/2020.03.31.017749v1.full
+
+GABA-A receptor mapping in human using non-invasive electrophysiology
+Shaw et al., 2020.
+https://www.biorxiv.org/content/10.1101/2020.05.11.087726v2
+
+
 # Supported filetypes
 
 Reads: .nii / .nii.gz / .edge / .node / .gii 

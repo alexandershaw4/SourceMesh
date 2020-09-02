@@ -3197,11 +3197,12 @@ if isfield(data,'post_parcel')
         newv = data.post_parcel{1};
     newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
     D0   = cdist(data.sourcemodel.pos,newv);
-    
+    D1   = D0*0;
     % assume the vertex value of the closest mesh point
     for i = 1:size(D0,2)
         [~,ind] = min(D0(:,i));
         newL(i) = data.overlay.orig(ind);
+        D1(ind,i) = 1;
     end
     newL = [newL S(1) S(2)];
     newL = S(1) + ((S(2)-S(1))).*(newL - min(newL))./(max(newL) - min(newL));
@@ -3234,6 +3235,7 @@ if isfield(data,'post_parcel')
     data.post_parcel      = [];
     data.post_parcel.pos  = newv;
     data.post_parcel.data = newL;  
+    data.post_parcel.M    = D1;
 
     try 
         % return atlas data as means
