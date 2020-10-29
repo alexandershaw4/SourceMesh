@@ -65,6 +65,11 @@ GABA-A receptor mapping in human using non-invasive electrophysiology
 Shaw et al., 2020.
 https://www.biorxiv.org/content/10.1101/2020.05.11.087726v2
 
+Energy landscape of resting magnetoencephalography reveals frontoparietal network impairments in epilepsy
+Dominik Krzemiński et al., Network Neuroscience
+https://www.mitpressjournals.org/doi/full/10.1162/netn_a_00125
+
+
 
 # Supported filetypes
 
