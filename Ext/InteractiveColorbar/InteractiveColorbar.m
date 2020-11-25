@@ -145,9 +145,9 @@ classdef InteractiveColorbar < hgsetget
             
             %Set pointer behaviour such that the pointer is a hand on the
             %movable points
-            iptPointerManager(gcf);
-            iptSetPointerBehavior(obj.PointHandle,@(obj,src,event) set(gcf,'Pointer','hand'));
-            iptSetPointerBehavior(obj.LineHandle,@(obj,src,event) set(gcf,'Pointer','hand'));
+%             iptPointerManager(gcf);
+%             iptSetPointerBehavior(obj.PointHandle,@(obj,src,event) set(gcf,'Pointer','hand'));
+%             iptSetPointerBehavior(obj.LineHandle,@(obj,src,event) set(gcf,'Pointer','hand'));
                                                            
             %This sets everything to the correct position
             obj.Update;
