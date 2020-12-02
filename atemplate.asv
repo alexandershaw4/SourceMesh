@@ -1089,17 +1089,8 @@ end
 % New addition December 2020
 switch lower(data.hemi)
     case 'left' ; 
-        n1 = find( node1(:,1) > max(data.mesh.h.Vertices(:,1)) );
-        n2 = find( node2(:,1) > max(data.mesh.h.Vertices(:,1)) );
-        pnt = max(data.mesh.h.Vertices(:,1));
-        node1(n1,1) = pnt;
-        node2(n2,1) = pnt;
-    case 'right' ;
-        n1 = find( node1(:,1) < min(data.mesh.h.Vertices(:,1)) );
-        n2 = find( node2(:,1) < min(data.mesh.h.Vertices(:,1)) );
-        pnt = min(data.mesh.h.Vertices(:,1));
-        node1(n1,1) = pnt;
-        node2(n2,1) = pnt;
+        
+
 end
 
 % COLOUR BAR SCALING:

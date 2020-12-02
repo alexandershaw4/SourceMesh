@@ -67,7 +67,7 @@ if ~ishandle(varargin{1});
     axis(ax,'image');
 end
 
-axis(ax,'off');
+%axis(ax,'off');
 hp = patch(struct(...
     'vertices',  subsref(this,struct('type','.','subs','vertices')),...
     'faces',     subsref(this,struct('type','.','subs','faces'))),...
@@ -86,8 +86,8 @@ camlight left
 camlight right
 
 lighting phong;
-axes(ax);
-cameramenu;
+%axes(ax);
+%cameramenu;
 
 if nargout
     varargout{1} = hp;
