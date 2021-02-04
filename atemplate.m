@@ -1932,6 +1932,12 @@ if iscell(L)
         fprintf('-Smoothing overlay...\n');
     end
     C = round(C*10)/10;
+    
+    if sum(C) == 0
+        % revert
+        C = L{1};
+    end
+    
     y = spm_mesh_smooth(data.mesh, double(C(:)), 2);   % smoth it
     percNaN = length(find(isnan(C)))/length(C)*100;
     newpNaN = length(find(isnan(y)))/length(y)*100;
@@ -2066,7 +2072,16 @@ if length(L) == length(mesh.vertices)
         shading interp
         % force symmetric caxis bounds
         s = max(abs(y(:))); caxis([-s s]);
-        colormap('jet');
+        
+        [map2,map3,map4]=cubric_meg_palettes;
+        
+        kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+        kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+        kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+        
+        colormap(kmap);
+        
+        %colormap('jet');
         alpha 1;
         
         data.mesh.h.FaceColor = 'flat';
@@ -2075,6 +2090,7 @@ if length(L) == length(mesh.vertices)
             %colorbar('peer',a1,'South');
             data.overlay.cb = InteractiveColorbar;
         end
+        colormap(kmap);
     else % if newax (curvature + function)
         
         if ~isempty(data.overlay.thresh)
@@ -2103,6 +2119,7 @@ if length(L) == length(mesh.vertices)
         % rescale y0 into colour map part 1:
         % 1:256
         y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
+        %y0(isnan(y0))=1;
         
         % rescale fcol into colour map part 2:
         % 257:512
@@ -2589,7 +2606,13 @@ switch lower(method)
             %s = max(abs(fcol(:))); caxis(ax2,[-s s]);
             caxis([0 512]);
         else
-            colormap('jet');
+            %colormap('jet');
+            [map2,map3,map4]=cubric_meg_palettes;
+            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            colormap(kmap);
+
             s = max(abs(fcol(:))); caxis([-s s]);
             alpha 1;
         end
@@ -2669,42 +2692,6 @@ switch lower(method)
             fprintf(' +Routine took %d seconds\n',stime);
         end
                 
-    case 'quick'
-        % registers both sets of points (the brain and the source points)
-        % to a sphere, then projects sources->sphere->brain
-        % VERY low resolution but computatyionally quick
-        
-        % Generate a sphere
-        [X,Y,Z] = sphere(128);
-        fvc = surf2patch(X,Y,Z,'triangles');
-        V = fvc.vertices;
-        B = [min(mv) ; max(mv) ];
-        
-        % Fit the sphere over the brain and source points
-        for i = 1:3
-            V(:,i) = rescale(V(:,i),B(:,i));
-        end
-        
-        % Compute distances between point clouds and sphere
-        mvV = cdist(V,mv);
-        vV  = cdist(V, v);
-                
-        % Normalise the distnces
-        nmvV = mvV ./ max(mvV(:)); % max?
-        nvV  = vV ./ max(vV(:));
-        
-        nmvV = 1 - nmvV;
-        nvV  = 1 - nvV;
-        
-        fcol = double(full( nmvV'*(nvV*L) ));      % the projection
-                
-        fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
-        fcol(isnan(fcol)) = 0;
-        fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));        
-        set(mesh.h,'FaceVertexCData',fcol(:),'FaceColor','interp');
-        colormap jet;
-        s = max(abs(fcol(:))); caxis([-s s]);
-        return;
         
     case 'euclidean'
         
@@ -3113,6 +3100,13 @@ switch method
 
         if ~NewAx
             set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
+            
+            [map2,map3,map4]=cubric_meg_palettes;
+            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            colormap(kmap);
+            
         else
             
 %             if ~isempty(data.overlay.thresh)
@@ -3193,7 +3187,13 @@ switch method
         % force symmetric caxis bounds
         s = max(abs(y(:))); caxis([-s s]);
         if ~NewAx
-            colormap('jet');
+            %colormap('jet');
+            
+            [map2,map3,map4]=cubric_meg_palettes;
+            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            colormap(kmap);
         else
             %colormap(ax2,'jet');
             caxis([0 512]);
@@ -3266,6 +3266,14 @@ end
 
 if colbar && ~NewAx
     data.overlay.cb = InteractiveColorbar;
+                [map2,map3,map4]=cubric_meg_palettes;
+            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            colormap(kmap);
+
+    
+    
 end
     
 % switches for writing out other file formats
@@ -3763,6 +3771,7 @@ yl = max(v(:,2)) - min(v(:,2));
 xl = max(v(:,1)) - min(v(:,1));
 
 if xl > yl
+    fprintf('Re-oreintating\n');
     v       = v(:,[2 1 3]);
     g.faces = g.faces(:,[2 1 3]);
 end
