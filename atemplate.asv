@@ -3905,17 +3905,7 @@ if dofillholes
     holecellarray = findTriMeshHoles(g.fleft,g.vleft);
     for i = 1:length(holecellarray)
         edges   = holecellarray{i};  % indices of vertices around edge
-        %ek      = nchoosek(edges,3); % triangles at all perimiter points
-        
-        dt = delaunayTriangulation(v(edges,:));
-        try
-            %ek = dt.ConnectivityList(:,1:3);
-            ek = dt.convexHull;
-            ek = edges(ek);
-        catch;
-        end
-        
-        
+        ek      = nchoosek(edges,3); % triangles at all perimiter points
         x       = [x; ek];           % new faces
     end
     
@@ -3923,20 +3913,13 @@ if dofillholes
     
     % update faces
     g.fleft = [g.fleft; x];
-            
+        
     % right side
     x = [];
     holecellarray = findTriMeshHoles(g.fright,g.vright);
     for i = 1:length(holecellarray)
         edges   = holecellarray{i};  % indices of vertices around edge
-        dt = delaunayTriangulation(v(edges,:));
-        try
-            %ek = dt.ConnectivityList(:,1:3);
-            ek = dt.convexHull;
-            ek = edges(ek);
-        catch;
-        end
-        
+        ek      = nchoosek(edges,3); % triangles at all perimiter points
         x       = [x; ek];           % new faces
     end
     
@@ -3945,7 +3928,6 @@ if dofillholes
     
     % update full-model faces
     g.faces = [g.faces; x0; x];
-    
 end
 
 
