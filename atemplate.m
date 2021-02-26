@@ -3853,8 +3853,12 @@ end
 % % allow user to request that the brain is inflated right out to a sphere
 if dosphere
     % if we know radius of each vertex from cent, we know how to make a sphere...
-    Ed = cdist(g.vertices,spherefit(g.vertices));
-    v  = g.vertices ./ [Ed/3 Ed/3 Ed/3];
+    Bnd = [min(min(g.vertices)); max(max(g.vertices))]*1.1;
+    Ed  = cdist(g.vertices,spherefit(g.vertices));
+    v   = g.vertices ./ [Ed/3 Ed/3 Ed/3];
+    for i = 1:3
+        v(:,i) = rescale(v(:,i),[Bnd(1) Bnd(2)]);
+    end
     g.vertices = v;
     if verb
         fprintf('-inflating brain to full sphere\n');
