@@ -3806,6 +3806,11 @@ curv  = spm_mesh_smooth( struct('vertices',g.vertices,'faces',g.faces) , curv ,4
 %cvar  = var(curv);
 %dcurv = curv;
 
+% Compute graph laplacian for later smoothing
+A  = spm_mesh_distmtx(struct('vertices',g.vertices,'faces',g.faces),0);
+N  = size(A,1);
+GL = speye(N,N) + (A - spdiags(sum(A,2),0,N,N))/16;
+
 % inflate
 if inflate
     if verb
@@ -3832,7 +3837,12 @@ tr = triangulation(double(g.faces),double(g.vertices(:,1)),...
                                    double(g.vertices(:,2)),...
                                    double(g.vertices(:,3)) );
 g.FaceNorm   = tr.faceNormal;
-g.VertexNorm = tr.vertexNormal;           
+N            = -double(tr.vertexNormal);           
+
+normN = sqrt(sum(N.^2,2));
+normN(normN < eps) = 1;
+N     = N ./ repmat(normN,1,3);
+g.VertexNorm = N;
 
 if checkori
     b = CheckOrientationMesh(g);
@@ -3841,20 +3851,19 @@ if checkori
 end
 
 % % allow user to request that the brain is inflated right out to a sphere
-% % - we'll just replace the vertex list in the patch with the vertex normals
-% if dosphere
-%     B = [min(g.vertices); max(g.vertices)];
-%     for ij = 1:3
-%         g.vertices(:,ij) = rescale(g.VertexNorm(:,ij),B(:,ij));
-%     end
-%     if verb
-%         fprintf('-inflating brain to full sphere\n');
-%     end
-% end
-% g.dosphere = dosphere;
+if dosphere
+    % if we know radius of each vertex from cent, we know how to make a sphere...
+    Ed = cdist(g.vertices,spherefit(g.vertices));
+    v  = g.vertices ./ [Ed/3 Ed/3 Ed/3];
+    g.vertices = v;
+    if verb
+        fprintf('-inflating brain to full sphere\n');
+    end
+end
+g.dosphere = dosphere;
 
 % only one hemisphere?
-v = g.vertices;
+v = double(g.vertices);
 f = g.faces;
 c = spherefit(v);
 
@@ -3886,7 +3895,8 @@ g.fleft(lfaces,:)  = f(lfaces,:);
 g.fright           = f*NaN;
 g.fright(rfaces,:) = f(rfaces,:);
 g.curvature        = curv;
-
+g.A                = A;
+g.GL               = GL;
 
 % Left and Riht Hemi Centres
 g.left_centre = spherefit( g.vleft(~all(isnan(g.vleft)')',:) );
@@ -3912,11 +3922,10 @@ if dofillholes
             %ek = dt.ConnectivityList(:,1:3);
             ek = dt.convexHull;
             ek = edges(ek);
+            x  = [x; ek];           % new faces
         catch;
+            
         end
-        
-        
-        x       = [x; ek];           % new faces
     end
     
     x0 = x;
@@ -3934,10 +3943,10 @@ if dofillholes
             %ek = dt.ConnectivityList(:,1:3);
             ek = dt.convexHull;
             ek = edges(ek);
+            x  = [x; ek];           % new faces
         catch;
+            
         end
-        
-        x       = [x; ek];           % new faces
     end
     
     % update faces
