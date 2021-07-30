@@ -4002,7 +4002,7 @@ if ~isempty(fighnd)
     elseif ishandle(fighnd)
         % new for matlab2017b etc
         % [note editted gifti plot function]
-        h = plot(gifti(pg),'fighnd',fighnd);
+        h = plot(gty.gifti.gifti(pg),'fighnd',fighnd);
         
 %     h = patch(struct(...
 %         'vertices',  pg.vertices,...

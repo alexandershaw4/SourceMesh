@@ -69,6 +69,9 @@ Energy landscape of resting magnetoencephalography reveals frontoparietal networ
 Dominik Krzemiński et al., Network Neuroscience
 https://www.mitpressjournals.org/doi/full/10.1162/netn_a_00125
 
+Individual-fMRI-approaches reveal cerebellum and visual communities to be functionally connected in obsessive compulsive disorder
+Rajan Kashyap et al., 2021. Nature Scientific Reports. 
+https://www.nature.com/articles/s41598-020-80346-6
 
 
 # Supported filetypes
