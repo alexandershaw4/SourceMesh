@@ -117,7 +117,6 @@ in.allsides    = 0;
 in.curvednet   = 0;
 in.netscale    = [];
 in.netthresh   = [];
-in.netthresh_nonzero = [];
 
 
 % specified inputs [override defaults]
@@ -132,7 +131,6 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'peaks');       in.peaks = 1;           end
     if strcmp(varargin{i},'sourcemodel'); in.pos = varargin{i+1}; end
     if strcmp(varargin{i},'netthresh');   in.netthresh = varargin{i+1}; end
-    if strcmp(varargin{i},'netthresh_nonzero');   in.netthresh_nonzero = varargin{i+1}; end
     if strcmp(varargin{i},'roi');         in.roi = varargin{i+1}; end
     if strcmp(varargin{i},'network');     in.A   = varargin{i+1}; end
     if strcmp(varargin{i},'netscale');    in.netscale = varargin{i+1};end
@@ -376,7 +374,6 @@ end
 if isfield(inputs,'A')
     data.network.scale = i.netscale;
     data.network.netthresh = i.netthresh;
-    data.network.netthresh_nonzero = i.netthresh_nonzero;
     data = connections(data,i.A,i.colbar,i.write,i.fname,i.netcmap,i.curvednet); 
 end 
 
@@ -1091,31 +1088,8 @@ end
 
 % threshold top n-percent
 if ~isempty(data.network.netthresh)
-    fprintf('Thresholding to top %d percent\n',data.network.netthresh*100);
     nthr = data.network.netthresh;
-    tA   = triu(A);
-    vA   = spm_vec(tA);
-    [~,ord] = sort(abs(vA),'descend');
-    nc = round(length(ord)*nthr);
-    nA = vA*0;
-    nA(ord(1:nc)) = vA(ord(1:nc));
-    tA = spm_unvec(nA,tA);
-    A = tA + triu(tA)';
-end
-
-% threshold top n-percent
-if ~isempty(data.network.netthresh_nonzero)
-    fprintf('Thresholding to top %d percent of non-zero\n',data.network.netthresh*100);
-    nthr = data.network.netthresh_nonzero;
-    tA   = triu(A);
-    vA   = spm_vec(tA);
-    [~,ord] = sort(abs(vA),'descend');
-    nc = round(length(find(vA))*nthr);
-    nA = vA*0;
-    nA(ord(1:nc)) = vA(ord(1:nc));
-    tA = spm_unvec(nA,tA);
-    A = tA + triu(tA)';
-end
+    tA   = triu(A); 
 
 % Edges
 %--------------------------------------------------------------------------
