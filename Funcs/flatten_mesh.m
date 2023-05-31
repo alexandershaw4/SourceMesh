@@ -61,8 +61,8 @@ if doplot
     % plot example - brain data:
     %[dv,uv] = flatten_mesh(v);
     if ~isempty(f)
-        p = struct('faces',[f(:,1:2)],'vertices',[dv]);
-        p = patch(p);
+        pv = struct('faces',[f(:,1:2)],'vertices',[dv]);
+        p = patch(pv);
         set(p,'EdgeColor',[.4 .4 .4]);p.EdgeAlpha=.4; hold on;
     end
     

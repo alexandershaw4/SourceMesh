@@ -44,28 +44,17 @@ vi = vi(Ci);
 c = spherefit(v);
 v = v - repmat(c,[size(v,1),1]);
 
-% separate hemispheres if labelled the same in each hemisphere - e.g. the
-% HCP360/250 atlasses
-
+% separate hemispheres
 ui = unique(vi);
 for i = 1:length(ui)
 
-    x = find(vi==ui(i));
+    x = find(vi==i);
 
-    L = find(v(x,1)<0);
-    R = find(v(x,1)>0);
-    
-    % rename
-    vi(x(L)) = i;
-    vi(x(R)) = i + 180;
 end
 
-
 %save('~/code/MeshAAL/template/DenseAAL','v','vi')
-save('~/Dropbox/code/MeshAAL/template/HCP360','v','vi','f')
+save('~/code/MeshAAL/template/HarvOx','v','vi')
 
-% trisurf(f,v(:,1),v(:,2),v(:,3),'facevertexcdata',vi);
-% colormap(alexcmap); axis equal
 
 % lighter or sparser-version
 %-------------------------------------------

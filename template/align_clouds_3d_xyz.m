@@ -156,7 +156,7 @@ if nargout > 1
     %fprintf('computing gradients\n');
     Rx = Rx(:);
     % compute approx jacobian
-    delta = .08;
+    delta = exp(-8);%.08;
     for i = 1:length(Rx)
         dRx0    = Rx;
         dRx1    = Rx;

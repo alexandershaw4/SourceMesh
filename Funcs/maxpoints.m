@@ -18,3 +18,4 @@ for i = 1:n
     x(I(i)) = nan; 
     
 end
+end

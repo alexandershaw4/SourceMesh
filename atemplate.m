@@ -118,7 +118,7 @@ in.curvednet   = 0;
 in.netscale    = [];
 in.netthresh   = [];
 in.netthresh_nonzero = [];
-
+in.boundary = [];
 
 % specified inputs [override defaults]
 %--------------------------------------------------------------------------
@@ -143,6 +143,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'nodes');       in.N = varargin{i+1};     end
     if strcmp(varargin{i},'gifti');       in.g = varargin{i+1};     end
     if strcmp(varargin{i},'mesh');        in.g = varargin{i+1};     end
+    if strcmp(varargin{i},'boundary');    in.boundary = varargin{i+1};end
     if strcmp(varargin{i},'optimise');    in.optimise = varargin{i+1};end
     if strcmp(varargin{i},'post_parcel'); in.post_parcel = varargin{i+1};end
     if strcmp(varargin{i},'fillholes');   in.fillholes = 1;         end
@@ -222,6 +223,14 @@ data.mesh   = mesh;
 data = parse_plots(data,in); % Overlays, networks, tracts, nodes, videos etc.
 
 data.in = in; % Return the input options for re-run
+
+% draw boundaries of ROIs
+if ~isempty(in.boundary)
+    
+    iv = in.boundary;
+    p  = [];
+    
+end
 
 end
 
@@ -740,7 +749,12 @@ if ischar(mesh)
                 mesh.vertices = nmesh.vertices;
                 mesh.faces    = nmesh.faces;
             end
-            
+            if strcmp(lower(mesh),'def7')
+                nmesh         = gifti('bh.headbrain.TPM.gii');
+                mesh          = [];
+                mesh.vertices = nmesh.vertices;
+                mesh.faces    = nmesh.faces;
+            end
     end
     
 elseif isnumeric(mesh) && ndims(mesh)==3
@@ -1229,6 +1243,9 @@ end
 %A = spm_mesh_adjacency(data.mesh.faces);
 %[N, D] = spm_mesh_utils('neighbours',A);
 
+if isnan(opacity)
+    opacity = ones(size(opacity));
+end
 
 %curve = 1;
 % Paint edges
@@ -4530,6 +4547,7 @@ close(vidObj);
 
     
 end
+
 
 
 % MESHES:

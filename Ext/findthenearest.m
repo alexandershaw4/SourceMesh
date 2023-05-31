@@ -1,5 +1,4 @@
 function [r,c,V] = findthenearest(srchvalue,srcharray,bias)
-
 % Usage:
 % Find the nearest numerical value in an array to a search value
 % All occurances are returned as array subscripts
@@ -74,6 +73,8 @@ elseif nargout>1
     if nargout==3
         V = srcharray(r,c)+srchvalue;
     end
+end
+
 end
 
 
