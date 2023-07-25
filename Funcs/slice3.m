@@ -5,7 +5,7 @@ function slice3()
 % 
 % AS17
 
-coloff;
+%coloff;
 f_c   = gcf;
 f     = figure;
 a(1)  = subplot(1,3,1);

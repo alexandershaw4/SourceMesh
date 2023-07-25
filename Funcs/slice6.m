@@ -7,7 +7,7 @@ function slice6()
 % 
 % AS17
 
-coloff;
+%coloff;
 f_c   = gcf;
 f     = figure('Position', [622         195        1728        1139]);
 % a(1)  = subplot(2,3,1,'align');

@@ -73,6 +73,12 @@ Individual-fMRI-approaches reveal cerebellum and visual communities to be functi
 Rajan Kashyap et al., 2021. Nature Scientific Reports. 
 https://www.nature.com/articles/s41598-020-80346-6
 
+# Others (e.g. toolboxes, code, labs) using SourceMesh
+
+Energy Landscape: https://github.com/dokato/energy_landscape
+
+DMF Entropy: https://github.com/paulodder/dmf_entropy
+
 
 # Supported filetypes
 

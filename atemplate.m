@@ -1181,6 +1181,7 @@ if length(unique(strng)) == 1 && any(isnan(opacity))
     opacity = ones(size(opacity));
 end
 
+opacity = ones(size(opacity));
 
 %strng2 = [strng; thescale'];
 
@@ -1979,6 +1980,7 @@ if iscell(L)
     % curvature is first
     C = L{1};
         
+
     % spm mesh smoothing
     if data.verbose
         fprintf('-Smoothing overlay...\n');
@@ -2093,7 +2095,37 @@ if NewAx
 %         'OuterPosition', 'Clipping'}); %'XAxis', 'YAxis', 'ZAxis','Box' 'DataAspectRatio', 'TightInset','DataAspectRatioMode','PlotBoxAspectRatioMode','PlotBoxAspectRatio',
 %     setappdata(gcf, 'StoreTheLink', Link);
 end
-    
+
+% check is full source model with node indices was passed - i.e.
+% 'sourcemodel', {v vi} - as per networks (added 2023)
+if isfield(data.sourcemodel,'vi')
+    % if pos is cell, it's because we've passed both a vertex set and a
+    % vector that describes which vertex belongs to which roi
+    v  = data.sourcemodel.pos;
+    vi = data.sourcemodel.vi;
+    n  = unique(vi);
+    roi = zeros(max(n),3);
+    for i = 1:length(n)
+        these = find(vi==n(i));
+        roi(n(i),:) = spherefit(v(these,:));
+        if any(isnan(roi(n(i),:))) || any(isinf(roi(n(i),:)))
+            roi(n(i),:) = mean(v(these,:),1);
+        end
+    end
+
+    % make a projection map between reduced space and full
+    Dx = cdist(pos,roi);
+    Dx = Dx./norm(Dx);
+    mapper = 1 - Dx;
+  
+    MM = [min(L); max(L)];
+    LL = mapper*L;
+    LL = rescale(LL,MM);
+    L  = LL;
+
+end
+
+
 % if overlay,L, is same length as mesh verts, just plot!
 %--------------------------------------------------------------------------
 if length(L) == length(mesh.vertices)
@@ -2125,13 +2157,15 @@ if length(L) == length(mesh.vertices)
         % force symmetric caxis bounds
         s = max(abs(y(:))); caxis([-s s]);
         
-        [map2,map3,map4]=cubric_meg_palettes;
-        
-        kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
-        kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
-        kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
-        
-        colormap(kmap);
+        % [map2,map3,map4]=cubric_meg_palettes;
+        % 
+        % kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+        % kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+        % kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+        % 
+        % colormap(kmap);
+        kmap=brewermap([],'PRGn');
+        colormap(kmap)
         
         %colormap('jet');
         alpha 1;
@@ -2659,10 +2693,11 @@ switch lower(method)
             caxis([0 512]);
         else
             %colormap('jet');
-            [map2,map3,map4]=cubric_meg_palettes;
-            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
-            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
-            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            %[map2,map3,map4]=cubric_meg_palettes;
+            %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            kmap = brewermap([],'PRGn');
             colormap(kmap);
 
             s = max(abs(fcol(:))); caxis([-s s]);
@@ -3153,10 +3188,11 @@ switch method
         if ~NewAx
             set(mesh.h,'FaceVertexCData',y(:),'FaceColor','interp');
             
-            [map2,map3,map4]=cubric_meg_palettes;
-            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
-            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
-            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            %[map2,map3,map4]=cubric_meg_palettes;
+            %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            kmap=brewermap([],'PRGn');
             colormap(kmap);
             
         else
@@ -3241,10 +3277,11 @@ switch method
         if ~NewAx
             %colormap('jet');
             
-            [map2,map3,map4]=cubric_meg_palettes;
-            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
-            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
-            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            %[map2,map3,map4]=cubric_meg_palettes;
+            %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            kmap=brewermap([],'PRGn');
             colormap(kmap);
         else
             %colormap(ax2,'jet');
@@ -3318,10 +3355,11 @@ end
 
 if colbar && ~NewAx
     data.overlay.cb = InteractiveColorbar;
-                [map2,map3,map4]=cubric_meg_palettes;
-            kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
-            kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
-            kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            %    [map2,map3,map4]=cubric_meg_palettes;
+            %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
+            %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
+            %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
+            kmap=brewermap([],'PRGn');
             colormap(kmap);
 
     
