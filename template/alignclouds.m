@@ -11,7 +11,7 @@ M = ones(10,1);
 
 f = @(M) p2pmap(v,v0*reshape(M(1:9),[3 3])*M(10));
 
-
+%[X, fX, i] = PR_minimize(M, f, 1)
 
 end
 

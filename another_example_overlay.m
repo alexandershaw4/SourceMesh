@@ -4,10 +4,11 @@ figure,
 
 load('example_aal90_data','M')
 load DenseAAL.mat
+load pastelmap
 
-D = atemplate('mesh','def5','sourcemodel',{v vi},'overlay',M);
+D = atemplate('mesh','def6','sourcemodel',{v vi},'overlay',M,'nocolbar');
 
-% colormap(customcolormap_preset('pasteljet'))
+colormap(map)
 
 D.mesh.h.LineStyle = 'none';
 D.mesh.h.FaceAlpha=.4;

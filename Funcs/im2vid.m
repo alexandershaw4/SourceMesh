@@ -46,6 +46,7 @@ for num = 1:360
     
     switch method
         case 'quick';
+            set(gcf,'Color','none')
             currFrame = getframe(gcf);
             writeVideo(vidObj,currFrame);
         case 'background'

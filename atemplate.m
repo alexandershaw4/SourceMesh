@@ -1993,6 +1993,23 @@ if iscell(L)
     end
     
     y = spm_mesh_smooth(data.mesh, double(C(:)), 2);   % smoth it
+
+    % lower the dimensionality of the greyscale curvature
+    cut = median(y);
+    [Vmin,Imin] = min(y);
+    [Vmax,Imax] = max(y);
+    
+    segs = linspace(Vmin,Vmax,5);
+    y(y<segs(2)) = mean(segs(1:2));
+    y(y>=segs(2) & y<segs(3)) = mean(segs(2:3));
+    y(y>=segs(3) & y<segs(4)) = mean(segs(3:4));
+    y(y>=segs(4) & y<segs(5)) = mean(segs(4:5));
+
+    %y(y<cut) = mean([min(y) cut]);
+    %y(y>cut) = mean([max(y) cut]);
+    y(Imin) = Vmin;
+    y(Imax) = Vmax;
+
     percNaN = length(find(isnan(C)))/length(C)*100;
     newpNaN = length(find(isnan(y)))/length(y)*100;
     
@@ -2009,7 +2026,7 @@ if iscell(L)
     drawnow;
     shading interp
     % force symmetric caxis bounds
-    s = max(abs(y(:))); caxis([-s s]);
+    %s = max(abs(2*y(:))); caxis([-s s]);
     
 %     try
 %         themap = [flipud(othercolor('Greys9',256))];
@@ -2028,7 +2045,11 @@ if iscell(L)
         %themap = [flipud(othercolor('Greys9',256)); flipud(jet(256))];
         
         %themap = [flipud(othercolor('Greys9',256)); flipud(cmocean('balance',256))];
-        themap = [(gray(256)); flipud(cmocean('balance',256))];
+
+        load pastelmap
+        themap = [(gray(256)); flipud(map)];
+
+        %themap = [(gray(256)); flipud(cmocean('balance',256))];
         
 %         [map2,map3,map4]=cubric_meg_palettes;
 %         
@@ -2155,8 +2176,12 @@ if length(L) == length(mesh.vertices)
         drawnow;
         shading interp
         % force symmetric caxis bounds
-        s = max(abs(y(:))); caxis([-s s]);
+        s = max(abs(y(:))); 
         
+        if s ~= 0
+            caxis([-s s]);
+        end
+
         % [map2,map3,map4]=cubric_meg_palettes;
         % 
         % kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
@@ -2164,8 +2189,12 @@ if length(L) == length(mesh.vertices)
         % kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
         % 
         % colormap(kmap);
-        kmap=brewermap([],'PRGn');
-        colormap(kmap)
+        %kmap=brewermap([],'PRGn');
+        %colormap(kmap)
+
+        mp = load('pastelmap');
+        kmap = mp.map;
+        colormap(kmap);
         
         %colormap('jet');
         alpha 1;
@@ -2407,6 +2436,8 @@ switch lower(method)
                 
         %waitbar(.4,wb,'Ray casting: Smoothing');
         
+        vol = smooth3(vol,'gaussian',9);
+
         % Smooth volume
         if data.verbose
             fprintf(' +Volume Smoothing & Rescaling  ');tic;
@@ -2480,7 +2511,7 @@ switch lower(method)
                 % deault
                 if isfield(data.overlay,'depth') && ~isempty(data.overlay.depth)
                       step = data.overlay.depth;
-                else; step   = -1.5:0.05:1.5;
+                else; step   = -1.5:0.1:1.5;
                 end
                 if data.verbose
                     fprintf(' +Using depths: %d to %d mm in increments %d\n',...
@@ -2500,7 +2531,7 @@ switch lower(method)
                 % In this case, centroids are the vertices themselves
                 FaceCent = nmesh.vertices;
                 
-                step    = -1.5:0.05:1.5;
+                step    = -1.5:0.1:1.5;
                 fcol    = zeros(length(step),length(mv));
         end
     
@@ -2580,16 +2611,97 @@ switch lower(method)
                 ev(f(:,3),3) = fcol;
                 y            = max(ev')';
                 
-                % vertex interpolated colour
-                mesh.h.FaceVertexCData = y;
-                mesh.h.FaceColor = 'interp';
-                
-                data.overlay.vertexcdata = y;
-                data.overlay.facecdata   = fcol;
+                if ~NewAx
+                    % vertex interpolated colour
+                    mesh.h.FaceVertexCData = y;
+                    mesh.h.FaceColor = 'interp';
+                    
+                    data.overlay.vertexcdata = y;
+                    data.overlay.facecdata   = fcol;
+                else
+                    % if we're overlaying the functional ray-casted colours on top of the curvature
+                    computethresh = 1;
+                    if ~isempty(data.overlay.thresh) && ischar(data.overlay.thresh)
+                          thrsh = str2num(data.overlay.thresh);
+                    elseif ~isempty(data.overlay.thresh) && isnumeric(data.overlay.thresh)
+                          thr   = data.overlay.thresh;
+                          thrsh = thr;
+                          computethresh = 0;
+                    else; thrsh = .4;
+                    end
+                                        
+                    %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
+                    
+                    fcol_orig = fcol;
+                    
+                    if computethresh
+                        thr  = max(abs(fcol))*thrsh;
+                    end
+                    
+                    inan = find(abs(fcol) < thr);
+                                        
+                    falpha = 1*ones(size(fcol));
+                    falpha(inan)=0;
+                              
+                    if data.verbose
+                        fprintf(' +Rescaling overlay values\n');
+                    end
+                    
+                    % get curvature colours
+                    y0 = data.mesh.h.FaceVertexCData;
+                    
+                    % rescale y0 into colour map part 1:
+                    % 1:256
+                    y0 = 255 * (y0-min(y0))./(max(y0)-min(y0));
+
+
+                    % convert curvature vertex data to faces
+                    for i = 1:length(f)
+                        f0(i) =  max(y0(f(i,:)));
+                    end
+                    y0 = f0;
+                    
+                    % rescale fcol into colour map part 2:
+                    % 257:512
+                    m = 258;     % more stable than 257
+                    n = 512;
+                    fcol = [fcol(:); -S0; S0];
+                    fcol = n + (m - n) .* (fcol-min(fcol))./(max(fcol)-min(fcol));
+                    fcol = fcol(1:end-2);
+                    
+                    iszero = (fcol==385);
+                    falpha = falpha(:) .* ~iszero(:);
+
+                    % mask new functional colours
+                    fcol = fcol.*falpha(:);
+                    
+                    new_over = y0;
+                    these    = find(fcol);
+                    new_over(these) = fcol(these); 
+
+                    cv(f(:,1),1) = new_over;
+                    cv(f(:,2),2) = new_over;
+                    cv(f(:,3),3) = new_over;
+                    cv = max(cv')';
+
+                    % one last smooth;
+                    cv  = spm_mesh_smooth(mesh, cv(:), 4);
+                    
+                    set(data.mesh.h,'FaceVertexCData',cv);
+                    colormap(themap);
+                    data.overlay.themap=themap;
+                    
+                    cbarvals = [ zeros(256,1) ; ...
+                                 linspace(-S0,S0,256)' ];
+                    data.overlay.colbar_values = cbarvals;
+
+
+
+                end
                 
             case 'vertex'
                 % Set vertex color, using interpolated face colours
-                fcol  = spm_mesh_smooth(mesh, fcol(:), 4);
+                fcol  = spm_mesh_smooth(mesh, fcol(:), 8);
                 fcol(isnan(fcol)) = 0;
                 %fcol = [fcol; S(1); S(2)];
                 %fcol  = S(1) + ((S(2)-S(1))).*(fcol - min(fcol))./(max(fcol) - min(fcol));
@@ -2618,34 +2730,10 @@ switch lower(method)
                     end
                     
                     inan = find(abs(fcol) < thr);
-                    
-%                     if thrsh == .4 % the default
-%                         % see how much of the overlay is empty:
-%                         % if it's already 80% sparse, just thrshold by
-%                         % non-zero
-%                         if length(find(fcol)) / length(fcol) < .2
-%                             fprintf('Overlay already sparse, not thresholding\n');
-%                             inan = find(~fcol);
-%                         end
-%                         
-%                     end
-                    
+                                        
                     falpha = 1*ones(size(fcol));
                     falpha(inan)=0;
-                    
-                    %fcol = fcol.*falpha;
-                     
-                    %null = find(abs(fcol) < thr);
-                    %notnull = (abs(fcol) >= thr);
-                    
-                    % for controlling alpha
-                    %falpha = ones(size(fcol));
-                    %falpha(null) = 0;
-                    
-                    % set null space as nan
-                    %fcol(null) = NaN;
-                    
-                    
+                              
                     if data.verbose
                         fprintf(' +Rescaling overlay values\n');
                     end
@@ -2674,6 +2762,8 @@ switch lower(method)
                     new_over = y0;
                     these    = find(fcol);
                     new_over(these) = fcol(these); 
+
+                    new_over  = spm_mesh_smooth(mesh, new_over(:), 4);
                     
                     set(data.mesh.h,'FaceVertexCData',new_over(:),'FaceColor','interp');
                     colormap(themap);
@@ -2697,10 +2787,18 @@ switch lower(method)
             %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
             %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
             %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
-            kmap = brewermap([],'PRGn');
+            %kmap = brewermap([],'PRGn');
+
+            mp = load('pastelmap');
+            kmap = mp.map;
             colormap(kmap);
 
-            s = max(abs(fcol(:))); caxis([-s s]);
+        %    colormap(kmap);
+
+            s = max(abs(fcol(:))); 
+            if s ~= 0
+                caxis([-s s]);
+            end
             alpha 1;
         end
         %alpha 1;
@@ -3192,8 +3290,12 @@ switch method
             %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
             %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
             %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
-            kmap=brewermap([],'PRGn');
+            %kmap=brewermap([],'PRGn');
+            %colormap(kmap);
+            mp = load('pastelmap');
+            kmap = mp.map;
             colormap(kmap);
+
             
         else
             
@@ -3281,8 +3383,13 @@ switch method
             %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
             %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
             %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
-            kmap=brewermap([],'PRGn');
+            %kmap=brewermap([],'PRGn');
+            %colormap(kmap);
+            mp = load('pastelmap');
+            kmap = mp.map;
             colormap(kmap);
+
+
         else
             %colormap(ax2,'jet');
             caxis([0 512]);
@@ -3359,8 +3466,12 @@ if colbar && ~NewAx
             %kmap(:,1) = spm_vec([map3(:,1) map3(:,1)]');
             %kmap(:,2) = spm_vec([map3(:,2) map3(:,2)]');
             %kmap(:,3) = spm_vec([map3(:,3) map3(:,3)]');
-            kmap=brewermap([],'PRGn');
+            %kmap=brewermap([],'PRGn');
+            %colormap(kmap);
+            mp = load('pastelmap');
+            kmap = mp.map;
             colormap(kmap);
+
 
     
     
@@ -4109,6 +4220,7 @@ else
 end
 C = [.5 .5 .5];
 
+h.AmbientStrength=.8;
 set(h,'FaceColor',[C]); box off;
 grid off;  set(h,'EdgeColor','none');
 alpha(a); 

@@ -82,8 +82,13 @@ end
 axes(ax);
 %camlight;
 %camlight(-80,-10);
-camlight left
-camlight right
+
+c1 = camlight('left');
+c2 = camlight('right');
+
+c1.Color = [.1 .1 .1];
+c2.Color = [.1 .1 .1];
+
 
 lighting phong;
 %axes(ax);

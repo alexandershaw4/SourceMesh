@@ -1,3 +1,6 @@
+![multirender](sourcemesh_fig1.png)
+
+
 ![multirender](lovelybrain_pasteljet_R.png)
 
 # SourceMesh Features
