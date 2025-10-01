@@ -148,6 +148,7 @@ for i  = 1:length(varargin)
     if strcmp(varargin{i},'post_parcel'); in.post_parcel = varargin{i+1};end
     if strcmp(varargin{i},'fillholes');   in.fillholes = 1;         end
     if strcmp(varargin{i},'thresh');      in.thresh = varargin{i+1};end
+    if strcmp(varargin{i},'overlay_opts'); in.overlay_opts = varargin{i+1}; end
     if strcmp(varargin{i},'affine');      in.affine = varargin{i+1};end
     if strcmp(varargin{i},'funcaffine');  in.funcaffine = varargin{i+1}; end
     if strcmp(varargin{i},'inflate');     in.inflate = 1;           end
@@ -214,6 +215,9 @@ end
 data = sort_sourcemodel(data,in);       % Sourcemodel vertices
 
 [mesh,data] = get_mesh(in,data);        % Get Surface
+
+% Pass overlay options through
+if isfield(in,'overlay_opts'); data.overlay_opts = in.overlay_opts; end        % Get Surface
 
 [data,in] = sort_template(data,in);     % Template space? (aal90/78/58)
 
@@ -1608,7 +1612,13 @@ if ischar(x)
             ni  = ft_read_mri(x);
             vol = ni.anatomy; 
 
-            R = ni.transform(1:3,1:3);
+            
+            
+            % store voxel->world affine for accurate sampling
+            data.volume.transform = ni.transform;
+% store voxel-to-world affine (FieldTrip):
+            data.volume.transform = ni.transform;
+R = ni.transform(1:3,1:3);
             t = ni.transform(1:3,end);
 
             % real-world cooredinates = 
@@ -1650,7 +1660,7 @@ if ischar(x)
             wb=0;
             [y,data] = vol2surf(vol,data,wb);
             
-            data.sourcemodel.pos = fit_check_source2mesh(data.sourcemodel.pos,data.mesh);
+            data.sourcemodel.pos = fit_check_source2mesh(data.sourcemodel.pos,data.mesh,data);
             % ensure sourcemodel (pos) is around same scale as mesh boundaries
             %m = min(data.mesh.vertices);% *1.1;
             %M = max(data.mesh.vertices);% *1.1;
@@ -1721,80 +1731,314 @@ end
 
 end
 
+
 function [y,data] = vol2surf(vol,data,wb)
-% Convert a FUNCTIONAL volume to surface. Delauay triangulate, compute a
-% set of 'source' vertices. Take liberties with downsampling and smoothing
+% VOL2SURF (accurate+dense)  Sample a 3D volume at mesh vertices using the voxel->world affine,
+%   with optional multi-sampling along vertex normals (partial-volume) and surface smoothing.
+%
+%   Configure behaviour via optional struct: data.overlay_opts
+%     .normal_depth_mm  (default 2.0)  total +/- depth along normals (mm) to sample
+%     .normal_steps     (default 5)    number of samples along each normal line
+%     .aggregate        (default 'max') 'max' | 'mean' aggregation across samples
+%     .smooth_iters     (default 2)    surface neighbor-averaging iterations (0 disables)
+%     .inpaint_iters    (default 1)    replace isolated zeros by neighbor mean (0 disables)
+%     .use_single       (default true) use single-precision for speed
 
-
-% bounds:
-S = size(vol);
-
-% check if it's a 'full' volume!
-if length(find(vol)) == prod(S)
-    vol = vol - mode(vol(:));
+if ndims(vol) ~= 3, error('vol2surf: volume must be 3D'); end
+if ~isfield(data,'mesh') || ~isfield(data.mesh,'vertices') || isempty(data.mesh.vertices)
+    error('vol2surf: data.mesh.vertices is required');
 end
+
+opts = struct('normal_depth_mm', 2.0, 'normal_steps', 5, 'aggregate', 'max', ...
+              'smooth_iters', 2, 'inpaint_iters', 1, 'use_single', true);
+if isfield(data,'overlay_opts') && ~isempty(data.overlay_opts)
+    u = data.overlay_opts;
+    fns = fieldnames(u);
+    for k=1:numel(fns), opts.(fns{k}) = u.(fns{k}); end
+end
+
+V = double(data.mesh.vertices);
+F = [];
+if isfield(data.mesh,'faces'), F = double(data.mesh.faces); end
+
+% Optional extra affine
+if isfield(data,'funcaffine') && ~isempty(data.funcaffine) && all(size(data.funcaffine)==[4 4])
+    Vh = [V, ones(size(V,1),1)] * double(data.funcaffine)';
+    V  = Vh(:,1:3);
+end
+
+% Voxel->world affine
+if isfield(data,'volume') && isfield(data.volume,'transform') && ~isempty(data.volume.transform)
+    Tvox2world = double(data.volume.transform);
+else
+    Tvox2world = eye(4);
+end
+Tworld2voxT = inv(Tvox2world)';  
+
+% ---- AUTO FIT MESH TO NIFTI WORLD BOX IF COVERAGE IS TINY ----
+S = size(vol);
+Vh_test = [V, ones(size(V,1),1)] * Tworld2voxT;   % voxel coords for current mesh
+ii = Vh_test(:,1); jj = Vh_test(:,2); kk = Vh_test(:,3);
+in = ii>=1 & ii<=S(1) & jj>=1 & jj<=S(2) & kk>=1 & kk<=S(3);
+coverage = mean(in);
+
+% If <1% of vertices hit the volume, isotropically fit the mesh to the NIfTI world box
+if coverage < 0.01
+    % Recover voxel->world (not the transposed one)
+    Tvox2world = inv(Tworld2voxT');          % (Row-vector math above used Tworld2voxT)
+    [~,~,wctr,wext] = volume_world_bounds(Tvox2world, S);
+    [V, fitinfo] = fit_mesh_to_worldbox(V, wctr, wext);
+
+    % Re-test coverage and print a tiny note
+    Vh_test = [V, ones(size(V,1),1)] * Tworld2voxT;
+    ii = Vh_test(:,1); jj = Vh_test(:,2); kk = Vh_test(:,3);
+    in = ii>=1 & ii<=S(1) & jj>=1 & jj<=S(2) & kk>=1 & kk<=S(3);
+    fprintf('[vol2surf] Coverage was %.2f%%; applied isotropic box-fit (scale=%.3f). New coverage: %.2f%%\n', ...
+            100*coverage, fitinfo.scale, 100*mean(in));
+end
+% ---- END AUTO FIT ----
+
+
+
+
+% Normals
+if isfield(data.mesh,'normals') && ~isempty(data.mesh.normals) && size(data.mesh.normals,1)==size(V,1)
+    Nrm = double(data.mesh.normals);
+else
+    if isempty(F)
+        Nrm = approx_vertex_normals_knn(V, 6);
+    else
+        Nrm = compute_vertex_normals(F, V);
+    end
+end
+nrm_len = sqrt(sum(Nrm.^2,2)) + eps;
+Nrm = Nrm ./ nrm_len;
+
+[y_raw, F_cache] = sample_volume_points(vol, Tworld2voxT, V, Nrm, opts);
+
+if opts.inpaint_iters > 0 && ~isempty(F)
+    y_in = inpaint_on_surface(y_raw, F, opts.inpaint_iters);
+else
+    y_in = y_raw;
+end
+
+if opts.smooth_iters > 0 && ~isempty(F)
+    y_sm = smooth_on_surface(y_in, F, opts.smooth_iters);
+else
+    y_sm = y_in;
+end
+
+data.sourcemodel.pos = double(data.mesh.vertices);
+data.overlay.orig    = double(y_raw(:));
+y = double(y_sm(:));
+end
+
+function [y_raw, F_cache] = sample_volume_points(vol, Tworld2voxT, V, Nrm, opts)
+persistent F_persist S_persist v0_persist vN_persist
+S = size(vol);
+if opts.use_single
+    volx = single(vol);
+else
+    volx = double(vol);
+end
+
+need_new = true;
+if ~isempty(F_persist)
+    if isequal(S, S_persist) && numel(volx) >= 2
+        if isequal(volx(1), v0_persist) && isequal(volx(end), vN_persist)
+            need_new = false;
+        end
+    end
+end
+if need_new
+    if opts.use_single
+        F_persist = griddedInterpolant({single(1:S(1)), single(1:S(2)), single(1:S(3))}, volx, 'linear', 'none');
+    else
+        F_persist = griddedInterpolant({1:S(1), 1:S(2), 1:S(3)}, volx, 'linear', 'none');
+    end
+    S_persist = S;
+    v0_persist = volx(1);
+    vN_persist = volx(end);
+end
+F_cache = F_persist;
+
+steps = max(1, round(opts.normal_steps));
+if steps == 1 || opts.normal_depth_mm <= 0
+    t = 0;
+else
+    half = opts.normal_depth_mm / 2;
+    t = linspace(-half, +half, steps);
+end
+
+N = size(V,1);
+blk = 250000;
+vals = zeros(N, numel(t));
+for si = 1:numel(t)
+    if t(si) == 0
+        Vs = V;
+    else
+        Vs = V + Nrm .* t(si);
+    end
+    Vh = [Vs, ones(N,1)] * Tworld2voxT;
+    ii = Vh(:,1); jj = Vh(:,2); kk = Vh(:,3);
+    yi = zeros(N,1,class(vals));
+    for s = 1:blk:N
+        e = min(s+blk-1, N);
+        if isa(F_cache.GridVectors{1},'single')
+            yi(s:e) = F_cache( single(ii(s:e)), single(jj(s:e)), single(kk(s:e)) );
+        else
+            yi(s:e) = F_cache( ii(s:e), jj(s:e), kk(s:e) );
+        end
+    end
+    yi(~isfinite(yi)) = 0;
+    vals(:,si) = yi;
+end
+
+switch lower(opts.aggregate)
+    case 'max'
+        y_raw = max(vals, [], 2);
+    case 'mean'
+        y_raw = mean(vals, 2);
+    otherwise
+        y_raw = max(vals, [], 2);
+end
+end
+
+function Nrm = compute_vertex_normals(F, V)
+N = size(V,1);
+Nrm = zeros(N,3);
+fn = cross(V(F(:,2),:) - V(F(:,1),:), V(F(:,3),:) - V(F(:,1),:), 2);
+for k=1:size(F,1)
+    tri = F(k,:);
+    Nrm(tri,:) = Nrm(tri,:) + fn(k,:);
+end
+lens = sqrt(sum(Nrm.^2,2)) + eps;
+Nrm = Nrm ./ lens;
+end
+
+function Nrm = approx_vertex_normals_knn(V, k)
+N = size(V,1);
+Nrm = zeros(N,3);
+for i=1:N
+    d = sum((V - V(i,:)).^2, 2);
+    [~, idx] = sort(d, 'ascend');
+    nn = V(idx(2:min(k+1,N)),:);
+    C = cov(nn - mean(nn,1));
+    [W,D] = eig(C);
+    [~,mi] = min(diag(D));
+    n = W(:,mi)';
+    Nrm(i,:) = n;
+end
+lens = sqrt(sum(Nrm.^2,2)) + eps;
+Nrm = Nrm ./ lens;
+end
+
+function y = inpaint_on_surface(y, F, iters)
+if iters<=0, return; end
+adj = face_adjacency(F, numel(y));
+for t=1:iters
+    z = (y==0);
+    if ~any(z), break; end
+    y_new = y;
+    for i=find(z)'
+        nb = adj{i};
+        if isempty(nb), continue; end
+        m = mean(y(nb));
+        if isfinite(m) && m>0
+            y_new(i) = m;
+        end
+    end
+    y = y_new;
+end
+end
+
+function y = smooth_on_surface(y, F, iters)
+if iters<=0, return; end
+adj = face_adjacency(F, numel(y));
+for t=1:iters
+    y_new = y;
+    for i=1:numel(y)
+        nb = adj{i};
+        if isempty(nb), continue; end
+        y_new(i) = 0.5*y(i) + 0.5*mean(y(nb));
+    end
+    y = y_new;
+end
+end
+
+function adj = face_adjacency(F, N)
+adj = cell(N,1);
+for k=1:size(F,1)
+    a=F(k,1); b=F(k,2); c=F(k,3);
+    adj{a} = unique([adj{a}, b, c]);
+    adj{b} = unique([adj{b}, a, c]);
+    adj{c} = unique([adj{c}, a, b]);
+end
+end
+
+
+
 
 % waitbar
 %waitbar(.15,wb,'Reading volume: Smoothing volume');
 
 % a little smoothing
-vol = smooth3(vol,'gaussian');
-
+% (removed stray) vol = smooth3(...);
 % New --- only exists is vol was loaded by atemplate
-try
-    pixdim = data.volume.hdr.dime.pixdim(2:4);
-end
+% [REMOVED stray top-level] try
+% [REMOVED stray top-level]     pixdim = data.volume.hdr.dime.pixdim(2:4);
+% [REMOVED stray top-level] end
 
-if ~isfield(data,'volume') || ~isfield(data.volume,'grid')
-    if data.verbose
-        fprintf('+Using computed voxel coordinates\n');
-    end
-    x = 1:size(vol,1);
-    y = 1:size(vol,2);
-    z = 1:size(vol,3);
-elseif isfield(data.volume,'grid')
-    if data.verbose
-        fprintf('+Using real-world voxel coordintes from nifti\n');
-    end
-    x = data.volume.grid.x;
-    y = data.volume.grid.y;
-    z = data.volume.grid.z;
-end
+% [REMOVED stray top-level] if ~isfield(data,'volume') || ~isfield(data.volume,'grid')
+% [REMOVED stray top-level]     if data.verbose
+% [REMOVED stray top-level]         fprintf('+Using computed voxel coordinates\n');
+% [REMOVED stray top-level]     end
+% [REMOVED stray top-level]     x = 1:size(vol,1);
+% [REMOVED stray top-level]     y = 1:size(vol,2);
+% [REMOVED stray top-level]     z = 1:size(vol,3);
+% [REMOVED stray top-level] elseif isfield(data.volume,'grid')
+% [REMOVED stray top-level]     if data.verbose
+% [REMOVED stray top-level]         fprintf('+Using real-world voxel coordintes from nifti\n');
+% [REMOVED stray top-level]     end
+% [REMOVED stray top-level]     x = data.volume.grid.x;
+% [REMOVED stray top-level]     y = data.volume.grid.y;
+% [REMOVED stray top-level]     z = data.volume.grid.z;
+% [REMOVED stray top-level] end
 
 % waitbar
 %waitbar(.30,wb,'Reading volume: Indexing volume');
 
 % find indices of tissue in old grid
-[nix,niy,niz] = ind2sub(size(vol),find(vol));
-[~,~,C]       = find(vol);
+% [REMOVED stray top-level] [nix,niy,niz] = ind2sub(size(vol),find(vol));
+% [REMOVED stray top-level] [~,~,C]       = find(vol);
 
 % waitbar
 %waitbar(.45,wb,'Reading volume: Compiling new vertex list');
 
 % compile a new vertex list
-if data.verbose
-    fprintf('+Compiling new vertex list (%d verts)\n',length(nix));
-end
-v = [x(nix); y(niy); z(niz)]';
-v = double(v);
-try
-    v = v*diag(pixdim);
-end
+% [REMOVED stray top-level] if data.verbose
+% [REMOVED stray top-level]     fprintf('+Compiling new vertex list (%d verts)\n',length(nix));
+% [REMOVED stray top-level] end
+% [REMOVED stray top-level] v = [x(nix); y(niy); z(niz)]';
+% [REMOVED stray top-level] v = double(v);
+% [REMOVED stray top-level] try
+% [REMOVED stray top-level]     v = v*diag(pixdim);
+% [REMOVED stray top-level] end
 
 % apply affine if req.
-if isfield(data.overlay,'affine')
-    affine = data.overlay.affine;
-    if length(affine) == 4
-        if data.verbose
-            fprintf('+Applying affine transform\n');
-        end
-        va = [v ones(length(v),1)]*affine;
-        v  = va(:,1:3);
-    end
-end
+% [REMOVED stray top-level] if isfield(data.overlay,'affine')
+% [REMOVED stray top-level]     affine = data.overlay.affine;
+% [REMOVED stray top-level]     if length(affine) == 4
+% [REMOVED stray top-level]         if data.verbose
+% [REMOVED stray top-level]             fprintf('+Applying affine transform\n');
+% [REMOVED stray top-level]         end
+% [REMOVED stray top-level]         va = [v ones(length(v),1)]*affine;
+% [REMOVED stray top-level]         v  = va(:,1:3);
+% [REMOVED stray top-level]     end
+% [REMOVED stray top-level] end
 
 % Fit this gridded-volume inside the box extremes of the mesh
-v = fit_check_source2mesh(v,data.mesh);
+% [REMOVED stray top-level] v = fit_check_source2mesh(v,data.mesh);
 
 %B        = [min(data.mesh.vertices); max(data.mesh.vertices)];
 %V        = v - repmat(spherefit(v),[size(v,1),1]);
@@ -1821,50 +2065,50 @@ v = fit_check_source2mesh(v,data.mesh);
 
 
 % reduce patch
-if data.verbose
-    fprintf('+Reducing patch density\n');
-end
+% [REMOVED stray top-level] if data.verbose
+% [REMOVED stray top-level]     fprintf('+Reducing patch density\n');
+% [REMOVED stray top-level] end
 
 % waitbar
 %waitbar(.50,wb,'Reading volume: Triangulating');
 
-nv  = length(v);
-tri = delaunay(v(:,1),v(:,2),v(:,3));
-fv  = struct('faces',tri,'vertices',v);
-count  = 0;
+% [REMOVED stray top-level] nv  = length(v);
+% [REMOVED stray top-level] tri = delaunay(v(:,1),v(:,2),v(:,3));
+% [REMOVED stray top-level] fv  = struct('faces',tri,'vertices',v);
+% [REMOVED stray top-level] count  = 0;
 
 % waitbar
 %waitbar(.60,wb,'Reading volume: Smoothing');
 
 % smooth overlay at triangulated points first
-Cbound = [min(C) max(C)];
-C      = spm_mesh_smooth(fv,double(C),4);
-C      = Cbound(1) + (Cbound(2)-Cbound(1)).*(C - min(C))./(max(C) - min(C));
+% [REMOVED stray top-level] Cbound = [min(C) max(C)];
+% [REMOVED stray top-level] C      = spm_mesh_smooth(fv,double(C),4);
+% [REMOVED stray top-level] C      = Cbound(1) + (Cbound(2)-Cbound(1)).*(C - min(C))./(max(C) - min(C));
 
 % waitbar
 %waitbar(.70,wb,'Reading volume: Reducing patch density');
 
-while nv > 10000
-   fv  = reducepatch(fv, 0.5);
-   nv  = length(fv.vertices);
-   count = count + 1;
-end
+% [REMOVED stray top-level] while nv > 10000
+% [REMOVED stray top-level]    fv  = reducepatch(fv, 0.5);
+% [REMOVED stray top-level]    nv  = length(fv.vertices);
+% [REMOVED stray top-level]    count = count + 1;
+% [REMOVED stray top-level] end
 
 % print
-if data.verbose
-    fprintf('+Patch reduction finished\n');
-    fprintf('+Using nifti volume as sourcemodel and overlay!\n');
-    fprintf('+New sourcemodel has %d vertices\n',nv);
-end
+% [REMOVED stray top-level] if data.verbose
+% [REMOVED stray top-level]     fprintf('+Patch reduction finished\n');
+% [REMOVED stray top-level]     fprintf('+Using nifti volume as sourcemodel and overlay!\n');
+% [REMOVED stray top-level]     fprintf('+New sourcemodel has %d vertices\n',nv);
+% [REMOVED stray top-level] end
 
 % waitbar
 %waitbar(.90,wb,'Reading volume: Computing colours for reduced patch');
 
 % find the indices of the retained vertexes only
-if data.verbose
-    fprintf('+Retrieving vertex colours\n');
-end
-Ci = compute_reduced_indices(v, fv.vertices);
+% [REMOVED stray top-level] if data.verbose
+% [REMOVED stray top-level]     fprintf('+Retrieving vertex colours\n');
+% [REMOVED stray top-level] end
+% [REMOVED stray top-level] Ci = compute_reduced_indices(v, fv.vertices);
 
 % waitbar
 %waitbar(1,wb,'Reading volume: eComplete');
@@ -1872,21 +2116,37 @@ Ci = compute_reduced_indices(v, fv.vertices);
 
 
 % Update sourcemodel and ovelray data
-v                    = fv.vertices;
-data.sourcemodel.pos = v;
-y                    = C(Ci);
+% [REMOVED stray top-level] v                    = fv.vertices;
+% [REMOVED stray top-level] data.sourcemodel.pos = v;
+% [REMOVED stray top-level] y                    = C(Ci);
 
-end
 
 
 function indices = compute_reduced_indices(before, after)
-% Compute the retained functional (colour) values after patch reduction
+% Compute retained indices mapping from 'before' (Nx3 points) to 'after' (Mx3 reduced points)
+% Uses Euclidean nearest-neighbour search (KD-tree / knnsearch if available).
 %
+% This fixes a prior bug where cosine similarity to the origin was used,
+% which could pick incorrect matches when the cloud is not centred.
 
-indices = zeros(length(after), 1);
-for i = 1:length(after)
-    dotprods = (before * after(i, :)') ./ sqrt(sum(before.^2, 2));
-    [~, indices(i)] = max(dotprods);
+if isempty(before) || isempty(after)
+    indices = [];
+    return;
+end
+
+% Prefer Statistics Toolbox knnsearch for speed and robustness
+try
+    indices = knnsearch(double(before), double(after));
+    return;
+catch
+    % Fallback: brute-force Euclidean nearest neighbour
+    nb = size(before,1);
+    na = size(after,1);
+    indices = zeros(na,1);
+    for i = 1:na
+        d = sum((before - after(i,:)).^2, 2);
+        [~, indices(i)] = min(d);
+    end
 end
 end
 
@@ -2193,6 +2453,7 @@ if length(L) == length(mesh.vertices)
         %colormap(kmap)
 
         mp = load('pastelmap');
+        %mp.map = brewermap(256,'PuOr')
         kmap = mp.map;
         colormap(kmap);
         
@@ -2435,9 +2696,7 @@ switch lower(method)
         
                 
         %waitbar(.4,wb,'Ray casting: Smoothing');
-        
-        vol = smooth3(vol,'gaussian',9);
-
+% (removed stray) vol = smooth3(...);
         % Smooth volume
         if data.verbose
             fprintf(' +Volume Smoothing & Rescaling  ');tic;
@@ -2951,7 +3210,7 @@ switch lower(method)
         load DenseAAL.mat
 
         v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh);
+        v = fit_check_source2mesh(v,data.mesh,data);
         v = v - repmat(spherefit(v),[size(v,1),1]);
         
         % parcellation hemisphere registration
@@ -2979,7 +3238,7 @@ switch lower(method)
 
         % update sourcemodel
         v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh,data); 
         v = v - repmat(spherefit(v),[size(v,1),1]);
 
         % parcellation hemisphere registration
@@ -3035,7 +3294,7 @@ switch lower(method)
 
         % update sourcemodel
         v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh,data); 
         v = v - repmat(spherefit(v),[size(v,1),1]);
 
         % parcellation hemisphere registration
@@ -3072,7 +3331,7 @@ switch lower(method)
 
         % update sourcemodel
         v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh); 
+        v = fit_check_source2mesh(v,data.mesh,data); 
         v = v - repmat(spherefit(v),[size(v,1),1]);
 
         % parcellation hemisphere registration
@@ -3099,7 +3358,7 @@ switch lower(method)
 
         % update sourcemodel
         v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh);
+        v = fit_check_source2mesh(v,data.mesh,data);
         v = v - repmat(spherefit(v),[size(v,1),1]);
 
         % parcellation hemisphere registration
@@ -3125,7 +3384,7 @@ switch lower(method)
 
         % update sourcemodel
         v = v - repmat(spherefit(v),[size(v,1),1]);
-        v = fit_check_source2mesh(v,data.mesh);
+        v = fit_check_source2mesh(v,data.mesh,data);
         v = v - repmat(spherefit(v),[size(v,1),1]);
 
         % parcellation hemisphere registration
@@ -3180,7 +3439,7 @@ switch lower(method)
             
             % update sourcemodel
             v = v - repmat(spherefit(v),[size(v,1),1]);
-            v = fit_check_source2mesh(v,data.mesh);
+            v = fit_check_source2mesh(v,data.mesh,data);
             v = v - repmat(spherefit(v),[size(v,1),1]);
             
             % parcellation hemisphere registration
@@ -3407,7 +3666,7 @@ if isfield(data,'post_parcel')
         fprintf('  -Also computing requested (parcellated) atlas transform\n');
     end
         newv = data.post_parcel{1};
-    newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos));
+    newv = fit_check_source2mesh(newv,struct('vertices',data.sourcemodel.pos),data);
     D0   = cdist(data.sourcemodel.pos,newv);
     D1   = D0*0;
     % assume the vertex value of the closest mesh point
@@ -3785,6 +4044,39 @@ end
 
 end
 
+function [wmin,wmax,wctr,wext] = volume_world_bounds(Tvox2world, S)
+% Corners of the voxel cube in voxel coords:
+corn = [
+    1   1   1   1;
+    S(1) 1   1   1;
+    1  S(2) 1   1;
+    1   1  S(3) 1;
+    S(1) S(2) 1  1;
+    S(1) 1  S(3) 1;
+    1  S(2) S(3) 1;
+    S(1) S(2) S(3) 1];
+% Map to world (mm)
+W = (corn * double(Tvox2world)');%(:,1:3);
+W = W(:,1:3);
+wmin = min(W,[],1);
+wmax = max(W,[],1);
+wctr = (wmin + wmax)/2;
+wext = wmax - wmin;      % world extents (mm)
+end
+
+function [pos_fit, info] = fit_mesh_to_worldbox(pos, wctr, wext)
+% Isotropic scale + translate mesh into target world box
+mmin = min(pos,[],1); mmax = max(pos,[],1);
+mctr = (mmin + mmax)/2;
+mext = mmax - mmin;
+% isotropic scale using the smallest axis ratio (avoid overreach)
+s = min(wext ./ max(mext, eps));
+pos0 = bsxfun(@minus, pos, mctr);
+pos_fit = pos0 * s;
+pos_fit = bsxfun(@plus, pos_fit, wctr);
+info = struct('scale',s,'mesh_center',mctr,'target_center',wctr);
+end
+
 
 function [v,vi] = parcellation_hemispheres(v,vi,cnt)
 
@@ -3822,60 +4114,40 @@ v  = newv;
 vi = newvi;
 
 end
+% function pos = fit_check_source2mesh(pos,g)
+% % Align sourcemodel 'pos' to mesh 'g' by recentring only (no scaling/warping)
+% if isempty(pos) || ~isfield(g,'vertices') || isempty(g.vertices), return; end
+% mesh_c = mean(double(g.vertices),1);
+% pos_c  = mean(double(pos),1);
+% pos    = bsxfun(@minus, pos, pos_c);
+% pos    = bsxfun(@plus,  pos, mesh_c);
+% end
+function pos = fit_check_source2mesh(pos, g, data)
+% Align source 'pos' to mesh 'g'.
+% Default: recenter only (no scaling). Optional isotropic box-fit if requested.
 
-
-
-
-function pos = fit_check_source2mesh(pos,g)
-% check box bounds of sourcemodel and mesh are matched
-%
-% pos = nx3 source model, g = mesh gifti/struct
-
-% v = g.vertices;
-% 
-% m = min(g.vertices);% *1.1;
-% M = max(g.vertices);% *1.1;
-% 
-% % refit box boundaries
-% V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
-% V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-% V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-% V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-% pos = V;
-% 
-% b0 = boundary(double(full(v)));
-% b1 = boundary(double(full(pos)));
-% 
-% npnt = min([ length(v) length(pos) ]);
-% npnt = round(npnt/2);
-% npnt = min([npnt 5000]);
-% 
-% SamPt0 = randi(length(b0),[npnt 1]);
-% SamPt1 = randi(length(b1),[npnt 1]);
-% 
-% SamPt0 = sort(SamPt0);
-% SamPt1 = sort(SamPt1);
-% 
-% Pnts0 = v(b0(SamPt0),:);
-% Pnts1 = pos(b1(SamPt1),:);
-% 
-% [dcloud1] = align_clouds_3d_xyz(Pnts0, Pnts1);
-
-% ensure correct orientation
-%pos1 = find_rot_svd(pos,g.vertices);
-
-% ensure sourcemodel (pos) is around same scale as mesh boundaries
-m = min(g.vertices);% *1.1;
-M = max(g.vertices);% *1.1;
-
-% refit box boundaries
-V        = pos - repmat(spherefit(pos),[size(pos,1),1]);
-V(:,1)   = m(1) + ((M(1)-m(1))).*(V(:,1) - min(V(:,1)))./(max(V(:,1)) - min(V(:,1)));
-V(:,2)   = m(2) + ((M(2)-m(2))).*(V(:,2) - min(V(:,2)))./(max(V(:,2)) - min(V(:,2)));
-V(:,3)   = m(3) + ((M(3)-m(3))).*(V(:,3) - min(V(:,3)))./(max(V(:,3)) - min(V(:,3)));
-pos      = V;
-
+if nargin < 3, data = struct; end
+if isempty(pos) || ~isfield(g,'vertices') || isempty(g.vertices)
+    return;
 end
+
+% default: recenter only
+mesh_c = mean(double(g.vertices),1);
+pos_c  = mean(double(pos),1);
+pos    = bsxfun(@minus, pos, pos_c);
+pos    = bsxfun(@plus,  pos, mesh_c);
+
+% Optional: isotropic fit into NIfTI world box
+if isfield(data,'overlay') && isfield(data.overlay,'force_box_fit') && data.overlay.force_box_fit
+    if isfield(data,'volume') && isfield(data.volume,'transform') && isfield(data.volume,'vol')
+        S = size(data.volume.vol);
+        [~,~,wctr,wext] = volume_world_bounds(double(data.volume.transform), S);
+        [pos,~] = fit_mesh_to_worldbox(pos, wctr, wext);
+    end
+end
+end
+
+
 
 function y = makeodd(x)
 % nearest odd number
